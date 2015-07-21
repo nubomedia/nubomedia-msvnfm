@@ -1,38 +1,76 @@
-repositories {
-    mavenCentral()
-    mavenLocal()
+plugins {
+    id 'net.researchgate.release' version '2.1.2'
 }
-buildscript {
-    repositories {
-        mavenCentral()
-        mavenLocal()
-    }
-    dependencies {
-        classpath("org.springframework.boot:spring-boot-gradle-plugin:1.2.3.RELEASE")
-    }
-}
-apply plugin: "spring-boot"
+
+apply from: 'openbaton-libs/gradle/gradle/git.release.gradle'
+
 apply plugin: "java"
 apply plugin: 'maven'
-apply plugin: "jacoco"
 
+apply plugin: "jacoco"
 test { finalizedBy jacocoTestReport }
 
+apply from: 'openbaton-libs/gradle/gradle/command.line.helper.gradle'
+apply from: 'openbaton-libs/gradle/gradle/git.helpers.gradle'
+
+version = '0.3-SNAPSHOT'
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
 
-mainClassName = 'org.project.openbaton.vnfm.MediaServerManager'
 
+project.ext {
+    //------------------------------------------------//
+    /**
+     * Spring Related Variables
+     */
+    springVersion = '4.1.7.RELEASE'
+    springBootVersion = '1.2.5.RELEASE'
+    //------------------------------------------------//
+    //------------------------------------------------//
+    /**
+     * Application Related Version
+     */
+    applicationVersion = "0.4-alpha"
+    applicationVersionDebian = "1";
 
-dependencies {
-    compile 'org.springframework:spring-jms:4.1.6.RELEASE'
+    applicationRelease = isApplicationRelease()
+    applicationDate = new Date()
+    applicationRevision = getRevision()
 
-    compile 'org.project.openbaton:vnfm-sdk:0.5-SNAPSHOT'
+    applicationVersionSnapshot = (!applicationRelease) ? "+SNAPSHOT.${asUTC(applicationDate, 'yyMMddHHmm')}.git${applicationRevision}" : ""
+    applicationVersionFull = "${applicationVersion}${applicationVersionSnapshot}"
+    //------------------------------------------------//
+    //------------------------------------------------//
+    /**
+     * gradle Related Vars
+     */
+    mainClass = 'org.project.openbaton.vnfm.MediaServerManager'
+    //------------------------------------------------//
+}
+apply from: 'openbaton-libs/gradle/gradle/application.java.gradle'
 
-    compile 'org.project.openbaton:clients-int:0.2-SNAPSHOT'
-    runtime 'org.project.openbaton:clients-impl:0.2-SNAPSHOT'
+repositories {
+    mavenCentral()
 }
 
+dependencies {
+//    compile 'org.springframework:spring-jms:' + springVersion
+    compile project(':vnfm-sdk')
+    compile project(':vim-drivers')
+
+    compile ('org.apache.jclouds.driver:jclouds-slf4j:1.9.0')
+    compile ('org.apache.jclouds.driver:jclouds-sshj:1.9.0')
+    compile ('org.apache.jclouds.api:openstack-keystone:1.9.0')
+    compile ('org.apache.jclouds.api:openstack-nova:1.9.0')
+    compile ('org.apache.jclouds.api:openstack-swift:1.9.0')
+    compile ('org.apache.jclouds.api:openstack-cinder:1.9.0')
+    compile ('org.apache.jclouds.api:openstack-trove:1.9.0')
+    compile ('org.apache.jclouds.labs:openstack-glance:1.9.0')
+    compile ('org.apache.jclouds.labs:openstack-neutron:1.9.0')
+    compile ('org.apache.jclouds.labs:openstack-marconi:1.9.0')
+}
+
+apply from: 'openbaton-libs/gradle/gradle/run.application.java.gradle'
 
 // tag::wrapper[]
 task wrapper(type: Wrapper) {
