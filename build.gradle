@@ -1,0 +1,41 @@
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+buildscript {
+    repositories {
+        mavenCentral()
+        mavenLocal()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:1.2.3.RELEASE")
+    }
+}
+apply plugin: "spring-boot"
+apply plugin: "java"
+apply plugin: 'maven'
+apply plugin: "jacoco"
+
+test { finalizedBy jacocoTestReport }
+
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+
+mainClassName = 'org.project.openbaton.vnfm.MediaServerManager'
+
+
+dependencies {
+    compile 'org.springframework:spring-jms:4.1.6.RELEASE'
+
+    compile 'org.project.openbaton:vnfm-sdk:0.5-SNAPSHOT'
+
+    compile 'org.project.openbaton:clients-int:0.2-SNAPSHOT'
+    runtime 'org.project.openbaton:clients-impl:0.2-SNAPSHOT'
+}
+
+
+// tag::wrapper[]
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.4'
+}
+// end::wrapper[]
