@@ -160,7 +160,7 @@ public class ResourceManagement {
         return networks;
     }
 
-    public boolean grantLifecycleOperation(VirtualNetworkFunctionRecord vnfr) throws JMSException, NamingException {
+    public VirtualNetworkFunctionRecord grantLifecycleOperation(VirtualNetworkFunctionRecord vnfr) throws Exception {
         CoreMessage coreMessage = new CoreMessage();
         coreMessage.setAction(Action.GRANT_OPERATION);
         coreMessage.setPayload(vnfr);
@@ -176,9 +176,11 @@ public class ResourceManagement {
             coreMessage.setAction(Action.ERROR);
             coreMessage.setPayload(vnfr);
             UtilsJMS.sendToQueue(coreMessage, "vnfm-core-actions");
-            return false;
+            log.warn("LifecycleOperation of Allocation is not granted");
+            throw new Exception();
         }
-        return true;
+        log.info("LifecycleOperation of Allocation is granted");
+        return message.getPayload();
     }
 
 }

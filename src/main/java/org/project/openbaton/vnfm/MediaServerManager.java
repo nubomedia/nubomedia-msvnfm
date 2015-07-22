@@ -65,14 +65,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
             List<Future<String>> ids = new ArrayList<>();
             try {
                 //GrantingLifecycleOperation for initial Allocation
-                boolean isGranted = false;
-                isGranted = resourceManagement.grantLifecycleOperation(vnfr);
-                if (isGranted == true) {
-                    log.info("LifecycleOperation of Allocation is granted");
-                } else {
-                    log.warn("LifecycleOperation of Allocation is not granted");
-                }
-
+                vnfr = resourceManagement.grantLifecycleOperation(vnfr);
                 //Allocate Resources
                 for(VirtualDeploymentUnit vdu : vnfr.getVdu()) {
                     ids.add(resourceManagement.allocate(vnfr, vdu));
@@ -95,6 +88,8 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                 log.error(e.getMessage(), e);
             } catch (NotFoundException e) {
                 log.error(e.getMessage(), e);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
         log.trace("I've finished initialization of vnf " + vnfr.getName() + " in facts there are only " + vnfr.getLifecycle_event().size() + " events");
