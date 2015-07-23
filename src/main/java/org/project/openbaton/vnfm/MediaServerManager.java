@@ -1,15 +1,10 @@
 package org.project.openbaton.vnfm;
 
 import javassist.NotFoundException;
-import org.project.openbaton.catalogue.mano.common.DeploymentFlavour;
 import org.project.openbaton.catalogue.mano.common.Event;
-import org.project.openbaton.catalogue.mano.common.LifecycleEvent;
-import org.project.openbaton.catalogue.mano.descriptor.VNFComponent;
-import org.project.openbaton.catalogue.mano.descriptor.VNFDConnectionPoint;
 import org.project.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.project.openbaton.catalogue.nfvo.*;
-import org.project.openbaton.clients.exceptions.VimDriverException;
 import org.project.openbaton.clients.interfaces.ClientInterfaces;
 import org.project.openbaton.common.vnfm_sdk.jms.AbstractVnfmSpringJMS;
 import org.project.openbaton.vnfm.core.ElasticityManagement;
@@ -22,13 +17,11 @@ import org.springframework.jms.core.JmsTemplate;
 import org.springframework.util.ClassUtils;
 
 import javax.jms.JMSException;
-import javax.jms.ObjectMessage;
 import javax.naming.NamingException;
 import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -143,7 +136,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     }
 
     @Override
-    public void terminate() {
+    public void terminate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
 
     }
 
