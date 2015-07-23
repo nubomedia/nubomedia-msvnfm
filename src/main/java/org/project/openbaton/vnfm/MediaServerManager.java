@@ -137,7 +137,21 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
 
     @Override
     public void terminate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
-
+        log.info("Terminating vnfr with id " + virtualNetworkFunctionRecord.getId());
+        for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
+            try {
+                log.debug("Releasing resources for vdu with id " + vdu.getId());
+                resourceManagement.release(virtualNetworkFunctionRecord, vdu);
+                log.debug("Released resources for vdu with id " + vdu.getId());
+            } catch (NotFoundException e) {
+                log.error(e.getMessage(), e);
+            }
+        }
+        log.info("Terminated vnfr with id " + virtualNetworkFunctionRecord.getId());
+        CoreMessage coreMessage = new CoreMessage();
+        coreMessage.setAction(Action.RELEASE_RESOURCES);
+        coreMessage.setPayload(virtualNetworkFunctionRecord);
+        this.sendMessageToQueue("vnfm-core-actions", coreMessage);
     }
 
     @Override

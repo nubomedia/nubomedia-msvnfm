@@ -84,6 +84,8 @@ public class ResourceManagement {
 
     public void release(VirtualNetworkFunctionRecord vnfr, VirtualDeploymentUnit vdu) throws NotFoundException {
         clientInterfaces.init(vdu.getVimInstance());
+        if (vdu.getExtId() == null)
+            return;
         //Get server from cloud environment
         Server server = null;
         List<Server> serverList = clientInterfaces.listServer();
@@ -105,7 +107,8 @@ public class ResourceManagement {
         //Terminate server and wait unitl finished
         clientInterfaces.deleteServerByIdAndWait(vdu.getExtId());
         //Remove corresponding vdu from vnfr
-        vnfr.getVdu().remove(vdu);
+        vdu.setExtId(null);
+        //vnfr.getVdu().remove(vdu);
     }
 
     public int getMeasurementResults(VirtualDeploymentUnit vdu, String metric) {
