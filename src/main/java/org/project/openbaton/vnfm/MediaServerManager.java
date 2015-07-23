@@ -1,28 +1,27 @@
 package org.project.openbaton.vnfm;
 
-import org.project.openbaton.catalogue.mano.common.DeploymentFlavour;
+import javassist.NotFoundException;
 import org.project.openbaton.catalogue.mano.common.Event;
-import org.project.openbaton.catalogue.mano.common.LifecycleEvent;
-import org.project.openbaton.catalogue.mano.descriptor.VNFComponent;
-import org.project.openbaton.catalogue.mano.descriptor.VNFDConnectionPoint;
 import org.project.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.project.openbaton.catalogue.nfvo.*;
-import org.project.openbaton.clients.exceptions.VimDriverException;
 import org.project.openbaton.clients.interfaces.ClientInterfaces;
 import org.project.openbaton.common.vnfm_sdk.jms.AbstractVnfmSpringJMS;
+import org.project.openbaton.vnfm.core.ElasticityManagement;
+import org.project.openbaton.vnfm.core.LifecycleManagement;
+import org.project.openbaton.vnfm.core.ResourceManagement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.util.ClassUtils;
 
-import javax.jms.ObjectMessage;
+import javax.jms.JMSException;
+import javax.naming.NamingException;
 import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -37,127 +36,61 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     @Autowired
     private JmsTemplate jmsTemplate;
 
+    @Autowired
+    ResourceManagement resourceManagement;
+
+    @Autowired
+    ElasticityManagement elasticityManagement;
+
+    @Autowired
+    LifecycleManagement lifecycleManagement;
+
     private ClientInterfaces clientInterfaces;
 
     @Override
     public void instantiate(VirtualNetworkFunctionRecord vnfr) {
         log.info("Instantiation of VirtualNetworkFunctionRecord " + vnfr.getName());
         log.trace("Instantiation of VirtualNetworkFunctionRecord " + vnfr);
-        boolean allocate = false;
-
         log.debug("Number of events: " + vnfr.getLifecycle_event().size());
 
-        List<Future<String>> ids = new ArrayList<>();
-        for (LifecycleEvent event : vnfr.getLifecycle_event()){
+        Set<Event> events = lifecycleManagement.listEvents(vnfr);
+        if (events.contains(Event.ALLOCATE)) {
+            List<Future<String>> ids = new ArrayList<>();
             try {
-                if (event.getEvent().ordinal() == Event.ALLOCATE.ordinal()){
-                    /**
-                     * Grant Op
-                     */
-                    CoreMessage coreMessage = new CoreMessage();
-                    coreMessage.setAction(Action.GRANT_OPERATION);
-                    coreMessage.setPayload(vnfr);
-                    this.sendMessageToQueue("vnfm-core-actions", coreMessage);
-
-                    jmsTemplate.setPubSubDomain(true);
-                    jmsTemplate.setPubSubNoLocal(true);
-                    CoreMessage message = (CoreMessage) ((ObjectMessage) jmsTemplate.receive("core-vnfm-actions")).getObject();
-                    jmsTemplate.setPubSubDomain(false);
-                    jmsTemplate.setPubSubNoLocal(false);
-                    if (message.getAction() == Action.ERROR) {
-                        coreMessage = new CoreMessage();
-                        coreMessage.setAction(Action.ERROR);
-                        coreMessage.setPayload(vnfr);
-                        this.sendMessageToQueue("vnfm-core-actions", coreMessage);
-                        throw new Exception();
-                    }
-                    vnfr = message.getPayload();
-                    log.debug("version is: " + vnfr.getHb_version());
-
-                    if(vnfr.getLifecycle_event_history() == null)
-                        vnfr.setLifecycle_event_history(new HashSet<LifecycleEvent>());
-                    vnfr.getLifecycle_event_history().add(event);
-                    vnfr.getLifecycle_event().remove(event);
-                    for(VirtualDeploymentUnit vdu : vnfr.getVdu()) {
-                        //Initialize VimInstance
-                        VimInstance vimInstance = vdu.getVimInstance();
-                        log.trace("Initializing " + vimInstance);
-                        clientInterfaces.init(vimInstance);
-                        log.debug("initialized VimInstance");
-                        //Set Hostname
-                        vdu.setHostname(vnfr.getName() + "-" + vdu.getId().substring((vdu.getId().length() - 5), vdu.getId().length() - 1));
-                        //Fetch image id
-                        String image_id = null;
-                        if (vdu.getVm_image() != null && vdu.getVm_image().size() > 0) {
-                            for (String image : vdu.getVm_image()) {
-                                for (NFVImage nfvImage : vimInstance.getImages()) {
-                                    if (image.equals(nfvImage.getName()) || image.equals(nfvImage.getExtId()))
-                                        image_id = nfvImage.getExtId();
-                                }
-                            }
-                        }
-                        if (image_id == null)
-                            throw new Exception("Image(s): " + vdu.getVm_image() + " not found.");
-                        //Fetch flavor id
-                        String flavor_id = null;
-                        for (DeploymentFlavour flavor : vimInstance.getFlavours()) {
-                            if (vnfr.getDeployment_flavour_key().equals(flavor.getFlavour_key())) {
-                                flavor_id = flavor.getExtId();
-                            }
-                        }
-                        if (flavor_id == null)
-                            throw new Exception("Flavor: " + vnfr.getDeployment_flavour_key() + " not found.");
-                        //Set networks
-                        Set<String> networks = new HashSet<String>();
-                        for (VNFComponent vnfc: vdu.getVnfc()) {
-                            for (VNFDConnectionPoint vnfdConnectionPoint : vnfc.getConnection_point())
-                                networks.add(vnfdConnectionPoint.getExtId());
-                        }
-
-                        log.trace("" + vnfr);
-                        log.trace("");
-                        log.trace("Params: " + vdu.getHostname() + " - " + image_id + " - " + flavor_id + " - " + vimInstance.getKeyPair() + " - " + networks + " - " + vimInstance.getSecurityGroups());
-                        //Launch Server
-                        Server server = null;
-                        try {
-                            server = clientInterfaces.launchInstanceAndWait(vdu.getHostname(), image_id, flavor_id, vimInstance.getKeyPair(), networks, vimInstance.getSecurityGroups(), "#userdata");
-                        } catch (VimDriverException e) {
-                            log.error("Cannot launch vdu.", e);
-                        }
-                        log.debug("launched instance with id " + server.getExtId());
-                        //Set external id
-                        vdu.setExtId(server.getExtId());
-                        //Set ips
-                        for (String network : server.getIps().keySet()) {
-                            for (String ip : server.getIps().get(network)) {
-                                vnfr.getVnf_address().add(ip);
-                            }
-                        }
-                    }
-                    for(Future<String> id : ids) {
-                        try {
-                            log.debug("Created VDU with id: " + id.get());
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        } catch (ExecutionException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    allocate = true;
-                    break;
+                //GrantingLifecycleOperation for initial Allocation
+                vnfr = resourceManagement.grantLifecycleOperation(vnfr);
+                //Allocate Resources
+                for(VirtualDeploymentUnit vdu : vnfr.getVdu()) {
+                    ids.add(resourceManagement.allocate(vnfr, vdu));
                 }
+                //Print ids of deployed VDUs
+                for(Future<String> id : ids) {
+                    try {
+                        log.debug("Created VDU with id: " + id.get());
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    } catch (ExecutionException e) {
+                        e.printStackTrace();
+                    }
+                }
+                //Put EVENT ALLOCATE to history
+                lifecycleManagement.removeEvent(vnfr, Event.ALLOCATE);
+            } catch (JMSException e) {
+                log.error(e.getMessage(), e);
+            } catch (NamingException e) {
+                log.error(e.getMessage(), e);
+            } catch (NotFoundException e) {
+                log.error(e.getMessage(), e);
             } catch (Exception e) {
-                log.error(e.getMessage());
+                e.printStackTrace();
             }
-        } // for
+        }
         log.trace("I've finished initialization of vnf " + vnfr.getName() + " in facts there are only " + vnfr.getLifecycle_event().size() + " events");
         CoreMessage coreMessage = new CoreMessage();
         coreMessage.setAction(Action.INSTANTIATE_FINISH);
         coreMessage.setPayload(vnfr);
         this.sendMessageToQueue("vnfm-core-actions", coreMessage);
     }
-
-
 
     @Override
     public void query() {
@@ -166,7 +99,8 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
 
     @Override
     public void scale() {
-
+        //elasticityManagement.init(vnfr);
+        //elasticityManagement.activate();
     }
 
     @Override
@@ -202,13 +136,28 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     }
 
     @Override
-    public void terminate() {
-
+    public void terminate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
+        log.info("Terminating vnfr with id " + virtualNetworkFunctionRecord.getId());
+        for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
+            try {
+                log.debug("Releasing resources for vdu with id " + vdu.getId());
+                resourceManagement.release(virtualNetworkFunctionRecord, vdu);
+                log.debug("Released resources for vdu with id " + vdu.getId());
+            } catch (NotFoundException e) {
+                log.error(e.getMessage(), e);
+            }
+        }
+        log.info("Terminated vnfr with id " + virtualNetworkFunctionRecord.getId());
+        CoreMessage coreMessage = new CoreMessage();
+        coreMessage.setAction(Action.RELEASE_RESOURCES);
+        coreMessage.setPayload(virtualNetworkFunctionRecord);
+        this.sendMessageToQueue("vnfm-core-actions", coreMessage);
     }
 
     @Override
     public void run(String... args) throws Exception {
         getPlugin();
+        resourceManagement.init(jmsTemplate, clientInterfaces);
         super.run(args);
 
     }
