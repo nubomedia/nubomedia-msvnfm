@@ -15,11 +15,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Scope;
 import org.springframework.jms.core.JmsTemplate;
+import org.springframework.jms.core.MessageCreator;
 import org.springframework.scheduling.annotation.AsyncResult;
+import org.springframework.stereotype.Service;
 
 import javax.jms.JMSException;
+import javax.jms.Message;
 import javax.jms.ObjectMessage;
+import javax.jms.Session;
 import javax.naming.NamingException;
 import java.util.HashSet;
 import java.util.List;
@@ -30,8 +35,8 @@ import java.util.concurrent.Future;
  * Created by mpa on 07.07.15.
  */
 
-@SpringBootApplication
-@ComponentScan(basePackages = "org.project.openbaton.clients")
+@Service
+@Scope("prototype")
 public class ResourceManagement {
 
     protected Logger log = LoggerFactory.getLogger(this.getClass());
@@ -167,7 +172,20 @@ public class ResourceManagement {
         CoreMessage coreMessage = new CoreMessage();
         coreMessage.setAction(Action.GRANT_OPERATION);
         coreMessage.setPayload(vnfr);
-        UtilsJMS.sendToQueue(coreMessage, "vnfm-core-actions");
+//        UtilsJMS.sendToQueue(coreMessage, "vnfm-core-actions");
+
+        final CoreMessage finalCoreMessage = coreMessage;
+        MessageCreator messageCreator = new MessageCreator() {
+            @Override
+            public Message createMessage(Session session) throws JMSException {
+                ObjectMessage textMessage = session.createObjectMessage(finalCoreMessage);
+                return textMessage;
+            }
+        };
+        jmsTemplate.setPubSubDomain(false);
+        jmsTemplate.setPubSubNoLocal(false);
+
+        jmsTemplate.send("vnfm-core-actions", messageCreator);
 
         jmsTemplate.setPubSubDomain(true);
         jmsTemplate.setPubSubNoLocal(true);
