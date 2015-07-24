@@ -13,12 +13,13 @@ import org.project.openbaton.vnfm.core.ResourceManagement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.util.ClassUtils;
 
 import javax.jms.JMSException;
 import javax.naming.NamingException;
-import java.io.File;
+import java.io.*;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
@@ -30,7 +31,6 @@ import java.util.concurrent.Future;
 /**
  * Created by lto on 27/05/15.
  */
-//@ComponentScan(basePackages = "org.project.openbaton.clients")
 public class MediaServerManager extends AbstractVnfmSpringJMS {
 
     @Autowired
