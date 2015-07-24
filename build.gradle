@@ -13,7 +13,6 @@ test { finalizedBy jacocoTestReport }
 apply from: 'openbaton-libs/gradle/gradle/command.line.helper.gradle'
 apply from: 'openbaton-libs/gradle/gradle/git.helpers.gradle'
 
-version = '0.3-SNAPSHOT'
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
 
