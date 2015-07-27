@@ -12,9 +12,6 @@ import org.project.openbaton.clients.interfaces.ClientInterfaces;
 import org.project.openbaton.common.vnfm_sdk.utils.UtilsJMS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Scope;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.MessageCreator;
@@ -25,7 +22,6 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.ObjectMessage;
 import javax.jms.Session;
-import javax.naming.NamingException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -187,11 +183,7 @@ public class ResourceManagement {
 
         jmsTemplate.send("vnfm-core-actions", messageCreator);
 
-        jmsTemplate.setPubSubDomain(true);
-        jmsTemplate.setPubSubNoLocal(true);
-        CoreMessage message = (CoreMessage) ((ObjectMessage) jmsTemplate.receive("core-vnfm-actions")).getObject();
-        jmsTemplate.setPubSubDomain(false);
-        jmsTemplate.setPubSubNoLocal(false);
+        CoreMessage message = (CoreMessage) ((ObjectMessage) jmsTemplate.receive("core-media-server-actions")).getObject();
         if (message.getAction() == Action.ERROR) {
             coreMessage = new CoreMessage();
             coreMessage.setAction(Action.ERROR);

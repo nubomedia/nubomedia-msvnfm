@@ -4,7 +4,8 @@ import javassist.NotFoundException;
 import org.project.openbaton.catalogue.mano.common.Event;
 import org.project.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
-import org.project.openbaton.catalogue.nfvo.*;
+import org.project.openbaton.catalogue.nfvo.Action;
+import org.project.openbaton.catalogue.nfvo.CoreMessage;
 import org.project.openbaton.clients.interfaces.ClientInterfaces;
 import org.project.openbaton.common.vnfm_sdk.jms.AbstractVnfmSpringJMS;
 import org.project.openbaton.vnfm.core.ElasticityManagement;
@@ -13,13 +14,12 @@ import org.project.openbaton.vnfm.core.ResourceManagement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.util.ClassUtils;
 
 import javax.jms.JMSException;
 import javax.naming.NamingException;
-import java.io.*;
+import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
@@ -155,11 +155,15 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     }
 
     @Override
-    public void run(String... args) throws Exception {
-        getPlugin();
+    protected void setup() {
+        try {
+            getPlugin();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(2);
+        }
         resourceManagement.init(jmsTemplate, clientInterfaces);
-        super.run(args);
-
+        super.setup();
     }
 
     private void getPlugin() throws Exception {
