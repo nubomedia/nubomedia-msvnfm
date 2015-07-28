@@ -39,4 +39,14 @@ public class LifecycleManagement {
             throw new NotFoundException("Not found LifecycleEvent with event " + event);
         }
     }
+
+    public Set<Event> listHistoryEvents(VirtualNetworkFunctionRecord vnfr) {
+        Set<Event> events = new HashSet<Event>();
+        if (vnfr.getLifecycle_event_history() != null) {
+            for (LifecycleEvent event : vnfr.getLifecycle_event_history()) {
+                events.add(event.getEvent());
+            }
+        }
+        return events;
+    }
 }

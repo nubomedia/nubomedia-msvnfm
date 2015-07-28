@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.jms.core.JmsTemplate;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.util.ClassUtils;
 
 import javax.jms.JMSException;
@@ -31,6 +32,7 @@ import java.util.concurrent.Future;
 /**
  * Created by lto on 27/05/15.
  */
+@EnableAsync
 public class MediaServerManager extends AbstractVnfmSpringJMS {
 
     @Autowired
@@ -54,14 +56,19 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
         log.debug("Number of events: " + vnfr.getLifecycle_event().size());
 
         Set<Event> events = lifecycleManagement.listEvents(vnfr);
+        Set<Event> historyEvents = lifecycleManagement.listHistoryEvents(vnfr);
         if (events.contains(Event.ALLOCATE)) {
             List<Future<String>> ids = new ArrayList<>();
             try {
                 //GrantingLifecycleOperation for initial Allocation
-                vnfr = resourceManagement.grantLifecycleOperation(vnfr);
+                if (!historyEvents.contains(Event.GRANTED)) {
+                    resourceManagement.grantLifecycleOperation(vnfr);
+                    return;
+                }
                 //Allocate Resources
                 for(VirtualDeploymentUnit vdu : vnfr.getVdu()) {
-                    ids.add(resourceManagement.allocate(vnfr, vdu));
+                    Future<String> allocate = resourceManagement.allocate(vnfr, vdu);
+                    ids.add(allocate);
                 }
                 //Print ids of deployed VDUs
                 for(Future<String> id : ids) {

@@ -9,12 +9,12 @@ import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.project.openbaton.catalogue.nfvo.*;
 import org.project.openbaton.clients.exceptions.VimDriverException;
 import org.project.openbaton.clients.interfaces.ClientInterfaces;
-import org.project.openbaton.common.vnfm_sdk.utils.UtilsJMS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.MessageCreator;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
 
@@ -46,6 +46,7 @@ public class ResourceManagement {
         this.clientInterfaces = clientInterfaces;
     }
 
+    @Async
     public Future<String> allocate(VirtualNetworkFunctionRecord vnfr, VirtualDeploymentUnit vdu) throws NotFoundException{
         //Initialize VimInstance
         VimInstance vimInstance = vdu.getVimInstance();
@@ -164,7 +165,7 @@ public class ResourceManagement {
         return networks;
     }
 
-    public VirtualNetworkFunctionRecord grantLifecycleOperation(VirtualNetworkFunctionRecord vnfr) throws Exception {
+    public void grantLifecycleOperation(VirtualNetworkFunctionRecord vnfr) throws Exception {
         CoreMessage coreMessage = new CoreMessage();
         coreMessage.setAction(Action.GRANT_OPERATION);
         coreMessage.setPayload(vnfr);
@@ -183,17 +184,17 @@ public class ResourceManagement {
 
         jmsTemplate.send("vnfm-core-actions", messageCreator);
 
-        CoreMessage message = (CoreMessage) ((ObjectMessage) jmsTemplate.receive("core-media-server-actions")).getObject();
-        if (message.getAction() == Action.ERROR) {
-            coreMessage = new CoreMessage();
-            coreMessage.setAction(Action.ERROR);
-            coreMessage.setPayload(vnfr);
-            UtilsJMS.sendToQueue(coreMessage, "vnfm-core-actions");
-            log.warn("LifecycleOperation of Allocation is not granted");
-            throw new Exception();
-        }
-        log.info("LifecycleOperation of Allocation is granted");
-        return message.getPayload();
+//        CoreMessage message = (CoreMessage) ((ObjectMessage) jmsTemplate.receive("core-media-server-actions")).getObject();
+//        if (message.getAction() == Action.ERROR) {
+//            coreMessage = new CoreMessage();
+//            coreMessage.setAction(Action.ERROR);
+//            coreMessage.setPayload(vnfr);
+//            UtilsJMS.sendToQueue(coreMessage, "vnfm-core-actions");
+//            log.warn("LifecycleOperation of Allocation is not granted");
+//            throw new Exception();
+//        }
+//        log.info("LifecycleOperation of Allocation is granted");
+//        return message.getPayload();
     }
 
 }
