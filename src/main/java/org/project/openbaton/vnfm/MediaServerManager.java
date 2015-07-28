@@ -105,7 +105,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     }
 
     @Override
-    public void scale() {
+    public void scale(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
         //elasticityManagement.init(vnfr);
         //elasticityManagement.activate();
     }
@@ -159,6 +159,11 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
         coreMessage.setAction(Action.RELEASE_RESOURCES);
         coreMessage.setPayload(virtualNetworkFunctionRecord);
         this.sendMessageToQueue("vnfm-core-actions", coreMessage);
+    }
+
+    @Override
+    public void handleError(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
+        log.error("Error arrised.");
     }
 
     @Override
