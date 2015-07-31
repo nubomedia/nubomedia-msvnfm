@@ -2,6 +2,9 @@ package org.project.openbaton.vnfm.core;
 
 import javassist.NotFoundException;
 import org.project.openbaton.catalogue.mano.common.AutoScalePolicy;
+import org.project.openbaton.catalogue.mano.common.ConnectionPoint;
+import org.project.openbaton.catalogue.mano.descriptor.VNFComponent;
+import org.project.openbaton.catalogue.mano.descriptor.VNFDConnectionPoint;
 import org.project.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.project.openbaton.catalogue.nfvo.Action;
@@ -104,7 +107,20 @@ public class ElasticityManagement {
             VirtualDeploymentUnit newVDU = new VirtualDeploymentUnit();
             newVDU.setVimInstance(vdu.getVimInstance());
             newVDU.setVm_image(vdu.getVm_image());
-            newVDU.setVnfc(vdu.getVnfc());
+            newVDU.setVnfc(new HashSet<VNFComponent>());
+            for (VNFComponent vnfc : vdu.getVnfc()) {
+                VNFComponent newVnfc = new VNFComponent();
+                newVnfc.setConnection_point(new HashSet<VNFDConnectionPoint>());
+                for (VNFDConnectionPoint vnfdCP : vnfc.getConnection_point()) {
+                    VNFDConnectionPoint newVnfdCP = new VNFDConnectionPoint();
+                    newVnfdCP.setName(vnfdCP.getName());
+                    newVnfdCP.setType(vnfdCP.getType());
+                    newVnfdCP.setExtId(vnfdCP.getExtId());
+                    newVnfdCP.setVirtual_link_reference(vnfdCP.getVirtual_link_reference());
+                    newVnfc.getConnection_point().add(newVnfdCP);
+                }
+                newVDU.getVnfc().add(newVnfc);
+            }
             newVDU.setComputation_requirement(vdu.getComputation_requirement());
             newVDU.setHigh_availability(vdu.getHigh_availability());
             newVDU.setMonitoring_parameter(vdu.getMonitoring_parameter());
@@ -133,7 +149,7 @@ public class ElasticityManagement {
             vnfr.getVdu().add(newVDU);
             try {
                 CoreMessage coreMessage = new CoreMessage();
-                coreMessage.setAction(Action.INSTANTIATE_FINISH);
+                coreMessage.setAction(Action.SCALE_UP_FINISHED);
                 coreMessage.setPayload(vnfr);
                 UtilsJMS.sendToQueue(coreMessage, "vnfm-core-actions");
             } catch (NamingException e) {
@@ -151,9 +167,11 @@ public class ElasticityManagement {
         if (vnfr.getVdu().size() > 1 && vnfr.getVdu().iterator().hasNext()) {
             VirtualDeploymentUnit vdu = vnfr.getVdu().iterator().next();
             resourceManagement.release(vnfr, vdu);
+            vnfr.getVdu().remove(vdu);
             try {
                 CoreMessage coreMessage = new CoreMessage();
-                coreMessage.setAction(Action.INSTANTIATE_FINISH);
+                coreMessage.setAction(Action.SCALE_DOWN_FINISHED);
+                log.debug("Scaled down vnfr " + vnfr.getId());
                 coreMessage.setPayload(vnfr);
                 UtilsJMS.sendToQueue(coreMessage, "vnfm-core-actions");
             } catch (NamingException e) {
@@ -164,7 +182,6 @@ public class ElasticityManagement {
         } else {
             log.warn("Cannot terminate the last VDU.");
         }
-        log.debug("Scaled down vnfr " + vnfr.getId());
     }
 
     public List<Integer> getRawMeasurementResults(VirtualNetworkFunctionRecord vnfr, String metric) {
@@ -270,18 +287,21 @@ class ElasticityThread extends Thread{
                 boolean triggerAction = false;
                 log.debug("Check if scaling is needed.");
                 try {
-                    if (elasticityManagement.triggerAction(autoScalePolicy, elasticityManagement.calculateMeasurementResult(autoScalePolicy, elasticityManagement.getRawMeasurementResults(vnfr, autoScalePolicy.getMetric())))) {
-                        log.debug("Executing scaling action of AutoScalePolicy with id " + autoScalePolicy.getId() + ".");
+                    List<Integer> measurementResults = elasticityManagement.getRawMeasurementResults(vnfr, autoScalePolicy.getMetric());
+                    double finalResult = elasticityManagement.calculateMeasurementResult(autoScalePolicy, measurementResults);
+                    log.debug("Final measurement result on vnfr " + vnfr.getId() + " on metric " + autoScalePolicy.getMetric() + " with statistic " + autoScalePolicy.getStatistic() + " is " + finalResult + " " + measurementResults );
+                    if (elasticityManagement.triggerAction(autoScalePolicy, finalResult)) {
+                        log.debug("Executing scaling action of AutoScalePolicy with id " + autoScalePolicy.getId());
                         elasticityManagement.executeAction(vnfr, autoScalePolicy);
-                        log.debug("Starting cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId() + ".");
+                        log.debug("Starting cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
                         Thread.sleep(autoScalePolicy.getCooldown() * 1000);
-                        log.debug("Finished cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId() + ".");
+                        log.debug("Finished cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
                     } else {
-                        log.debug("Scaling of AutoScalePolicy with id " + autoScalePolicy.getId() + "is not executed.");
+                        log.debug("Scaling of AutoScalePolicy with id " + autoScalePolicy.getId() + " is not executed");
                     }
-                    log.debug("Starting sleeping period (" + autoScalePolicy.getPeriod() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId() + ".");
+                    log.debug("Starting sleeping period (" + autoScalePolicy.getPeriod() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
                     Thread.sleep(autoScalePolicy.getPeriod() * 1000);
-                    log.debug("Finished sleeping period (" + autoScalePolicy.getPeriod() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId() + ".");
+                    log.debug("Finished sleeping period (" + autoScalePolicy.getPeriod() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
                 } catch (InterruptedException e) {
                     log.warn("ElasticityThread was interrupted to deactivate autoscaling");
                 }
