@@ -6,6 +6,7 @@ import org.project.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.project.openbaton.catalogue.nfvo.Action;
 import org.project.openbaton.catalogue.nfvo.CoreMessage;
+import org.project.openbaton.clients.exceptions.VimDriverException;
 import org.project.openbaton.clients.interfaces.ClientInterfaces;
 import org.project.openbaton.common.vnfm_sdk.jms.AbstractVnfmSpringJMS;
 import org.project.openbaton.vnfm.core.ElasticityManagement;
@@ -36,9 +37,6 @@ import java.util.concurrent.Future;
 public class MediaServerManager extends AbstractVnfmSpringJMS {
 
     @Autowired
-    private JmsTemplate jmsTemplate;
-
-    @Autowired
     ResourceManagement resourceManagement;
 
     @Autowired
@@ -46,8 +44,6 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
 
     @Autowired
     LifecycleManagement lifecycleManagement;
-
-    private ClientInterfaces clientInterfaces;
 
     @Override
     public void instantiate(VirtualNetworkFunctionRecord vnfr) {
@@ -58,6 +54,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
         Set<Event> events = lifecycleManagement.listEvents(vnfr);
         Set<Event> historyEvents = lifecycleManagement.listHistoryEvents(vnfr);
         if (events.contains(Event.ALLOCATE)) {
+            log.debug("Processing event ALLOCATE");
             List<Future<String>> ids = new ArrayList<>();
             try {
                 //GrantingLifecycleOperation for initial Allocation
@@ -75,21 +72,31 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                     try {
                         log.debug("Created VDU with id: " + id.get());
                     } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        log.error(e.getMessage(), e);
                     } catch (ExecutionException e) {
-                        e.printStackTrace();
+                        log.error(e.getMessage(), e);
                     }
                 }
                 //Put EVENT ALLOCATE to history
                 lifecycleManagement.removeEvent(vnfr, Event.ALLOCATE);
-            } catch (JMSException e) {
-                log.error(e.getMessage(), e);
-            } catch (NamingException e) {
-                log.error(e.getMessage(), e);
             } catch (NotFoundException e) {
                 log.error(e.getMessage(), e);
-            } catch (Exception e) {
-                e.printStackTrace();
+            } catch (VimDriverException e) {
+                log.error(e.getMessage(), e);
+                CoreMessage coreMessage = new CoreMessage();
+                coreMessage.setAction(Action.ERROR);
+                coreMessage.setPayload(vnfr);
+                this.sendMessageToQueue("vnfm-core-actions", coreMessage);
+            }
+        }
+        if (events.contains(Event.SCALE)) {
+            log.debug("Processing event SCALE");
+            this.scale(vnfr);
+            try {
+                //Put EVENT SCALE to history
+                lifecycleManagement.removeEvent(vnfr, Event.SCALE);
+            } catch (NotFoundException e) {
+                log.error(e.getMessage(), e);
             }
         }
         log.trace("I've finished initialization of vnf " + vnfr.getName() + " in facts there are only " + vnfr.getLifecycle_event().size() + " events");
@@ -106,8 +113,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
 
     @Override
     public void scale(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
-        //elasticityManagement.init(vnfr);
-        //elasticityManagement.activate();
+        elasticityManagement.activate(virtualNetworkFunctionRecord);
     }
 
     @Override
@@ -164,68 +170,6 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     @Override
     public void handleError(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
         log.error("Error arrised.");
-    }
-
-    @Override
-    protected void setup() {
-        try {
-            getPlugin();
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.exit(2);
-        }
-        resourceManagement.init(jmsTemplate, clientInterfaces);
-        super.setup();
-    }
-
-    private void getPlugin() throws Exception {
-        File folder = new File("./plugins");
-        if (!folder.exists())
-            throw new Exception("plugins does not exist");
-        for (File f : folder.listFiles()) {
-            if (f.getName().endsWith(".jar")) {
-                ClassLoader parent = ClassUtils.getDefaultClassLoader();
-                String path = f.getAbsolutePath();
-                ClassLoader classLoader = new URLClassLoader(new URL[]{new URL("file://" + path)}, parent);
-                URL url = null;
-                String type = null;
-                if (url == null) {
-                    url = classLoader.getResource("org/project/openbaton/clients/interfaces/client/test/TestClient.class");
-                    type = "test";
-                }
-                if (url == null) {
-                    url = classLoader.getResource("org/project/openbaton/clients/interfaces/client/openstack/OpenstackClient.class");
-                    type = "openstack";
-                }
-                if (url == null) {
-                    url = classLoader.getResource("org/project/openbaton/clients/interfaces/client/amazon/AmazonClient.class");
-                    type = "amazon";
-                }
-                if (url == null)
-                    throw new Exception("No ClientInterfaces known were found");
-
-                log.trace("URL: " + url.toString());
-                log.trace("type is: " + type);
-                Class aClass = null;
-                switch (type) {
-                    case "test":
-                        aClass = classLoader.loadClass("org.project.openbaton.clients.interfaces.client.test.TestClient");
-
-                        break;
-                    case "openstack":
-                        aClass = classLoader.loadClass("org.project.openbaton.clients.interfaces.client.openstack.OpenstackClient");
-                        break;
-                    case "amazon":
-                        break;
-                    default:
-                        throw new Exception("No type found");
-                }
-                ClientInterfaces instance = (ClientInterfaces) aClass.newInstance();
-                log.debug("instance: " + instance);
-                this.clientInterfaces = instance;
-                break;
-            }
-        }
     }
 
     public static void main(String[] args) {
