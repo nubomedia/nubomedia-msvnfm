@@ -91,7 +91,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
         }
         if (events.contains(Event.SCALE)) {
             log.debug("Processing event SCALE");
-            this.scale(vnfr);
+            elasticityManagement.activate(vnfr);
             try {
                 //Put EVENT SCALE to history
                 lifecycleManagement.removeEvent(vnfr, Event.SCALE);
@@ -113,7 +113,6 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
 
     @Override
     public void scale(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
-        elasticityManagement.activate(virtualNetworkFunctionRecord);
     }
 
     @Override
