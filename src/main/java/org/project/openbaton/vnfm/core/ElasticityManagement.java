@@ -1,5 +1,6 @@
 package org.project.openbaton.vnfm.core;
 
+import com.sun.xml.internal.bind.v2.TODO;
 import javassist.NotFoundException;
 import org.project.openbaton.catalogue.mano.common.AutoScalePolicy;
 import org.project.openbaton.catalogue.mano.common.ConnectionPoint;
@@ -15,18 +16,21 @@ import org.project.openbaton.common.vnfm_sdk.utils.UtilsJMS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Configurable;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.test.SpringApplicationContextLoader;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Scope;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.jms.JMSException;
 import javax.naming.NamingException;
 import java.util.*;
+import java.util.concurrent.BlockingQueue;
 
 /**
  * Created by mpa on 07.07.15.
@@ -40,49 +44,41 @@ public class ElasticityManagement {
     @Autowired
     protected ResourceManagement resourceManagement;
 
+//    private ThreadPoolTaskExecutor taskExecutor;
+    private ThreadPoolTaskScheduler taskScheduler;
+
     @Autowired
     private AutowireCapableBeanFactory beanFactory;
 
-    public ElasticityThread getElasticityThread(VirtualNetworkFunctionRecord vnfr) throws NotFoundException {
-        Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
-        for (Thread thread : threadSet) {
-            if (thread.getName().equals("ElasticityThread#" + vnfr.getId())) {
-                return (ElasticityThread) thread;
-            }
-        }
-        throw new NotFoundException("Not found ElasticityThread with name: " + "ElasticityThread#" + vnfr.getId());
+    @PostConstruct
+    private void init(){
+//        this.taskExecutor = new ThreadPoolTaskExecutor();
+//        this.taskExecutor.initialize();
+        this.taskScheduler = new ThreadPoolTaskScheduler();
+        this.taskScheduler.initialize();
     }
 
     public void activate(VirtualNetworkFunctionRecord vnfr) {
-        try {
-            ElasticityThread elasticityThread = getElasticityThread(vnfr);
-            if (elasticityThread.isActivated() == false) {
-                log.debug("ElasticityTrhead is restarting.");
-                elasticityThread.activate();
-                log.info("ElasticityTrhead is started.");
-            } else {
-                log.warn("ElasticityThread is already running.");
-            }
-        } catch (NotFoundException e) {
-            log.debug("ElasticityThread is starting.");
-            ElasticityThread elasticityThread = new ElasticityThread(vnfr);
-            beanFactory.autowireBean(elasticityThread);
-            elasticityThread.activate();
-            log.info("ElasticityTrhead is started.");
-        }
+        ElasticityTask elasticityTask = new ElasticityTask();
+        elasticityTask.init(vnfr);
+        beanFactory.autowireBean(elasticityTask);
+        //taskExecutor.execute(elasticityTask);
+        taskScheduler.scheduleWithFixedDelay(elasticityTask, 3000);
     }
 
     public void deactivate(VirtualNetworkFunctionRecord vnfr) {
-        try {
-            ElasticityThread elasticityThread = getElasticityThread(vnfr);
-            if (elasticityThread.isActivated() == true) {
-                log.debug("ElasticityThread is stopping.");
-                elasticityThread.deactivate();
-            } else {
-                log.warn("ElasticityThread is not running.");
+        //TODO This approach is not working anymore
+        //BlockingQueue<Runnable> queue = taskExecutor.getThreadPoolExecutor().getQueue();
+        BlockingQueue<Runnable> queue = taskScheduler.getScheduledThreadPoolExecutor().getQueue();
+        for (Runnable runnable : queue) {
+            ElasticityTask task = (ElasticityTask) runnable;
+            if (task.getName().endsWith(vnfr.getId())) {
+                if (task.isActivated()) {
+                    task.stop();
+                } else {
+                    log.warn("Task is not active");
+                }
             }
-        } catch (NotFoundException e) {
-            log.warn("ElasticityThread is not running.");
         }
     }
 
@@ -259,9 +255,9 @@ public class ElasticityManagement {
     }
 }
 
-@Service
+@Component
 @Scope("prototype")
-class ElasticityThread extends Thread{
+class ElasticityTask implements Runnable {
 
     protected Logger log = LoggerFactory.getLogger(this.getClass());
 
@@ -270,13 +266,17 @@ class ElasticityThread extends Thread{
 
     private VirtualNetworkFunctionRecord vnfr;
 
+    private String name;
+
     private boolean activated;
 
-    public ElasticityThread(VirtualNetworkFunctionRecord vnfr) {
-        super();
+    private boolean stopped;
+
+    public void init(VirtualNetworkFunctionRecord vnfr) {
         this.vnfr = vnfr;
-        this.setName("ElasticityThread#" + vnfr.getId());
+        this.name = "ElasticityTask#" + vnfr.getId();
         this.activated = false;
+        this.stopped = false;
     }
 
     @Override
@@ -307,33 +307,38 @@ class ElasticityThread extends Thread{
                 }
             }
         }
+        this.stopped = true;
     }
 
     public boolean isActivated() {
-        return this.activated && this.isAlive();
+        return this.activated;
     }
 
-    public void activate() {
-        log.debug("Activating ElasticityThread for vnfr " + vnfr.getId());
-        if (!this.isAlive()) {
-            this.start();
-        } else {
-            log.warn("ElasticityThread for vnfr " + vnfr.getId() + "is already/still running");
-        }
-        log.debug("Activated ElasticityThread for vnfr " + vnfr.getId());
-    }
+//    public void activate() {
+//        log.debug("Activating ElasticityTask for vnfr " + vnfr.getId());
+//        if (!this.isAlive()) {
+//            this.start();
+//        } else {
+//            log.warn("ElasticityThread for vnfr " + vnfr.getId() + "is already/still running");
+//        }
+//        log.debug("Activated ElasticityThread for vnfr " + vnfr.getId());
+//    }
 
-    public void deactivate() {
-        log.debug("Deactivating ElasticityThread for vnfr " + vnfr.getId());
+    public void stop() {
+        log.debug("Deactivating ElasticityTask for vnfr " + vnfr.getId());
         this.activated = false;
-        this.interrupt();
-        while (this.isAlive() == true) {
+//        this.interrupt();
+        while (this.stopped == false) {
             try {
-                sleep(1000);
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
         log.debug("Deactivated ElasticityThread for vnfr " + vnfr.getId());
+    }
+
+    public String getName() {
+        return name;
     }
 }
