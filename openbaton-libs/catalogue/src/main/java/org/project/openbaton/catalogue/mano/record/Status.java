@@ -38,8 +38,8 @@ public enum Status {
  TERMINATED (4),
 
  /*
-  * Scaling
-  */
+ * Scaling
+ */
  SCALING(5),
 
  /*
