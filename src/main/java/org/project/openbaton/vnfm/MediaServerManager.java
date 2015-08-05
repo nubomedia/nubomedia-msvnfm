@@ -46,7 +46,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     LifecycleManagement lifecycleManagement;
 
     @Override
-    public VirtualNetworkFunctionRecord instantiate(VirtualNetworkFunctionRecord vnfr) {
+    public CoreMessage instantiate(VirtualNetworkFunctionRecord vnfr) {
         log.info("Instantiation of VirtualNetworkFunctionRecord " + vnfr.getName());
         log.trace("Instantiation of VirtualNetworkFunctionRecord " + vnfr);
         log.debug("Number of events: " + vnfr.getLifecycle_event().size());
@@ -59,8 +59,11 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
             try {
                 //GrantingLifecycleOperation for initial Allocation
                 if (!historyEvents.contains(Event.GRANTED)) {
-                    resourceManagement.grantLifecycleOperation(vnfr);
-                    return vnfr;
+                    //resourceManagement.grantLifecycleOperation(vnfr);
+                    CoreMessage coreMessage = new CoreMessage();
+                    coreMessage.setAction(Action.GRANT_OPERATION);
+                    coreMessage.setPayload(vnfr);
+                    return coreMessage;
                 }
                 //Allocate Resources
                 for(VirtualDeploymentUnit vdu : vnfr.getVdu()) {
@@ -100,11 +103,10 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
             }
         }
         log.trace("I've finished initialization of vnf " + vnfr.getName() + " in facts there are only " + vnfr.getLifecycle_event().size() + " events");
-//        CoreMessage coreMessage = new CoreMessage();
-//        coreMessage.setAction(Action.INSTANTIATE_FINISH);
-//        coreMessage.setPayload(vnfr);
-//        this.sendMessageToQueue("vnfm-core-actions", coreMessage);
-        return vnfr;
+        CoreMessage coreMessage = new CoreMessage();
+        coreMessage.setAction(Action.INSTANTIATE_FINISH);
+        coreMessage.setPayload(vnfr);
+        return coreMessage;
     }
 
     @Override
@@ -132,7 +134,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     }
 
     @Override
-    public VirtualNetworkFunctionRecord modify(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
+    public CoreMessage modify(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
         log.trace("Adding relation with VirtualNetworkFunctionRecord " + virtualNetworkFunctionRecord);
         log.debug("Adding relation with VirtualNetworkFunctionRecord " + virtualNetworkFunctionRecord.getName());
         try {
@@ -140,7 +142,10 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        return virtualNetworkFunctionRecord;
+        CoreMessage coreMessage = new CoreMessage();
+        coreMessage.setAction(Action.MODIFY);
+        coreMessage.setPayload(virtualNetworkFunctionRecord);
+        return coreMessage;
     }
 
 
@@ -150,7 +155,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     }
 
     @Override
-    public VirtualNetworkFunctionRecord terminate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
+    public CoreMessage terminate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
         log.info("Terminating vnfr with id " + virtualNetworkFunctionRecord.getId());
         for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
             try {
@@ -162,11 +167,10 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
             }
         }
         log.info("Terminated vnfr with id " + virtualNetworkFunctionRecord.getId());
-//        CoreMessage coreMessage = new CoreMessage();
-//        coreMessage.setAction(Action.RELEASE_RESOURCES);
-//        coreMessage.setPayload(virtualNetworkFunctionRecord);
-//        this.sendMessageToQueue("vnfm-core-actions", coreMessage);
-        return virtualNetworkFunctionRecord;
+        CoreMessage coreMessage = new CoreMessage();
+        coreMessage.setAction(Action.RELEASE_RESOURCES);
+        coreMessage.setPayload(virtualNetworkFunctionRecord);
+        return coreMessage;
     }
 
     @Override

@@ -1,11 +1,17 @@
 package org.project.openbaton.vnfm.utils;
 
 import javassist.NotFoundException;
+import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
+import org.project.openbaton.catalogue.nfvo.Action;
+import org.project.openbaton.catalogue.nfvo.CoreMessage;
 import org.project.openbaton.clients.interfaces.ClientInterfaces;
+import org.project.openbaton.common.vnfm_sdk.utils.UtilsJMS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.ClassUtils;
 
+import javax.jms.JMSException;
+import javax.naming.NamingException;
 import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -16,6 +22,19 @@ import java.net.URLClassLoader;
 public class Utils {
 
     private final static Logger log = LoggerFactory.getLogger(Utils.class);
+
+    public static void sendToCore(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, Action action) {
+        CoreMessage coreMessage = new CoreMessage();
+        coreMessage.setAction(action);
+        coreMessage.setPayload(virtualNetworkFunctionRecord);
+        try {
+            UtilsJMS.sendToQueue(coreMessage, "vnfm-core-actions");
+        } catch (NamingException e) {
+            e.printStackTrace();
+        } catch (JMSException e) {
+            e.printStackTrace();
+        }
+    }
 
     public static ClientInterfaces getPlugin() throws Exception {
         File folder = new File("./plugins");

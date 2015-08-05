@@ -1,22 +1,24 @@
 package org.project.openbaton.vnfm.core;
 
-import com.sun.xml.internal.bind.v2.TODO;
 import javassist.NotFoundException;
 import org.project.openbaton.catalogue.mano.common.AutoScalePolicy;
 import org.project.openbaton.catalogue.mano.common.ConnectionPoint;
 import org.project.openbaton.catalogue.mano.descriptor.VNFComponent;
 import org.project.openbaton.catalogue.mano.descriptor.VNFDConnectionPoint;
 import org.project.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
+import org.project.openbaton.catalogue.mano.record.Status;
 import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.project.openbaton.catalogue.nfvo.Action;
 import org.project.openbaton.catalogue.nfvo.CoreMessage;
 import org.project.openbaton.clients.exceptions.VimDriverException;
 import org.project.openbaton.clients.interfaces.ClientInterfaces;
 import org.project.openbaton.common.vnfm_sdk.utils.UtilsJMS;
+import org.project.openbaton.vnfm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Scope;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -31,12 +33,15 @@ import javax.jms.JMSException;
 import javax.naming.NamingException;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 /**
  * Created by mpa on 07.07.15.
  */
 @Service
-@Scope("prototype")
+@Scope
 public class ElasticityManagement {
 
     protected Logger log = LoggerFactory.getLogger(this.getClass());
@@ -44,42 +49,43 @@ public class ElasticityManagement {
     @Autowired
     protected ResourceManagement resourceManagement;
 
-//    private ThreadPoolTaskExecutor taskExecutor;
     private ThreadPoolTaskScheduler taskScheduler;
 
     @Autowired
     private AutowireCapableBeanFactory beanFactory;
 
+    Map<VirtualNetworkFunctionRecord, Set<ScheduledFuture>> tasks;
+
     @PostConstruct
-    private void init(){
-//        this.taskExecutor = new ThreadPoolTaskExecutor();
-//        this.taskExecutor.initialize();
+    private void init() {
+        tasks = new HashMap<VirtualNetworkFunctionRecord, Set<ScheduledFuture>>();
         this.taskScheduler = new ThreadPoolTaskScheduler();
+        this.taskScheduler.setPoolSize(10);
+        this.taskScheduler.setWaitForTasksToCompleteOnShutdown(true);
         this.taskScheduler.initialize();
     }
 
     public void activate(VirtualNetworkFunctionRecord vnfr) {
-        ElasticityTask elasticityTask = new ElasticityTask();
-        elasticityTask.init(vnfr);
-        beanFactory.autowireBean(elasticityTask);
-        //taskExecutor.execute(elasticityTask);
-        taskScheduler.scheduleWithFixedDelay(elasticityTask, 3000);
+        log.debug("Activating Elasticity for vnfr " + vnfr.getId());
+        tasks.put(vnfr, new HashSet<ScheduledFuture>());
+        for (AutoScalePolicy policy : vnfr.getAuto_scale_policy()) {
+            ElasticityTask elasticityTask = new ElasticityTask();
+            elasticityTask.init(vnfr, policy);
+            beanFactory.autowireBean(elasticityTask);
+            //taskExecutor.execute(elasticityTask);
+            ScheduledFuture scheduledFuture = taskScheduler.scheduleAtFixedRate(elasticityTask, policy.getPeriod() * 1000);
+            tasks.get(vnfr).add(scheduledFuture);
+        }
+        log.debug("Activated Elasticity for vnfr " + vnfr.getId());
     }
 
     public void deactivate(VirtualNetworkFunctionRecord vnfr) {
-        //TODO This approach is not working anymore
-        //BlockingQueue<Runnable> queue = taskExecutor.getThreadPoolExecutor().getQueue();
-        BlockingQueue<Runnable> queue = taskScheduler.getScheduledThreadPoolExecutor().getQueue();
-        for (Runnable runnable : queue) {
-            ElasticityTask task = (ElasticityTask) runnable;
-            if (task.getName().endsWith(vnfr.getId())) {
-                if (task.isActivated()) {
-                    task.stop();
-                } else {
-                    log.warn("Task is not active");
-                }
-            }
+        log.debug("Deactivating Elasticity for vnfr " + vnfr.getId());
+        for (ScheduledFuture scheduledFuture : tasks.get(vnfr)) {
+            scheduledFuture.cancel(true);
         }
+        log.debug("Deactivated Elasticity for vnfr " + vnfr.getId());
+        vnfr.setStatus(Status.ACTIVE);
     }
 
     public void scaleUp(VirtualNetworkFunctionRecord vnfr, AutoScalePolicy autoScalePolicy) {
@@ -143,16 +149,6 @@ public class ElasticityManagement {
                 e.printStackTrace();
             }
             vnfr.getVdu().add(newVDU);
-            try {
-                CoreMessage coreMessage = new CoreMessage();
-                coreMessage.setAction(Action.SCALE_UP_FINISHED);
-                coreMessage.setPayload(vnfr);
-                UtilsJMS.sendToQueue(coreMessage, "vnfm-core-actions");
-            } catch (NamingException e) {
-                log.error(e.getMessage(), e);
-            } catch (JMSException e) {
-                log.error(e.getMessage(), e);
-            }
             log.debug("Scaled up vnfr " + vnfr.getId());
             return;
         }
@@ -164,17 +160,6 @@ public class ElasticityManagement {
             VirtualDeploymentUnit vdu = vnfr.getVdu().iterator().next();
             resourceManagement.release(vnfr, vdu);
             vnfr.getVdu().remove(vdu);
-            try {
-                CoreMessage coreMessage = new CoreMessage();
-                coreMessage.setAction(Action.SCALE_DOWN_FINISHED);
-                log.debug("Scaled down vnfr " + vnfr.getId());
-                coreMessage.setPayload(vnfr);
-                UtilsJMS.sendToQueue(coreMessage, "vnfm-core-actions");
-            } catch (NamingException e) {
-                log.error(e.getMessage(), e);
-            } catch (JMSException e) {
-                log.error(e.getMessage(), e);
-            }
         } else {
             log.warn("Cannot terminate the last VDU.");
         }
@@ -255,8 +240,6 @@ public class ElasticityManagement {
     }
 }
 
-@Component
-@Scope("prototype")
 class ElasticityTask implements Runnable {
 
     protected Logger log = LoggerFactory.getLogger(this.getClass());
@@ -264,81 +247,72 @@ class ElasticityTask implements Runnable {
     @Autowired
     private ElasticityManagement elasticityManagement;
 
-    private VirtualNetworkFunctionRecord vnfr;
+    private static VirtualNetworkFunctionRecord vnfr;
+
+    private AutoScalePolicy autoScalePolicy;
 
     private String name;
 
-    private boolean activated;
-
-    private boolean stopped;
-
-    public void init(VirtualNetworkFunctionRecord vnfr) {
+    public void init(VirtualNetworkFunctionRecord vnfr, AutoScalePolicy autoScalePolicy) {
         this.vnfr = vnfr;
+        this.autoScalePolicy = autoScalePolicy;
         this.name = "ElasticityTask#" + vnfr.getId();
-        this.activated = false;
-        this.stopped = false;
     }
 
     @Override
     public void run() {
-        activated = true;
-        while (activated == true) {
-            for (AutoScalePolicy autoScalePolicy : vnfr.getAuto_scale_policy()) {
-                boolean triggerAction = false;
-                log.debug("Check if scaling is needed.");
-                try {
-                    List<Integer> measurementResults = elasticityManagement.getRawMeasurementResults(vnfr, autoScalePolicy.getMetric());
-                    double finalResult = elasticityManagement.calculateMeasurementResult(autoScalePolicy, measurementResults);
-                    log.debug("Final measurement result on vnfr " + vnfr.getId() + " on metric " + autoScalePolicy.getMetric() + " with statistic " + autoScalePolicy.getStatistic() + " is " + finalResult + " " + measurementResults );
-                    if (elasticityManagement.triggerAction(autoScalePolicy, finalResult)) {
-                        log.debug("Executing scaling action of AutoScalePolicy with id " + autoScalePolicy.getId());
-                        elasticityManagement.executeAction(vnfr, autoScalePolicy);
-                        log.debug("Starting cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
-                        Thread.sleep(autoScalePolicy.getCooldown() * 1000);
-                        log.debug("Finished cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
-                    } else {
-                        log.debug("Scaling of AutoScalePolicy with id " + autoScalePolicy.getId() + " is not executed");
-                    }
-                    log.debug("Starting sleeping period (" + autoScalePolicy.getPeriod() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
-                    Thread.sleep(autoScalePolicy.getPeriod() * 1000);
-                    log.debug("Finished sleeping period (" + autoScalePolicy.getPeriod() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
-                } catch (InterruptedException e) {
-                    log.warn("ElasticityThread was interrupted to deactivate autoscaling");
+        log.debug("Check if scaling is needed.");
+        try {
+            List<Integer> measurementResults = elasticityManagement.getRawMeasurementResults(vnfr, autoScalePolicy.getMetric());
+            double finalResult = elasticityManagement.calculateMeasurementResult(autoScalePolicy, measurementResults);
+            log.debug("Final measurement result on vnfr " + vnfr.getId() + " on metric " + autoScalePolicy.getMetric() + " with statistic " + autoScalePolicy.getStatistic() + " is " + finalResult + " " + measurementResults );
+            if (checkStatus() == true && elasticityManagement.triggerAction(autoScalePolicy, finalResult)) {
+                setStatus(Status.SCALING);
+                Utils.sendToCore(vnfr, Action.SCALING);
+                log.debug("Executing scaling action of AutoScalePolicy with id " + autoScalePolicy.getId());
+                elasticityManagement.executeAction(vnfr, autoScalePolicy);
+                log.debug("Starting cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
+                Thread.sleep(autoScalePolicy.getCooldown() * 1000);
+                log.debug("Finished cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
+                if (autoScalePolicy.getAction().equals("scaleup")) {
+                    Utils.sendToCore(vnfr, Action.SCALE_UP_FINISHED);
+                } else if (autoScalePolicy.getAction().equals("scaledown")) {
+                    Utils.sendToCore(vnfr, Action.SCALE_DOWN_FINISHED);
                 }
+                setStatus(Status.ACTIVE);
+            } else {
+                log.debug("Scaling of AutoScalePolicy with id " + autoScalePolicy.getId() + " is not executed");
             }
+            log.debug("Starting sleeping period (" + autoScalePolicy.getPeriod() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
+        } catch (InterruptedException e) {
+            log.warn("ElasticityTask was interrupted");
         }
-        this.stopped = true;
     }
-
-    public boolean isActivated() {
-        return this.activated;
-    }
-
-//    public void activate() {
-//        log.debug("Activating ElasticityTask for vnfr " + vnfr.getId());
-//        if (!this.isAlive()) {
-//            this.start();
-//        } else {
-//            log.warn("ElasticityThread for vnfr " + vnfr.getId() + "is already/still running");
-//        }
-//        log.debug("Activated ElasticityThread for vnfr " + vnfr.getId());
-//    }
 
     public void stop() {
         log.debug("Deactivating ElasticityTask for vnfr " + vnfr.getId());
-        this.activated = false;
-//        this.interrupt();
-        while (this.stopped == false) {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
+
         log.debug("Deactivated ElasticityThread for vnfr " + vnfr.getId());
     }
 
     public String getName() {
         return name;
+    }
+
+    private synchronized boolean checkStatus() {
+        Collection<Status> nonBlockingStatus = new HashSet<Status>();
+        nonBlockingStatus.add(Status.ACTIVE);
+        nonBlockingStatus.add(Status.INITIAILZED);
+        if (nonBlockingStatus.contains(this.vnfr.getStatus())) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private synchronized boolean setStatus(Status status) {
+        log.debug("Set status of vnfr " + vnfr.getId() + " to " + status.name());
+        vnfr.setStatus(status);
+        return true;
     }
 }
