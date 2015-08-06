@@ -159,7 +159,7 @@ public class ElasticityManagement {
 
     public void scaleDown(VirtualNetworkFunctionRecord vnfr, AutoScalePolicy autoScalePolicy) throws NotFoundException {
         log.debug("Scaling down vnfr " + vnfr.getId());
-        if (vnfr.getVdu().size() > 1 && vnfr.getVdu().iterator().hasNext()) {
+        if (vnfr.getVdu().iterator().hasNext()) {
             VirtualDeploymentUnit vdu = vnfr.getVdu().iterator().next();
             resourceManagement.release(vnfr, vdu);
             vnfr.getVdu().remove(vdu);
@@ -242,6 +242,36 @@ public class ElasticityManagement {
             log.error(e.getMessage());
         }
     }
+
+    public boolean checkFeasibility(VirtualNetworkFunctionRecord vnfr, AutoScalePolicy autoScalePolicy) {
+        if (autoScalePolicy.getAction().equals("scaleup")) {
+            Set<VirtualDeploymentUnit> consideredVDUs = new HashSet<VirtualDeploymentUnit>();
+            for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
+                if (consideredVDUs.contains(vdu)) {
+                    continue;
+                }
+                int leftInstances = vdu.getScale_in_out();
+                for (VirtualDeploymentUnit tmpVDU : vnfr.getVdu()) {
+                    if (tmpVDU.getVimInstance().getName().equals(vdu.getVimInstance().getName())) {
+                        consideredVDUs.add(tmpVDU);
+                        leftInstances--;
+                    }
+                }
+                if (leftInstances >= 1) {
+                    log.debug("Maximum number of instances are not reached on VimInstance " + vdu.getVimInstance());
+                    return true;
+                }
+            }
+            log.debug("Maximum number of instances are reached on all VimInstances");
+            return false;
+        } else if (autoScalePolicy.getAction().equals("scaledown")) {
+            if (vnfr.getVdu().size() <= 1) {
+                log.warn("Cannot terminate the last VDU.");
+                return false;
+            }
+        }
+        return true;
+    }
 }
 
 class ElasticityTask implements Runnable {
@@ -270,7 +300,7 @@ class ElasticityTask implements Runnable {
             List<Integer> measurementResults = elasticityManagement.getRawMeasurementResults(vnfr, autoScalePolicy.getMetric());
             double finalResult = elasticityManagement.calculateMeasurementResult(autoScalePolicy, measurementResults);
             log.debug("Final measurement result on vnfr " + vnfr.getId() + " on metric " + autoScalePolicy.getMetric() + " with statistic " + autoScalePolicy.getStatistic() + " is " + finalResult + " " + measurementResults );
-            if (elasticityManagement.triggerAction(autoScalePolicy, finalResult) && checkStatus() == true) {
+            if (elasticityManagement.triggerAction(autoScalePolicy, finalResult) && elasticityManagement.checkFeasibility(vnfr, autoScalePolicy) && checkStatus() == true) {
                 setStatus(Status.SCALING);
                 Utils.sendToCore(vnfr, Action.SCALING);
                 log.debug("Executing scaling action of AutoScalePolicy with id " + autoScalePolicy.getId());
