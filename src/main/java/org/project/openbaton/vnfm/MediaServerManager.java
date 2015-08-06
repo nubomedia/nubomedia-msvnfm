@@ -157,6 +157,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     @Override
     public CoreMessage terminate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
         log.info("Terminating vnfr with id " + virtualNetworkFunctionRecord.getId());
+        elasticityManagement.deactivate(virtualNetworkFunctionRecord);
         for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
             try {
                 log.debug("Releasing resources for vdu with id " + vdu.getId());
@@ -174,8 +175,9 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     }
 
     @Override
-    public void handleError(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
+    public CoreMessage handleError(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
         log.error("Error arrised.");
+        return null;
     }
 
     public static void main(String[] args) {
