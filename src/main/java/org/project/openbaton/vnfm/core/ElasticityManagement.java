@@ -82,7 +82,7 @@ public class ElasticityManagement {
     public void deactivate(VirtualNetworkFunctionRecord vnfr) {
         log.debug("Deactivating Elasticity for vnfr " + vnfr.getId());
         for (ScheduledFuture scheduledFuture : tasks.get(vnfr)) {
-            scheduledFuture.cancel(true);
+            scheduledFuture.cancel(false);
         }
         log.debug("Deactivated Elasticity for vnfr " + vnfr.getId());
         vnfr.setStatus(Status.ACTIVE);
