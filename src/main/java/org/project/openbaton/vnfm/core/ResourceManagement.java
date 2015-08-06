@@ -86,7 +86,7 @@ public class ResourceManagement {
                 vnfr.getVnf_address().add(ip);
             }
         }
-        return new AsyncResult<String>(vdu.getId());
+        return new AsyncResult<String>(vdu.getExtId());
     }
 
     public void release(VirtualNetworkFunctionRecord vnfr, VirtualDeploymentUnit vdu) throws NotFoundException {

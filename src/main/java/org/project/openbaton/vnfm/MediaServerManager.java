@@ -104,7 +104,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
         }
         log.trace("I've finished initialization of vnf " + vnfr.getName() + " in facts there are only " + vnfr.getLifecycle_event().size() + " events");
         CoreMessage coreMessage = new CoreMessage();
-        coreMessage.setAction(Action.INSTANTIATE_FINISH);
+        coreMessage.setAction(Action.INSTANTIATE);
         coreMessage.setPayload(vnfr);
         return coreMessage;
     }

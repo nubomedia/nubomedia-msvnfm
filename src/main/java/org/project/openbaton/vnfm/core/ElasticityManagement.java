@@ -32,10 +32,7 @@ import javax.inject.Inject;
 import javax.jms.JMSException;
 import javax.naming.NamingException;
 import java.util.*;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.*;
 
 /**
  * Created by mpa on 07.07.15.
@@ -132,7 +129,13 @@ public class ElasticityManagement {
             newVDU.setVirtual_memory_resource_element(vdu.getVirtual_memory_resource_element());
             newVDU.setVirtual_network_bandwidth_resource(vdu.getVirtual_network_bandwidth_resource());
             try {
-                resourceManagement.allocate(vnfr, newVDU);
+                try {
+                    resourceManagement.allocate(vnfr, newVDU).get();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (ExecutionException e) {
+                    e.printStackTrace();
+                }
             } catch (VimDriverException e) {
                 log.error("Cannot launch VDU on cloud environment", e);
                 try {
@@ -160,6 +163,7 @@ public class ElasticityManagement {
             VirtualDeploymentUnit vdu = vnfr.getVdu().iterator().next();
             resourceManagement.release(vnfr, vdu);
             vnfr.getVdu().remove(vdu);
+            log.debug("Scaled down vnfr " + vnfr.getId());
         } else {
             log.warn("Cannot terminate the last VDU.");
         }
@@ -266,7 +270,7 @@ class ElasticityTask implements Runnable {
             List<Integer> measurementResults = elasticityManagement.getRawMeasurementResults(vnfr, autoScalePolicy.getMetric());
             double finalResult = elasticityManagement.calculateMeasurementResult(autoScalePolicy, measurementResults);
             log.debug("Final measurement result on vnfr " + vnfr.getId() + " on metric " + autoScalePolicy.getMetric() + " with statistic " + autoScalePolicy.getStatistic() + " is " + finalResult + " " + measurementResults );
-            if (checkStatus() == true && elasticityManagement.triggerAction(autoScalePolicy, finalResult)) {
+            if (elasticityManagement.triggerAction(autoScalePolicy, finalResult) && checkStatus() == true) {
                 setStatus(Status.SCALING);
                 Utils.sendToCore(vnfr, Action.SCALING);
                 log.debug("Executing scaling action of AutoScalePolicy with id " + autoScalePolicy.getId());
