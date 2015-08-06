@@ -274,12 +274,12 @@ class ElasticityTask implements Runnable {
                 log.debug("Starting cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
                 Thread.sleep(autoScalePolicy.getCooldown() * 1000);
                 log.debug("Finished cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
+                setStatus(Status.ACTIVE);
                 if (autoScalePolicy.getAction().equals("scaleup")) {
                     Utils.sendToCore(vnfr, Action.SCALE_UP_FINISHED);
                 } else if (autoScalePolicy.getAction().equals("scaledown")) {
                     Utils.sendToCore(vnfr, Action.SCALE_DOWN_FINISHED);
                 }
-                setStatus(Status.ACTIVE);
             } else {
                 log.debug("Scaling of AutoScalePolicy with id " + autoScalePolicy.getId() + " is not executed");
             }
@@ -287,16 +287,6 @@ class ElasticityTask implements Runnable {
         } catch (InterruptedException e) {
             log.warn("ElasticityTask was interrupted");
         }
-    }
-
-    public void stop() {
-        log.debug("Deactivating ElasticityTask for vnfr " + vnfr.getId());
-
-        log.debug("Deactivated ElasticityThread for vnfr " + vnfr.getId());
-    }
-
-    public String getName() {
-        return name;
     }
 
     private synchronized boolean checkStatus() {
