@@ -5,6 +5,8 @@ import org.project.openbaton.catalogue.mano.common.Event;
 import org.project.openbaton.catalogue.mano.common.LifecycleEvent;
 import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -12,7 +14,8 @@ import java.util.Set;
 /**
  * Created by mpa on 22.07.15.
  */
-@SpringBootApplication
+@Service
+@Scope("prototype")
 public class LifecycleManagement {
 
     public Set<Event> listEvents(VirtualNetworkFunctionRecord vnfr) {
@@ -38,5 +41,15 @@ public class LifecycleManagement {
         if (lifecycleEvent == null) {
             throw new NotFoundException("Not found LifecycleEvent with event " + event);
         }
+    }
+
+    public Set<Event> listHistoryEvents(VirtualNetworkFunctionRecord vnfr) {
+        Set<Event> events = new HashSet<Event>();
+        if (vnfr.getLifecycle_event_history() != null) {
+            for (LifecycleEvent event : vnfr.getLifecycle_event_history()) {
+                events.add(event.getEvent());
+            }
+        }
+        return events;
     }
 }

@@ -9,15 +9,18 @@ import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.project.openbaton.catalogue.nfvo.*;
 import org.project.openbaton.clients.exceptions.VimDriverException;
 import org.project.openbaton.clients.interfaces.ClientInterfaces;
-import org.project.openbaton.common.vnfm_sdk.utils.UtilsJMS;
+import org.project.openbaton.vnfm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.MessageCreator;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.ObjectMessage;
@@ -39,14 +42,16 @@ public class ResourceManagement {
 
     private ClientInterfaces clientInterfaces;
 
+    @Autowired
     private JmsTemplate jmsTemplate;
 
-    public void init(JmsTemplate jmsTemplate, ClientInterfaces clientInterfaces) {
-        this.jmsTemplate = jmsTemplate;
-        this.clientInterfaces = clientInterfaces;
+    @PostConstruct
+    private void init() throws Exception{
+        this.clientInterfaces = Utils.getPlugin();
     }
 
-    public Future<String> allocate(VirtualNetworkFunctionRecord vnfr, VirtualDeploymentUnit vdu) throws NotFoundException{
+    @Async
+    public Future<String> allocate(VirtualNetworkFunctionRecord vnfr, VirtualDeploymentUnit vdu) throws NotFoundException, VimDriverException {
         //Initialize VimInstance
         VimInstance vimInstance = vdu.getVimInstance();
         log.trace("Initializing " + vimInstance);
@@ -70,6 +75,7 @@ public class ResourceManagement {
             server = clientInterfaces.launchInstanceAndWait(vdu.getHostname(), image_id, flavor_id, vimInstance.getKeyPair(), networks, vimInstance.getSecurityGroups(), "#userdata");
         } catch (VimDriverException e) {
             log.error("Cannot launch vdu.", e);
+            throw new VimDriverException("Cannot launch vdu.", e);
         }
         log.debug("launched instance with id " + server.getExtId());
         //Set external id
@@ -80,7 +86,7 @@ public class ResourceManagement {
                 vnfr.getVnf_address().add(ip);
             }
         }
-        return new AsyncResult<String>(vdu.getId());
+        return new AsyncResult<String>(vdu.getExtId());
     }
 
     public void release(VirtualNetworkFunctionRecord vnfr, VirtualDeploymentUnit vdu) throws NotFoundException {
@@ -164,11 +170,10 @@ public class ResourceManagement {
         return networks;
     }
 
-    public VirtualNetworkFunctionRecord grantLifecycleOperation(VirtualNetworkFunctionRecord vnfr) throws Exception {
+    public void grantLifecycleOperation(VirtualNetworkFunctionRecord vnfr) {
         CoreMessage coreMessage = new CoreMessage();
         coreMessage.setAction(Action.GRANT_OPERATION);
         coreMessage.setPayload(vnfr);
-//        UtilsJMS.sendToQueue(coreMessage, "vnfm-core-actions");
 
         final CoreMessage finalCoreMessage = coreMessage;
         MessageCreator messageCreator = new MessageCreator() {
@@ -182,18 +187,5 @@ public class ResourceManagement {
         jmsTemplate.setPubSubNoLocal(false);
 
         jmsTemplate.send("vnfm-core-actions", messageCreator);
-
-        CoreMessage message = (CoreMessage) ((ObjectMessage) jmsTemplate.receive("core-media-server-actions")).getObject();
-        if (message.getAction() == Action.ERROR) {
-            coreMessage = new CoreMessage();
-            coreMessage.setAction(Action.ERROR);
-            coreMessage.setPayload(vnfr);
-            UtilsJMS.sendToQueue(coreMessage, "vnfm-core-actions");
-            log.warn("LifecycleOperation of Allocation is not granted");
-            throw new Exception();
-        }
-        log.info("LifecycleOperation of Allocation is granted");
-        return message.getPayload();
     }
-
 }

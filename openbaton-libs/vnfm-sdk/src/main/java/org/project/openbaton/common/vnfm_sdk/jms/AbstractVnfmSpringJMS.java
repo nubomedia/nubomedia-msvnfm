@@ -70,14 +70,15 @@ public abstract class AbstractVnfmSpringJMS extends AbstractVnfm implements Mess
         registrar.registerEndpoint(endpoint);
     }
 
-        public void onMessage(Message message) {
-            CoreMessage msg = null;
-            try {
-                msg = (CoreMessage) ((ObjectMessage) message).getObject();
-            } catch (JMSException e) {
-                e.printStackTrace();
-                System.exit(1);
-            }
+    @Override
+    public void onMessage(Message message) {
+        CoreMessage msg = null;
+        try {
+            msg = (CoreMessage) ((ObjectMessage) message).getObject();
+        } catch (JMSException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
         log.trace("VNFM: received " + msg);
         this.onAction(msg);
     }
@@ -114,6 +115,19 @@ public abstract class AbstractVnfmSpringJMS extends AbstractVnfm implements Mess
     @Override
     protected void unregister(VnfmManagerEndpoint endpoint) {
         this.sendMessageToQueue("vnfm-unregister", endpoint);
+    }
+
+    @Override
+    protected void sendToNfvo(final CoreMessage coreMessage) {
+        MessageCreator messageCreator = new MessageCreator() {
+            @Override
+            public Message createMessage(Session session) throws JMSException {
+                ObjectMessage objectMessage = session.createObjectMessage(coreMessage);
+                return objectMessage;
+            }
+        };
+        log.debug("Sending to vnfm-core-actions message: " + coreMessage);
+        jmsTemplate.send(nfvoQueue, messageCreator);
     }
 }
 
