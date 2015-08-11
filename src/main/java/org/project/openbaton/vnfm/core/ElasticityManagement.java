@@ -10,6 +10,7 @@ import org.project.openbaton.catalogue.mano.record.Status;
 import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.project.openbaton.catalogue.nfvo.Action;
 import org.project.openbaton.catalogue.nfvo.CoreMessage;
+import org.project.openbaton.catalogue.nfvo.Item;
 import org.project.openbaton.clients.exceptions.VimDriverException;
 import org.project.openbaton.clients.interfaces.ClientInterfaces;
 import org.project.openbaton.common.vnfm_sdk.utils.UtilsJMS;
@@ -169,12 +170,12 @@ public class ElasticityManagement {
         }
     }
 
-    public List<Integer> getRawMeasurementResults(VirtualNetworkFunctionRecord vnfr, String metric) {
-        List<Integer> measurementResults = new ArrayList<Integer>();
+    public List<Item> getRawMeasurementResults(VirtualNetworkFunctionRecord vnfr, String metric, String period) {
+        List<Item> measurementResults = new ArrayList<Item>();
         log.debug("Getting all measurement results for vnfr " + vnfr.getId() + " on metric " + metric + ".");
         for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
             log.debug("Getting measurement result for vdu " + vdu.getId() + " on metric " + metric + ".");
-            int measurementResult = resourceManagement.getMeasurementResults(vdu, metric);
+            Item measurementResult = resourceManagement.getMeasurementResults(vdu, metric, period);
             measurementResults.add(measurementResult);
             log.debug("Got measurement result for vdu " + vdu.getId() + " on metric " + metric + " -> " + measurementResult + ".");
         }
@@ -182,21 +183,25 @@ public class ElasticityManagement {
         return measurementResults;
     }
 
-    public double calculateMeasurementResult(AutoScalePolicy autoScalePolicy, List<Integer> measurementResults) {
+    public double calculateMeasurementResult(AutoScalePolicy autoScalePolicy, List<Item> measurementResults) {
         double result;
+        List<Double> consideredResults = new ArrayList<>();
+        for (Item measurementResult : measurementResults) {
+            consideredResults.add(Double.parseDouble(measurementResult.getValue()));
+        }
         switch (autoScalePolicy.getStatistic()) {
             case "avg":
-                int sum = 0;
-                for (Integer measurementResult : measurementResults) {
-                    sum += measurementResult;
+                double sum = 0;
+                for (Double consideredResult : consideredResults) {
+                    sum += consideredResult;
                 }
                 result = sum / measurementResults.size();
                 break;
             case "min":
-                result = Collections.min(measurementResults);
+                result = Collections.min(consideredResults);
                 break;
             case "max":
-                result = Collections.max(measurementResults);
+                result = Collections.max(consideredResults);
                 break;
             default:
                 result = -1;
@@ -297,7 +302,7 @@ class ElasticityTask implements Runnable {
     public void run() {
         log.debug("Check if scaling is needed.");
         try {
-            List<Integer> measurementResults = elasticityManagement.getRawMeasurementResults(vnfr, autoScalePolicy.getMetric());
+            List<Item> measurementResults = elasticityManagement.getRawMeasurementResults(vnfr, autoScalePolicy.getMetric(), Integer.toString(autoScalePolicy.getPeriod()));
             double finalResult = elasticityManagement.calculateMeasurementResult(autoScalePolicy, measurementResults);
             log.debug("Final measurement result on vnfr " + vnfr.getId() + " on metric " + autoScalePolicy.getMetric() + " with statistic " + autoScalePolicy.getStatistic() + " is " + finalResult + " " + measurementResults );
             if (elasticityManagement.triggerAction(autoScalePolicy, finalResult) && elasticityManagement.checkFeasibility(vnfr, autoScalePolicy) && checkStatus() == true) {
