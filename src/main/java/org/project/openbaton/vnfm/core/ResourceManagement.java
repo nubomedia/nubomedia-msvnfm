@@ -9,10 +9,12 @@ import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.project.openbaton.catalogue.nfvo.*;
 import org.project.openbaton.clients.exceptions.VimDriverException;
 import org.project.openbaton.clients.interfaces.ClientInterfaces;
+import org.project.openbaton.monitoring.interfaces.ResourcePerformanceManagement;
 import org.project.openbaton.vnfm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Scope;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.MessageCreator;
@@ -39,15 +41,17 @@ import java.util.concurrent.Future;
 public class ResourceManagement {
 
     protected Logger log = LoggerFactory.getLogger(this.getClass());
-
     private ClientInterfaces clientInterfaces;
+
+    private ResourcePerformanceManagement resourcePerformanceManagement;
 
     @Autowired
     private JmsTemplate jmsTemplate;
 
     @PostConstruct
     private void init() throws Exception{
-        this.clientInterfaces = Utils.getPlugin();
+        this.clientInterfaces = Utils.getVimDriverPlugin();
+        this.resourcePerformanceManagement = Utils.getMonitoringPlugin();
     }
 
     @Async
@@ -118,13 +122,8 @@ public class ResourceManagement {
         //vnfr.getVdu().remove(vdu);
     }
 
-    public int getMeasurementResults(VirtualDeploymentUnit vdu, String metric) {
-        long time = System.currentTimeMillis();
-        if (time / 1000 / 60 % 2 == 0) {
-            return 80;
-        } else {
-            return 20;
-        }
+    public synchronized Item getMeasurementResults(VirtualDeploymentUnit vdu, String metric, String period) {
+        return resourcePerformanceManagement.getMeasurementResults(vdu, metric, period);
     }
 
     public String getImageId(VirtualDeploymentUnit vdu) throws NotFoundException {
