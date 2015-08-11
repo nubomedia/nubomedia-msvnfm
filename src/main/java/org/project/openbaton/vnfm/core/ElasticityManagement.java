@@ -51,11 +51,11 @@ public class ElasticityManagement {
     @Autowired
     private AutowireCapableBeanFactory beanFactory;
 
-    Map<VirtualNetworkFunctionRecord, Set<ScheduledFuture>> tasks;
+    Map<String, Set<ScheduledFuture>> tasks;
 
     @PostConstruct
     private void init() {
-        tasks = new HashMap<VirtualNetworkFunctionRecord, Set<ScheduledFuture>>();
+        tasks = new HashMap<String, Set<ScheduledFuture>>();
         this.taskScheduler = new ThreadPoolTaskScheduler();
         this.taskScheduler.setPoolSize(10);
         this.taskScheduler.setWaitForTasksToCompleteOnShutdown(true);
@@ -64,21 +64,21 @@ public class ElasticityManagement {
 
     public void activate(VirtualNetworkFunctionRecord vnfr) {
         log.debug("Activating Elasticity for vnfr " + vnfr.getId());
-        tasks.put(vnfr, new HashSet<ScheduledFuture>());
+        tasks.put(vnfr.getId(), new HashSet<ScheduledFuture>());
         for (AutoScalePolicy policy : vnfr.getAuto_scale_policy()) {
             ElasticityTask elasticityTask = new ElasticityTask();
             elasticityTask.init(vnfr, policy);
             beanFactory.autowireBean(elasticityTask);
             //taskExecutor.execute(elasticityTask);
             ScheduledFuture scheduledFuture = taskScheduler.scheduleAtFixedRate(elasticityTask, policy.getPeriod() * 1000);
-            tasks.get(vnfr).add(scheduledFuture);
+            tasks.get(vnfr.getId()).add(scheduledFuture);
         }
         log.debug("Activated Elasticity for vnfr " + vnfr.getId());
     }
 
     public void deactivate(VirtualNetworkFunctionRecord vnfr) {
         log.debug("Deactivating Elasticity for vnfr " + vnfr.getId());
-        for (ScheduledFuture scheduledFuture : tasks.get(vnfr)) {
+        for (ScheduledFuture scheduledFuture : tasks.get(vnfr.getId())) {
             scheduledFuture.cancel(false);
         }
         log.debug("Deactivated Elasticity for vnfr " + vnfr.getId());
