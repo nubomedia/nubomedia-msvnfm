@@ -57,6 +57,8 @@ dependencies {
     compile project(':vnfm-sdk')
     compile project(':vim-drivers')
 
+    compile 'net.sourceforge.jeval:jeval:0.9.4'
+
     compile ('org.apache.jclouds.driver:jclouds-slf4j:1.9.0')
     compile ('org.apache.jclouds.driver:jclouds-sshj:1.9.0')
     compile ('org.apache.jclouds.api:openstack-keystone:1.9.0')
