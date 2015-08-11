@@ -20,11 +20,13 @@ rootProject.projectDir = file('.')
 include 'catalogue'
 include 'vim-drivers'
 include 'vnfm-sdk'
+include 'monitoring'
 
 
 project(':catalogue').projectDir = file('openbaton-libs/catalogue')
 project(':vim-drivers').projectDir = file('openbaton-libs/vim-drivers')
 project(':vnfm-sdk').projectDir = file('openbaton-libs/vnfm-sdk')
+project(':monitoring').projectDir = file('openbaton-libs/monitoring')
 
 //File vnfmDir = file('.')
 //String vnfmName = vnfmDir.name
