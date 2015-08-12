@@ -196,9 +196,9 @@ public abstract class AbstractVnfm implements VNFLifecycleManagement {
 
         //Change vnfr status if the current command is the last script of the current event.
         LifecycleEvent currentEvent= getLifecycleEvent(vnfr.getLifecycle_event(),event);
-        String lastScript=null;
-        while(currentEvent.getLifecycle_events().iterator().hasNext())
-            lastScript=currentEvent.getLifecycle_events().iterator().next();
+        String lastScript = (String) currentEvent.getLifecycle_events().toArray()[currentEvent.getLifecycle_events().size() - 1];
+        log.debug("Last script is: " + lastScript);
+
         if(lastScript.equalsIgnoreCase(command))
             changeStatus(vnfr,currentEvent.getEvent());
 
