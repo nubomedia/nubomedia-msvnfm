@@ -10,11 +10,9 @@ import org.project.openbaton.catalogue.nfvo.*;
 import org.project.openbaton.clients.exceptions.VimDriverException;
 import org.project.openbaton.clients.interfaces.ClientInterfaces;
 import org.project.openbaton.monitoring.interfaces.ResourcePerformanceManagement;
-import org.project.openbaton.vnfm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Scope;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.MessageCreator;
@@ -22,13 +20,11 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.ObjectMessage;
 import javax.jms.Session;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Future;
 
@@ -48,10 +44,12 @@ public class ResourceManagement {
     @Autowired
     private JmsTemplate jmsTemplate;
 
-    @PostConstruct
-    private void init() throws Exception{
-        this.clientInterfaces = Utils.getVimDriverPlugin();
-        this.resourcePerformanceManagement = Utils.getMonitoringPlugin();
+    public void setClientInterfaces(ClientInterfaces clientInterfaces){
+        this.clientInterfaces = clientInterfaces;
+    }
+
+    public void setResourcePerformanceManagement(ResourcePerformanceManagement resourcePerformanceManagement) {
+        this.resourcePerformanceManagement = resourcePerformanceManagement;
     }
 
     @Async
@@ -97,29 +95,31 @@ public class ResourceManagement {
         clientInterfaces.init(vdu.getVimInstance());
         if (vdu.getExtId() == null)
             return;
+
+        //TODO use the VNFComponent
         //Get server from cloud environment
-        Server server = null;
-        List<Server> serverList = clientInterfaces.listServer();
-        for (Server tmpServer : serverList) {
-            if (vdu.getExtId().equals(tmpServer.getExtId())) {
-                server = tmpServer;
-                break;
-            }
-        }
-        if (server == null) {
-            throw new NotFoundException("Not found Server with id " + vdu.getExtId());
-        }
-        //Remove associated ips
-        for (String network : server.getIps().keySet()) {
-            for (String ip : server.getIps().get(network)) {
-                vnfr.getVnf_address().remove(ip);
-            }
-        }
+//        Server server = null;
+//        List<Server> serverList = clientInterfaces.listServer();
+//        for (Server tmpServer : serverList) {
+//            if (vdu.getExtId().equals(tmpServer.getExtId())) {
+//                server = tmpServer;
+//                break;
+//            }
+//        }
+//        if (server == null) {
+//            throw new NotFoundException("Not found Server with id " + vdu.getExtId());
+//        }
+//        //Remove associated ips
+//        for (String network : server.getIps().keySet()) {
+//            for (String ip : server.getIps().get(network)) {
+//                vnfr.getVnf_address().remove(ip);
+//            }
+//        }
         //Terminate server and wait unitl finished
         clientInterfaces.deleteServerByIdAndWait(vdu.getExtId());
         //Remove corresponding vdu from vnfr
         vdu.setExtId(null);
-        //vnfr.getVdu().remove(vdu);
+        vnfr.getVdu().remove(vdu);
     }
 
     public synchronized Item getMeasurementResults(VirtualDeploymentUnit vdu, String metric, String period) {

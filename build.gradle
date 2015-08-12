@@ -56,6 +56,7 @@ dependencies {
 //    compile 'org.springframework:spring-jms:' + springVersion
     compile project(':vnfm-sdk')
     compile project(':vim-drivers')
+    compile project(':monitoring')
 
     compile 'net.sourceforge.jeval:jeval:0.9.4'
 

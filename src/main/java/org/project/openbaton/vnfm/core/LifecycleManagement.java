@@ -4,7 +4,6 @@ import javassist.NotFoundException;
 import org.project.openbaton.catalogue.mano.common.Event;
 import org.project.openbaton.catalogue.mano.common.LifecycleEvent;
 import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
@@ -34,7 +33,7 @@ public class LifecycleManagement {
             if (event.equals(tmpLifecycleEvent.getEvent())) {
                 lifecycleEvent = tmpLifecycleEvent;
                 vnfr.getLifecycle_event_history().add(lifecycleEvent);
-                vnfr.getLifecycle_event().remove(lifecycleEvent);
+//                vnfr.getLifecycle_event().remove(lifecycleEvent);
                 break;
             }
         }

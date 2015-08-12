@@ -1,6 +1,5 @@
 package org.project.openbaton.vnfm.utils;
 
-import javassist.NotFoundException;
 import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.project.openbaton.catalogue.nfvo.Action;
 import org.project.openbaton.catalogue.nfvo.CoreMessage;
@@ -16,12 +15,13 @@ import javax.jms.JMSException;
 import javax.naming.NamingException;
 import java.io.File;
 import java.lang.reflect.Field;
-import java.net.InterfaceAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 
 /**
  * Created by mpa on 29.07.15.
@@ -43,20 +43,21 @@ public class Utils {
         }
     }
 
-    public static ClientInterfaces getVimDriverPlugin() throws Exception {
+    public static ClientInterfaces getVimDriverPlugin(Properties properties) throws Exception {
         List<String> classes = new ArrayList<>();
-        classes.add("org.project.openbaton.clients.interfaces.client.test.TestClient");
-        classes.add("org.project.openbaton.clients.interfaces.client.openstack.OpenstackClient");
 
-        File folder = new File("./plugins/vim-drivers");
+        Collections.addAll(classes, properties.get("vim-classes").toString().split(";"));
+
+        for (String clazz : classes)
+            clazz = clazz.trim();
+
+        File folder = new File(String.valueOf(properties.get("vim-plugin-dir")));
         if (!folder.exists())
             throw new Exception("vim-drivers plugin folder does not exist");
         for (File file : folder.listFiles()) {
             if (file.getName().endsWith(".jar")) {
                 try {
                     ClassLoader classLoader = getClassLoader(file.getAbsolutePath());
-
-                    boolean found = false;
 
                     for (String clazz : classes) {
                         log.debug("Loading class: " + clazz);
@@ -66,7 +67,6 @@ public class Utils {
                         } catch (ClassNotFoundException e) {
                             continue;
                         }
-                        found = true;
 
                         Field f;
                         try {
@@ -83,8 +83,6 @@ public class Utils {
                         } else
                             throw new PluginInstallException("The interface Version are different: required: " + ClientInterfaces.interfaceVersion + ", provided: " + f.get(c));
                     }
-                    if (!found)
-                        throw new PluginInstallException("No valid Plugin found");
                 } catch (MalformedURLException e) {
                     throw new PluginInstallException(e);
                 } catch (InstantiationException e) {
@@ -99,11 +97,16 @@ public class Utils {
         throw new PluginInstallException("Plugin for ClientInterfaces not found");
     }
 
-    public static ResourcePerformanceManagement getMonitoringPlugin() throws Exception {
+    public static ResourcePerformanceManagement getMonitoringPlugin(Properties properties) throws Exception {
         List<String> classes = new ArrayList<>();
-        classes.add("org.project.openbaton.monitoring.agent.SmartDummyMonitoringAgent");
 
-        File folder = new File("./plugins/monitoring");
+        Collections.addAll(classes, properties.get("monitor-classes").toString().split(";"));
+
+        for (String clazz : classes)
+            clazz = clazz.trim();
+
+
+        File folder = new File(String.valueOf(properties.get("monitor-plugin-dir")));
         if (!folder.exists())
             throw new Exception("monitoring plugin folder does not exist");
         for (File file : folder.listFiles()) {
