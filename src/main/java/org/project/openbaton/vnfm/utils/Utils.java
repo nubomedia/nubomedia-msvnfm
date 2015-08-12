@@ -6,6 +6,8 @@ import org.project.openbaton.catalogue.nfvo.Action;
 import org.project.openbaton.catalogue.nfvo.CoreMessage;
 import org.project.openbaton.clients.interfaces.ClientInterfaces;
 import org.project.openbaton.common.vnfm_sdk.utils.UtilsJMS;
+import org.project.openbaton.monitoring.interfaces.ResourcePerformanceManagement;
+import org.project.openbaton.vnfm.exceptions.PluginInstallException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.ClassUtils;
@@ -13,8 +15,13 @@ import org.springframework.util.ClassUtils;
 import javax.jms.JMSException;
 import javax.naming.NamingException;
 import java.io.File;
+import java.lang.reflect.Field;
+import java.net.InterfaceAddress;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by mpa on 29.07.15.
@@ -36,56 +43,122 @@ public class Utils {
         }
     }
 
-    public static ClientInterfaces getPlugin() throws Exception {
-        File folder = new File("./plugins");
+    public static ClientInterfaces getVimDriverPlugin() throws Exception {
+        List<String> classes = new ArrayList<>();
+        classes.add("org.project.openbaton.clients.interfaces.client.test.TestClient");
+        classes.add("org.project.openbaton.clients.interfaces.client.openstack.OpenstackClient");
+
+        File folder = new File("./plugins/vim-drivers");
         if (!folder.exists())
-            throw new Exception("plugins does not exist");
-        for (File f : folder.listFiles()) {
-            if (f.getName().endsWith(".jar")) {
-                ClassLoader parent = ClassUtils.getDefaultClassLoader();
-                String path = f.getAbsolutePath();
-                ClassLoader classLoader = new URLClassLoader(new URL[]{new URL("file://" + path)}, parent);
-                URL url = null;
-                String type = null;
-                if (url == null) {
-                    url = classLoader.getResource("org/project/openbaton/clients/interfaces/client/test/TestClient.class");
-                    type = "test";
-                }
-                if (url == null) {
-                    url = classLoader.getResource("org/project/openbaton/clients/interfaces/client/openstack/OpenstackClient.class");
-                    type = "openstack";
-                }
-                if (url == null) {
-                    url = classLoader.getResource("org/project/openbaton/clients/interfaces/client/amazon/AmazonClient.class");
-                    type = "amazon";
-                }
-                if (url == null)
-                    throw new Exception("No ClientInterfaces known were found");
+            throw new Exception("vim-drivers plugin folder does not exist");
+        for (File file : folder.listFiles()) {
+            if (file.getName().endsWith(".jar")) {
+                try {
+                    ClassLoader classLoader = getClassLoader(file.getAbsolutePath());
 
-                log.trace("URL: " + url.toString());
-                log.trace("type is: " + type);
-                Class aClass = null;
-                switch (type) {
-                    case "test":
-                        aClass = classLoader.loadClass("org.project.openbaton.clients.interfaces.client.test.TestClient");
+                    boolean found = false;
 
-                        break;
-                    case "openstack":
-                        aClass = classLoader.loadClass("org.project.openbaton.clients.interfaces.client.openstack.OpenstackClient");
-                        break;
-                    case "amazon":
-                        break;
-                    default:
-                        throw new Exception("No type found");
+                    for (String clazz : classes) {
+                        log.debug("Loading class: " + clazz);
+                        Class c;
+                        try {
+                            c = classLoader.loadClass(clazz);
+                        } catch (ClassNotFoundException e) {
+                            continue;
+                        }
+                        found = true;
+
+                        Field f;
+                        try {
+                            f = c.getField("interfaceVersion");
+                        } catch (NoSuchFieldException e) {
+                            throw new PluginInstallException("No valid Plugin found");
+                        }
+                        if (f.get(c).equals(ClientInterfaces.interfaceVersion)) {
+                            log.debug("Correct interface Version");
+                            ClientInterfaces instance = (ClientInterfaces) c.newInstance();
+                            log.debug("instance: " + instance);
+                            log.debug("of type: " + instance);
+                            return instance;
+                        } else
+                            throw new PluginInstallException("The interface Version are different: required: " + ClientInterfaces.interfaceVersion + ", provided: " + f.get(c));
+                    }
+                    if (!found)
+                        throw new PluginInstallException("No valid Plugin found");
+                } catch (MalformedURLException e) {
+                    throw new PluginInstallException(e);
+                } catch (InstantiationException e) {
+                    throw new PluginInstallException(e);
+                } catch (IllegalAccessException e) {
+                    throw new PluginInstallException(e);
+                } catch (SecurityException e) {
+                    throw new PluginInstallException(e);
                 }
-                ClientInterfaces instance = (ClientInterfaces) aClass.newInstance();
-                log.debug("instance: " + instance);
-                return instance;
             }
         }
-        throw new NotFoundException("Plugin for ClientInterfaces was not found in plugins/");
+        throw new PluginInstallException("Plugin for ClientInterfaces not found");
     }
 
+    public static ResourcePerformanceManagement getMonitoringPlugin() throws Exception {
+        List<String> classes = new ArrayList<>();
+        classes.add("org.project.openbaton.monitoring.agent.SmartDummyMonitoringAgent");
 
+        File folder = new File("./plugins/monitoring");
+        if (!folder.exists())
+            throw new Exception("monitoring plugin folder does not exist");
+        for (File file : folder.listFiles()) {
+            if (file.getName().endsWith(".jar")) {
+                try {
+                    ClassLoader classLoader = getClassLoader(file.getAbsolutePath());
+                    boolean found = false;
+                    for (String clazz : classes) {
+                        log.debug("Loading class: " + clazz + " on path " + file.getAbsolutePath());
+                        Class c;
+
+                        try {
+                            c = classLoader.loadClass(clazz);
+                        } catch (ClassNotFoundException e) {
+                            continue;
+                        }
+                        found = true;
+
+                        Field f;
+                        try {
+                            f = c.getField("interfaceVersion");
+                        } catch (NoSuchFieldException e) {
+                            throw new PluginInstallException("Not a valid plugin");
+                        }
+
+                        if (f.get(c).equals(ResourcePerformanceManagement.interfaceVersion)) {
+                            ResourcePerformanceManagement agent = (ResourcePerformanceManagement) c.newInstance();
+                            log.debug("instance: " + agent);
+                            log.debug("of type: " + agent.getType());
+                            return agent;
+                        } else
+                            throw new PluginInstallException("The interface Version are different: required: " + ClientInterfaces.interfaceVersion + ", provided: " + f.get(c));
+                    }
+                    if (!found)
+                        throw new PluginInstallException("No valid Plugin found");
+                } catch (MalformedURLException e) {
+                    throw new PluginInstallException(e);
+                } catch (InstantiationException e) {
+                    throw new PluginInstallException(e);
+                } catch (IllegalAccessException e) {
+                    throw new PluginInstallException(e);
+                }
+            }
+        }
+        throw new PluginInstallException("Plugin for ResourcePerformanceManagement not found");
+    }
+
+    public static ClassLoader getClassLoader(String path) throws PluginInstallException, MalformedURLException {
+        File jar = new File(path);
+        if (!jar.exists())
+            throw new PluginInstallException(path + " does not exist");
+        ClassLoader parent = ClassUtils.getDefaultClassLoader();
+        path = jar.getAbsolutePath();
+        log.trace("path is: " + path);
+        return new URLClassLoader(new URL[]{new URL("file://" + path)}, parent);
+    }
 
 }
