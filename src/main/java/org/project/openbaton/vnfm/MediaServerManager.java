@@ -3,6 +3,7 @@ package org.project.openbaton.vnfm;
 import javassist.NotFoundException;
 import org.project.openbaton.catalogue.mano.common.Event;
 import org.project.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
+import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.project.openbaton.catalogue.nfvo.Action;
 import org.project.openbaton.catalogue.nfvo.CoreMessage;
 import org.project.openbaton.clients.exceptions.VimDriverException;
@@ -37,12 +38,12 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     private LifecycleManagement lifecycleManagement;
 
     @Override
-    public CoreMessage instantiate() {
-        log.info("Instantiation of VirtualNetworkFunctionRecord " + this.virtualNetworkFunctionRecord.getName());
-        log.trace("Instantiation of VirtualNetworkFunctionRecord " + this.virtualNetworkFunctionRecord);
+    public CoreMessage instantiate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
+        log.info("Instantiation of VirtualNetworkFunctionRecord " + virtualNetworkFunctionRecord.getName());
+        log.trace("Instantiation of VirtualNetworkFunctionRecord " + virtualNetworkFunctionRecord);
 
-        Set<Event> events = lifecycleManagement.listEvents(this.virtualNetworkFunctionRecord);
-        Set<Event> historyEvents = lifecycleManagement.listHistoryEvents(this.virtualNetworkFunctionRecord);
+        Set<Event> events = lifecycleManagement.listEvents(virtualNetworkFunctionRecord);
+        Set<Event> historyEvents = lifecycleManagement.listHistoryEvents(virtualNetworkFunctionRecord);
         if (events.contains(Event.ALLOCATE) && !historyEvents.contains(Event.ALLOCATE)) {
             log.debug("Processing event ALLOCATE");
             List<Future<String>> ids = new ArrayList<>();
@@ -52,12 +53,12 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                     //resourceManagement.grantLifecycleOperation(vnfr);
                     CoreMessage coreMessage = new CoreMessage();
                     coreMessage.setAction(Action.GRANT_OPERATION);
-                    coreMessage.setPayload(this.virtualNetworkFunctionRecord);
+                    coreMessage.setPayload(virtualNetworkFunctionRecord);
                     return coreMessage;
                 }
                 //Allocate Resources
-                for(VirtualDeploymentUnit vdu : this.virtualNetworkFunctionRecord.getVdu()) {
-                    Future<String> allocate = resourceManagement.allocate(this.virtualNetworkFunctionRecord, vdu);
+                for(VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
+                    Future<String> allocate = resourceManagement.allocate(virtualNetworkFunctionRecord, vdu);
                     ids.add(allocate);
                 }
                 //Print ids of deployed VDUs
@@ -68,40 +69,40 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                         log.error(e.getMessage(), e);
                         CoreMessage coreMessage = new CoreMessage();
                         coreMessage.setAction(Action.ERROR);
-                        coreMessage.setPayload(this.virtualNetworkFunctionRecord);
+                        coreMessage.setPayload(virtualNetworkFunctionRecord);
                         return coreMessage;
                     } catch (ExecutionException e) {
                         log.error(e.getMessage(), e);
                         CoreMessage coreMessage = new CoreMessage();
                         coreMessage.setAction(Action.ERROR);
-                        coreMessage.setPayload(this.virtualNetworkFunctionRecord);
+                        coreMessage.setPayload(virtualNetworkFunctionRecord);
                         return coreMessage;
                     }
                 }
                 //Put EVENT ALLOCATE to history
 //                lifecycleManagement.removeEvent(vnfr, Event.ALLOCATE);
-                updateVnfr(this.virtualNetworkFunctionRecord,Event.ALLOCATE);
+                updateVnfr(virtualNetworkFunctionRecord,Event.ALLOCATE);
             } catch (NotFoundException e) {
                 log.error(e.getMessage(), e);
             } catch (VimDriverException e) {
                 log.error(e.getMessage(), e);
                 CoreMessage coreMessage = new CoreMessage();
                 coreMessage.setAction(Action.ERROR);
-                coreMessage.setPayload(this.virtualNetworkFunctionRecord);
+                coreMessage.setPayload(virtualNetworkFunctionRecord);
                 return coreMessage;
             }
         }
         if (events.contains(Event.SCALE)) {
             log.debug("Processing event SCALE");
-            elasticityManagement.activate(this.virtualNetworkFunctionRecord);
+            elasticityManagement.activate(virtualNetworkFunctionRecord);
             //Put EVENT SCALE to history
 //          lifecycleManagement.removeEvent(vnfr, Event.SCALE);
-            updateVnfr(this.virtualNetworkFunctionRecord, Event.ALLOCATE);
+            updateVnfr(virtualNetworkFunctionRecord, Event.ALLOCATE);
         }
-        log.trace("I've finished initialization of vnf " + this.virtualNetworkFunctionRecord.getName() + " in facts there are only " + this.virtualNetworkFunctionRecord.getLifecycle_event().size() + " events");
+        log.trace("I've finished initialization of vnf " + virtualNetworkFunctionRecord.getName() + " in facts there are only " + virtualNetworkFunctionRecord.getLifecycle_event().size() + " events");
         CoreMessage coreMessage = new CoreMessage();
         coreMessage.setAction(Action.INSTANTIATE);
-        coreMessage.setPayload(this.virtualNetworkFunctionRecord);
+        coreMessage.setPayload(virtualNetworkFunctionRecord);
         return coreMessage;
     }
 
@@ -130,12 +131,13 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     }
 
     @Override
-    public CoreMessage modify() {
+    public CoreMessage modify(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
         //TODO implement modify
 
         CoreMessage coreMessage = new CoreMessage();
         coreMessage.setAction(Action.MODIFY);
         coreMessage.setPayload(virtualNetworkFunctionRecord);
+        updateVnfr(virtualNetworkFunctionRecord,Event.CONFIGURE);
         return coreMessage;
     }
 
@@ -146,9 +148,9 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     }
 
     @Override
-    public CoreMessage terminate() {
+    public CoreMessage terminate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
         log.info("Terminating vnfr with id " + virtualNetworkFunctionRecord.getId());
-        Set<Event> events = lifecycleManagement.listEvents(this.virtualNetworkFunctionRecord);
+        Set<Event> events = lifecycleManagement.listEvents(virtualNetworkFunctionRecord);
         if (events.contains(Event.SCALE))
             elasticityManagement.deactivate(virtualNetworkFunctionRecord);
 
@@ -170,7 +172,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     }
 
     @Override
-    public CoreMessage handleError() {
+    public CoreMessage handleError(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
         log.error("Error arrised.");
         CoreMessage coreMessage = new CoreMessage();
         coreMessage.setAction(Action.ERROR);
@@ -179,7 +181,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     }
 
     @Override
-    protected CoreMessage start() {
+    protected CoreMessage start(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
         CoreMessage coreMessage = new CoreMessage();
         coreMessage.setAction(Action.START);
         coreMessage.setPayload(virtualNetworkFunctionRecord);
@@ -188,13 +190,15 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     }
 
     @Override
-    protected CoreMessage configure() {
+    protected CoreMessage configure(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
         /**
          * This message should never arrive!
          */
         CoreMessage coreMessage = new CoreMessage();
         coreMessage.setAction(Action.CONFIGURE);
         coreMessage.setPayload(virtualNetworkFunctionRecord);
+
+        updateVnfr(virtualNetworkFunctionRecord,Event.CONFIGURE);
 
         return coreMessage;
     }
