@@ -33,7 +33,7 @@ public class Utils {
     public static void sendToCore(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, Action action) {
         CoreMessage coreMessage = new CoreMessage();
         coreMessage.setAction(action);
-        coreMessage.setPayload(virtualNetworkFunctionRecord);
+        coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
         try {
             UtilsJMS.sendToQueue(coreMessage, "vnfm-core-actions");
         } catch (NamingException e) {

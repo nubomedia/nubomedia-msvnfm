@@ -93,7 +93,7 @@ public class ElasticityManagement {
                     leftInstances--;
                 }
             }
-            if (leftInstances<=0) {
+            if (leftInstances <= 0) {
                 log.debug("Maximum number of instances are reached on VimInstance " + vdu.getVimInstance());
                 break;
             }
@@ -135,7 +135,7 @@ public class ElasticityManagement {
                 try {
                     CoreMessage coreMessage = new CoreMessage();
                     coreMessage.setAction(Action.ERROR);
-                    coreMessage.setPayload(vnfr);
+                    coreMessage.setVirtualNetworkFunctionRecord(vnfr);
                     UtilsJMS.sendToQueue(coreMessage, "vnfm-core-actions");
                 } catch (NamingException exc) {
                     log.error(exc.getMessage(), exc);
@@ -297,7 +297,7 @@ class ElasticityTask implements Runnable {
         try {
             List<Item> measurementResults = elasticityManagement.getRawMeasurementResults(vnfr, autoScalePolicy.getMetric(), Integer.toString(autoScalePolicy.getPeriod()));
             double finalResult = elasticityManagement.calculateMeasurementResult(autoScalePolicy, measurementResults);
-            log.debug("Final measurement result on vnfr " + vnfr.getId() + " on metric " + autoScalePolicy.getMetric() + " with statistic " + autoScalePolicy.getStatistic() + " is " + finalResult + " " + measurementResults );
+            log.debug("Final measurement result on vnfr " + vnfr.getId() + " on metric " + autoScalePolicy.getMetric() + " with statistic " + autoScalePolicy.getStatistic() + " is " + finalResult + " " + measurementResults);
             if (elasticityManagement.triggerAction(autoScalePolicy, finalResult) && elasticityManagement.checkFeasibility(vnfr, autoScalePolicy) && checkStatus() == true) {
                 setStatus(Status.SCALING);
                 Utils.sendToCore(vnfr, Action.SCALING);
@@ -324,7 +324,6 @@ class ElasticityTask implements Runnable {
     private synchronized boolean checkStatus() {
         Collection<Status> nonBlockingStatus = new HashSet<Status>();
         nonBlockingStatus.add(Status.ACTIVE);
-        nonBlockingStatus.add(Status.INITIAILZED);
         if (nonBlockingStatus.contains(this.vnfr.getStatus())) {
             return true;
         } else {

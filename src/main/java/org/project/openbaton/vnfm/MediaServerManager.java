@@ -3,6 +3,7 @@ package org.project.openbaton.vnfm;
 import javassist.NotFoundException;
 import org.project.openbaton.catalogue.mano.common.Event;
 import org.project.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
+import org.project.openbaton.catalogue.mano.record.VNFRecordDependency;
 import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.project.openbaton.catalogue.nfvo.Action;
 import org.project.openbaton.catalogue.nfvo.CoreMessage;
@@ -53,7 +54,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                     //resourceManagement.grantLifecycleOperation(vnfr);
                     CoreMessage coreMessage = new CoreMessage();
                     coreMessage.setAction(Action.GRANT_OPERATION);
-                    coreMessage.setPayload(virtualNetworkFunctionRecord);
+                    coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
                     return coreMessage;
                 }
                 //Allocate Resources
@@ -69,13 +70,13 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                         log.error(e.getMessage(), e);
                         CoreMessage coreMessage = new CoreMessage();
                         coreMessage.setAction(Action.ERROR);
-                        coreMessage.setPayload(virtualNetworkFunctionRecord);
+                        coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
                         return coreMessage;
                     } catch (ExecutionException e) {
                         log.error(e.getMessage(), e);
                         CoreMessage coreMessage = new CoreMessage();
                         coreMessage.setAction(Action.ERROR);
-                        coreMessage.setPayload(virtualNetworkFunctionRecord);
+                        coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
                         return coreMessage;
                     }
                 }
@@ -88,21 +89,14 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                 log.error(e.getMessage(), e);
                 CoreMessage coreMessage = new CoreMessage();
                 coreMessage.setAction(Action.ERROR);
-                coreMessage.setPayload(virtualNetworkFunctionRecord);
+                coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
                 return coreMessage;
             }
-        }
-        if (events.contains(Event.SCALE)) {
-            log.debug("Processing event SCALE");
-            elasticityManagement.activate(virtualNetworkFunctionRecord);
-            //Put EVENT SCALE to history
-//          lifecycleManagement.removeEvent(vnfr, Event.SCALE);
-            updateVnfr(virtualNetworkFunctionRecord, Event.ALLOCATE);
         }
         log.trace("I've finished initialization of vnf " + virtualNetworkFunctionRecord.getName() + " in facts there are only " + virtualNetworkFunctionRecord.getLifecycle_event().size() + " events");
         CoreMessage coreMessage = new CoreMessage();
         coreMessage.setAction(Action.INSTANTIATE);
-        coreMessage.setPayload(virtualNetworkFunctionRecord);
+        coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
         return coreMessage;
     }
 
@@ -131,16 +125,13 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     }
 
     @Override
-    public CoreMessage modify(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
-        //TODO implement modify
-
+    public CoreMessage modify(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, VNFRecordDependency dependency) {
         CoreMessage coreMessage = new CoreMessage();
         coreMessage.setAction(Action.MODIFY);
-        coreMessage.setPayload(virtualNetworkFunctionRecord);
+        coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
         updateVnfr(virtualNetworkFunctionRecord,Event.CONFIGURE);
         return coreMessage;
     }
-
 
     @Override
     public void upgradeSoftware() {
@@ -167,7 +158,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
         log.info("Terminated vnfr with id " + virtualNetworkFunctionRecord.getId());
         CoreMessage coreMessage = new CoreMessage();
         coreMessage.setAction(Action.RELEASE_RESOURCES);
-        coreMessage.setPayload(virtualNetworkFunctionRecord);
+        coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
         return coreMessage;
     }
 
@@ -176,7 +167,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
         log.error("Error arrised.");
         CoreMessage coreMessage = new CoreMessage();
         coreMessage.setAction(Action.ERROR);
-        coreMessage.setPayload(virtualNetworkFunctionRecord);
+        coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
         return coreMessage;
     }
 
@@ -184,8 +175,20 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     protected CoreMessage start(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
         CoreMessage coreMessage = new CoreMessage();
         coreMessage.setAction(Action.START);
-        coreMessage.setPayload(virtualNetworkFunctionRecord);
+        coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
         updateVnfr(virtualNetworkFunctionRecord, Event.START);
+        Set<Event> events = lifecycleManagement.listEvents(virtualNetworkFunctionRecord);
+        if (events.contains(Event.SCALE)) {
+            log.debug("Processing event SCALE");
+            elasticityManagement.activate(virtualNetworkFunctionRecord);
+            //Put EVENT SCALE to history
+//            try {
+//                lifecycleManagement.removeEvent(virtualNetworkFunctionRecord, Event.SCALE);
+//            } catch (NotFoundException e) {
+//                log.warn(e.getMessage());
+//            }
+            updateVnfr(virtualNetworkFunctionRecord, Event.SCALE);
+        }
         return coreMessage;
     }
 
@@ -196,7 +199,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
          */
         CoreMessage coreMessage = new CoreMessage();
         coreMessage.setAction(Action.CONFIGURE);
-        coreMessage.setPayload(virtualNetworkFunctionRecord);
+        coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
 
         updateVnfr(virtualNetworkFunctionRecord,Event.CONFIGURE);
 

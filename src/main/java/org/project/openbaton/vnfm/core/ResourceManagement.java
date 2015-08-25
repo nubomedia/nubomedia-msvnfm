@@ -10,6 +10,7 @@ import org.project.openbaton.catalogue.nfvo.*;
 import org.project.openbaton.clients.exceptions.VimDriverException;
 import org.project.openbaton.clients.interfaces.ClientInterfaces;
 import org.project.openbaton.monitoring.interfaces.ResourcePerformanceManagement;
+import org.project.openbaton.vnfm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +34,7 @@ import java.util.concurrent.Future;
  */
 
 @Service
-@Scope("prototype")
+@Scope
 public class ResourceManagement {
 
     protected Logger log = LoggerFactory.getLogger(this.getClass());
@@ -56,9 +57,6 @@ public class ResourceManagement {
     public Future<String> allocate(VirtualNetworkFunctionRecord vnfr, VirtualDeploymentUnit vdu) throws NotFoundException, VimDriverException {
         //Initialize VimInstance
         VimInstance vimInstance = vdu.getVimInstance();
-        log.trace("Initializing " + vimInstance);
-        clientInterfaces.init(vimInstance);
-        log.debug("initialized VimInstance");
         //Set Hostname
         vdu.setHostname(vnfr.getName() + "-" + vdu.getId().substring((vdu.getId().length() - 5), vdu.getId().length() - 1));
         //Fetch image id
@@ -74,7 +72,7 @@ public class ResourceManagement {
         //Launch Server
         Server server = null;
         try {
-            server = clientInterfaces.launchInstanceAndWait(vdu.getHostname(), image_id, flavor_id, vimInstance.getKeyPair(), networks, vimInstance.getSecurityGroups(), "#userdata");
+            server = clientInterfaces.launchInstanceAndWait(vdu.getVimInstance(), vdu.getHostname(), image_id, flavor_id, vimInstance.getKeyPair(), networks, vimInstance.getSecurityGroups(), "#userdata");
         } catch (VimDriverException e) {
             log.error("Cannot launch vdu.", e);
             throw new VimDriverException("Cannot launch vdu.", e);
@@ -92,7 +90,6 @@ public class ResourceManagement {
     }
 
     public void release(VirtualNetworkFunctionRecord vnfr, VirtualDeploymentUnit vdu) throws NotFoundException {
-        clientInterfaces.init(vdu.getVimInstance());
         if (vdu.getExtId() == null)
             return;
 
@@ -116,7 +113,7 @@ public class ResourceManagement {
 //            }
 //        }
         //Terminate server and wait unitl finished
-        clientInterfaces.deleteServerByIdAndWait(vdu.getExtId());
+        clientInterfaces.deleteServerByIdAndWait(vdu.getVimInstance(), vdu.getExtId());
         //Remove corresponding vdu from vnfr
         vdu.setExtId(null);
         vnfr.getVdu().remove(vdu);
@@ -172,7 +169,7 @@ public class ResourceManagement {
     public void grantLifecycleOperation(VirtualNetworkFunctionRecord vnfr) {
         CoreMessage coreMessage = new CoreMessage();
         coreMessage.setAction(Action.GRANT_OPERATION);
-        coreMessage.setPayload(vnfr);
+        coreMessage.setVirtualNetworkFunctionRecord(vnfr);
 
         final CoreMessage finalCoreMessage = coreMessage;
         MessageCreator messageCreator = new MessageCreator() {
