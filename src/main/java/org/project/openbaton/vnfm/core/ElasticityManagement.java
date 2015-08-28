@@ -76,7 +76,6 @@ public class ElasticityManagement {
             scheduledFuture.cancel(false);
         }
         log.debug("Deactivated Elasticity for vnfr " + vnfr.getId());
-        vnfr.setStatus(Status.ACTIVE);
     }
 
     public void scaleUp(VirtualNetworkFunctionRecord vnfr, AutoScalePolicy autoScalePolicy) {
@@ -124,7 +123,8 @@ public class ElasticityManagement {
             newVDU.setVirtual_network_bandwidth_resource(vdu.getVirtual_network_bandwidth_resource());
             try {
                 try {
-                    resourceManagement.allocate(vnfr, newVDU).get();
+                    //TODO Wait until launching is finished
+                    resourceManagement.allocate(vnfr, newVDU, false).get();
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 } catch (ExecutionException e) {
@@ -298,20 +298,21 @@ class ElasticityTask implements Runnable {
             List<Item> measurementResults = elasticityManagement.getRawMeasurementResults(vnfr, autoScalePolicy.getMetric(), Integer.toString(autoScalePolicy.getPeriod()));
             double finalResult = elasticityManagement.calculateMeasurementResult(autoScalePolicy, measurementResults);
             log.debug("Final measurement result on vnfr " + vnfr.getId() + " on metric " + autoScalePolicy.getMetric() + " with statistic " + autoScalePolicy.getStatistic() + " is " + finalResult + " " + measurementResults);
-            if (elasticityManagement.triggerAction(autoScalePolicy, finalResult) && elasticityManagement.checkFeasibility(vnfr, autoScalePolicy) && checkStatus() == true) {
-                setStatus(Status.SCALING);
+            if (elasticityManagement.triggerAction(autoScalePolicy, finalResult) && elasticityManagement.checkFeasibility(vnfr, autoScalePolicy) && setStatus(Status.SCALING) == true) {
+                //setStatus(Status.SCALING);
                 Utils.sendToCore(vnfr, Action.SCALING);
                 log.debug("Executing scaling action of AutoScalePolicy with id " + autoScalePolicy.getId());
                 elasticityManagement.executeAction(vnfr, autoScalePolicy);
-                log.debug("Starting cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
-                Thread.sleep(autoScalePolicy.getCooldown() * 1000);
-                log.debug("Finished cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
-                setStatus(Status.ACTIVE);
                 if (autoScalePolicy.getAction().equals("scaleup")) {
                     Utils.sendToCore(vnfr, Action.SCALE_UP_FINISHED);
                 } else if (autoScalePolicy.getAction().equals("scaledown")) {
                     Utils.sendToCore(vnfr, Action.SCALE_DOWN_FINISHED);
                 }
+                log.debug("Starting cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
+                //TODO Launching a new instance should not be part of the cooldown
+                Thread.sleep(autoScalePolicy.getCooldown() * 1000);
+                log.debug("Finished cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
+                setStatus(Status.ACTIVE);
             } else {
                 log.debug("Scaling of AutoScalePolicy with id " + autoScalePolicy.getId() + " is not executed");
             }
@@ -333,7 +334,13 @@ class ElasticityTask implements Runnable {
 
     private synchronized boolean setStatus(Status status) {
         log.debug("Set status of vnfr " + vnfr.getId() + " to " + status.name());
-        vnfr.setStatus(status);
-        return true;
+        Collection<Status> nonBlockingStatus = new HashSet<Status>();
+        nonBlockingStatus.add(Status.ACTIVE);
+        if (nonBlockingStatus.contains(this.vnfr.getStatus()) || status.equals(Status.ACTIVE)) {
+            vnfr.setStatus(status);
+            return true;
+        } else {
+            return false;
+        }
     }
 }

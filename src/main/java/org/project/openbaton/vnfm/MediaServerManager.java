@@ -3,6 +3,7 @@ package org.project.openbaton.vnfm;
 import javassist.NotFoundException;
 import org.project.openbaton.catalogue.mano.common.Event;
 import org.project.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
+import org.project.openbaton.catalogue.mano.record.Status;
 import org.project.openbaton.catalogue.mano.record.VNFRecordDependency;
 import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.project.openbaton.catalogue.nfvo.Action;
@@ -59,7 +60,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                 }
                 //Allocate Resources
                 for(VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
-                    Future<String> allocate = resourceManagement.allocate(virtualNetworkFunctionRecord, vdu);
+                    Future<String> allocate = resourceManagement.allocate(virtualNetworkFunctionRecord, vdu, true);
                     ids.add(allocate);
                 }
                 //Print ids of deployed VDUs
@@ -95,7 +96,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
         }
         log.trace("I've finished initialization of vnf " + virtualNetworkFunctionRecord.getName() + " in facts there are only " + virtualNetworkFunctionRecord.getLifecycle_event().size() + " events");
         CoreMessage coreMessage = new CoreMessage();
-        coreMessage.setAction(Action.INSTANTIATE);
+        coreMessage.setAction(Action.INSTANTIATE_FINISH);
         coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
         return coreMessage;
     }
@@ -157,7 +158,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
         //TODO remove VDU from the vnfr
         log.info("Terminated vnfr with id " + virtualNetworkFunctionRecord.getId());
         CoreMessage coreMessage = new CoreMessage();
-        coreMessage.setAction(Action.RELEASE_RESOURCES);
+        coreMessage.setAction(Action.RELEASE_RESOURCES_FINISH);
         coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
         return coreMessage;
     }
@@ -177,8 +178,10 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
         coreMessage.setAction(Action.START);
         coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
         updateVnfr(virtualNetworkFunctionRecord, Event.START);
+        //TODO where to set it to active?
+        //virtualNetworkFunctionRecord.setStatus(Status.ACTIVE);
         Set<Event> events = lifecycleManagement.listEvents(virtualNetworkFunctionRecord);
-        if (events.contains(Event.SCALE)) {
+        if (virtualNetworkFunctionRecord.getStatus().equals(Status.ACTIVE) && events.contains(Event.SCALE)) {
             log.debug("Processing event SCALE");
             elasticityManagement.activate(virtualNetworkFunctionRecord);
             //Put EVENT SCALE to history

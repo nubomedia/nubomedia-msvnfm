@@ -26,6 +26,7 @@ import javax.jms.Message;
 import javax.jms.ObjectMessage;
 import javax.jms.Session;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Future;
 
@@ -54,7 +55,7 @@ public class ResourceManagement {
     }
 
     @Async
-    public Future<String> allocate(VirtualNetworkFunctionRecord vnfr, VirtualDeploymentUnit vdu) throws NotFoundException, VimDriverException {
+    public Future<String> allocate(VirtualNetworkFunctionRecord vnfr, VirtualDeploymentUnit vdu, boolean wait) throws NotFoundException, VimDriverException {
         //Initialize VimInstance
         VimInstance vimInstance = vdu.getVimInstance();
         //Set Hostname
@@ -71,12 +72,11 @@ public class ResourceManagement {
         log.trace("Params: " + vdu.getHostname() + " - " + image_id + " - " + flavor_id + " - " + vimInstance.getKeyPair() + " - " + networks + " - " + vimInstance.getSecurityGroups());
         //Launch Server
         Server server = null;
-        try {
-            server = clientInterfaces.launchInstanceAndWait(vdu.getVimInstance(), vdu.getHostname(), image_id, flavor_id, vimInstance.getKeyPair(), networks, vimInstance.getSecurityGroups(), "#userdata");
-        } catch (VimDriverException e) {
-            log.error("Cannot launch vdu.", e);
-            throw new VimDriverException("Cannot launch vdu.", e);
-        }
+        if (wait)
+            server = clientInterfaces.launchInstance(vdu.getVimInstance(), vdu.getHostname(), image_id, flavor_id, vimInstance.getKeyPair(), networks, vimInstance.getSecurityGroups(), "mkdir /tmp/testtest");
+        else
+            server = clientInterfaces.launchInstanceAndWait(vdu.getVimInstance(), vdu.getHostname(), image_id, flavor_id, vimInstance.getKeyPair(), networks, vimInstance.getSecurityGroups(), "mkdir /tmp/testtest");
+
         log.debug("launched instance with id " + server.getExtId());
         //Set external id
         vdu.setExtId(server.getExtId());
@@ -95,28 +95,27 @@ public class ResourceManagement {
 
         //TODO use the VNFComponent
         //Get server from cloud environment
-//        Server server = null;
-//        List<Server> serverList = clientInterfaces.listServer();
-//        for (Server tmpServer : serverList) {
-//            if (vdu.getExtId().equals(tmpServer.getExtId())) {
-//                server = tmpServer;
-//                break;
-//            }
-//        }
-//        if (server == null) {
-//            throw new NotFoundException("Not found Server with id " + vdu.getExtId());
-//        }
-//        //Remove associated ips
-//        for (String network : server.getIps().keySet()) {
-//            for (String ip : server.getIps().get(network)) {
-//                vnfr.getVnf_address().remove(ip);
-//            }
-//        }
+        Server server = null;
+        List<Server> serverList = clientInterfaces.listServer(vdu.getVimInstance());
+        for (Server tmpServer : serverList) {
+            if (vdu.getExtId().equals(tmpServer.getExtId())) {
+                server = tmpServer;
+                break;
+            }
+        }
+        if (server == null) {
+            throw new NotFoundException("Not found Server with id " + vdu.getExtId());
+        }
+        //Remove associated ips
+        for (String network : server.getIps().keySet()) {
+            for (String ip : server.getIps().get(network)) {
+                vnfr.getVnf_address().remove(ip);
+            }
+        }
         //Terminate server and wait unitl finished
         clientInterfaces.deleteServerByIdAndWait(vdu.getVimInstance(), vdu.getExtId());
         //Remove corresponding vdu from vnfr
         vdu.setExtId(null);
-        vnfr.getVdu().remove(vdu);
     }
 
     public synchronized Item getMeasurementResults(VirtualDeploymentUnit vdu, String metric, String period) {
