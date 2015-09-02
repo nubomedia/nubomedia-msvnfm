@@ -304,9 +304,9 @@ class ElasticityTask implements Runnable {
                 log.debug("Executing scaling action of AutoScalePolicy with id " + autoScalePolicy.getId());
                 elasticityManagement.executeAction(vnfr, autoScalePolicy);
                 if (autoScalePolicy.getAction().equals("scaleup")) {
-                    Utils.sendToCore(vnfr, Action.SCALE_UP_FINISHED);
+                    Utils.sendToCore(vnfr, Action.SCALE_OUT_FINISHED);
                 } else if (autoScalePolicy.getAction().equals("scaledown")) {
-                    Utils.sendToCore(vnfr, Action.SCALE_DOWN_FINISHED);
+                    Utils.sendToCore(vnfr, Action.SCALE_IN_FINISHED);
                 }
                 log.debug("Starting cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
                 //TODO Launching a new instance should not be part of the cooldown
