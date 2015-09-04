@@ -66,16 +66,19 @@ public class ResourceManagement {
         String flavor_id = getFlavorID(vnfr, vdu);
         //Collect network ids
         Set<String> networks = getNetworkIds(vdu);
-
+        //Get userdata
+        String userdata = Utils.getUserdata();
+        //Set the right hostname
+        userdata = "echo " + vdu.getHostname() + " > /etc/hostname\necho " + vdu.getHostname() + " >> /etc/hostname\n" + userdata;
         log.trace(""+vnfr);
         log.trace("");
         log.trace("Params: " + vdu.getHostname() + " - " + image_id + " - " + flavor_id + " - " + vimInstance.getKeyPair() + " - " + networks + " - " + vimInstance.getSecurityGroups());
         //Launch Server
         Server server = null;
         if (wait)
-            server = clientInterfaces.launchInstance(vdu.getVimInstance(), vdu.getHostname(), image_id, flavor_id, vimInstance.getKeyPair(), networks, vimInstance.getSecurityGroups(), "mkdir /tmp/testtest");
+            server = clientInterfaces.launchInstance(vdu.getVimInstance(), vdu.getHostname(), image_id, flavor_id, vimInstance.getKeyPair(), networks, vimInstance.getSecurityGroups(), userdata);
         else
-            server = clientInterfaces.launchInstanceAndWait(vdu.getVimInstance(), vdu.getHostname(), image_id, flavor_id, vimInstance.getKeyPair(), networks, vimInstance.getSecurityGroups(), "mkdir /tmp/testtest");
+            server = clientInterfaces.launchInstanceAndWait(vdu.getVimInstance(), vdu.getHostname(), image_id, flavor_id, vimInstance.getKeyPair(), networks, vimInstance.getSecurityGroups(), userdata);
 
         log.debug("launched instance with id " + server.getExtId());
         //Set external id
