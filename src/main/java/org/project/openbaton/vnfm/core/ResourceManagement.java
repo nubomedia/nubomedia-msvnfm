@@ -140,8 +140,8 @@ public class ResourceManagement {
         vdu.getVnfc_instance().remove(vnfcInstance);
     }
 
-    public synchronized Item getMeasurementResults(VirtualDeploymentUnit vdu, String metric, String period) {
-        return resourcePerformanceManagement.getMeasurementResults(vdu, metric, period);
+    public synchronized Item getMeasurementResults(VNFCInstance vnfcInstance, String metric, String period) {
+        return resourcePerformanceManagement.getMeasurementResults(vnfcInstance, metric, period);
     }
 
     public String getImageId(VirtualDeploymentUnit vdu) throws NotFoundException {
