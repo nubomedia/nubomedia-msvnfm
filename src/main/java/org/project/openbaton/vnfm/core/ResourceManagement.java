@@ -5,6 +5,7 @@ import org.project.openbaton.catalogue.mano.common.DeploymentFlavour;
 import org.project.openbaton.catalogue.mano.descriptor.VNFComponent;
 import org.project.openbaton.catalogue.mano.descriptor.VNFDConnectionPoint;
 import org.project.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
+import org.project.openbaton.catalogue.mano.record.VNFCInstance;
 import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.project.openbaton.catalogue.nfvo.*;
 import org.project.openbaton.clients.exceptions.VimDriverException;
@@ -55,45 +56,61 @@ public class ResourceManagement {
     }
 
     @Async
-    public Future<String> allocate(VirtualNetworkFunctionRecord vnfr, VirtualDeploymentUnit vdu, boolean wait) throws NotFoundException, VimDriverException {
-        //Initialize VimInstance
-        VimInstance vimInstance = vdu.getVimInstance();
-        //Set Hostname
-        vdu.setHostname(vnfr.getName() + "-" + vdu.getId().substring((vdu.getId().length() - 5), vdu.getId().length() - 1));
+    public Future<String> allocate(VirtualNetworkFunctionRecord vnfr, VirtualDeploymentUnit vdu, VNFComponent vnfComponent, boolean wait) throws NotFoundException, VimDriverException {
+        //Create VNFCInstance
+        VNFCInstance vnfcInstance = new VNFCInstance();
+        vnfcInstance.setHostname(vnfr.getName() + "-" + vnfcInstance.getId().substring((vnfcInstance.getId().length() - 5), vnfcInstance.getId().length() - 1));
+        vnfcInstance.setVim_id(vdu.getVimInstance().getId());
+        //Create ConnectionsPoints of VNFCInstance
+        if (vnfcInstance.getConnection_point() == null)
+            vnfcInstance.setConnection_point(new HashSet<VNFDConnectionPoint>());
+        for (VNFDConnectionPoint connectionPoint : vnfComponent.getConnection_point()) {
+            VNFDConnectionPoint connectionPoint_new = new VNFDConnectionPoint();
+            connectionPoint_new.setVirtual_link_reference(connectionPoint.getVirtual_link_reference());
+            connectionPoint_new.setExtId(connectionPoint.getExtId());
+            connectionPoint_new.setName(connectionPoint.getName());
+            connectionPoint_new.setType(connectionPoint.getType());
+            vnfcInstance.getConnection_point().add(connectionPoint_new);
+        }
         //Fetch image id
         String image_id = getImageId(vdu);
         //Fetch flavor id
         String flavor_id = getFlavorID(vnfr, vdu);
         //Collect network ids
-        Set<String> networks = getNetworkIds(vdu);
+        Set<String> networkIds = getNetworkIds(vnfcInstance);
         //Get userdata
         String userdata = Utils.getUserdata();
         //Set the right hostname
-        userdata = "echo " + vdu.getHostname() + " > /etc/hostname\necho " + vdu.getHostname() + " >> /etc/hostname\n" + userdata;
+        userdata = "echo " + vnfcInstance.getHostname() + " > /etc/hostname\necho " + vdu.getHostname() + " >> /etc/hostname\n" + userdata;
         log.trace(""+vnfr);
         log.trace("");
-        log.trace("Params: " + vdu.getHostname() + " - " + image_id + " - " + flavor_id + " - " + vimInstance.getKeyPair() + " - " + networks + " - " + vimInstance.getSecurityGroups());
+        log.trace("Params: " + vnfcInstance.getHostname() + " - " + image_id + " - " + flavor_id + " - " + vdu.getVimInstance().getKeyPair() + " - " + networkIds + " - " + vdu.getVimInstance().getSecurityGroups());
         //Launch Server
         Server server = null;
         if (wait)
-            server = clientInterfaces.launchInstance(vdu.getVimInstance(), vdu.getHostname(), image_id, flavor_id, vimInstance.getKeyPair(), networks, vimInstance.getSecurityGroups(), userdata);
+            server = clientInterfaces.launchInstance(vdu.getVimInstance(), vnfcInstance.getHostname(), image_id, flavor_id, vdu.getVimInstance().getKeyPair(), networkIds, vdu.getVimInstance().getSecurityGroups(), userdata);
         else
-            server = clientInterfaces.launchInstanceAndWait(vdu.getVimInstance(), vdu.getHostname(), image_id, flavor_id, vimInstance.getKeyPair(), networks, vimInstance.getSecurityGroups(), userdata);
+            server = clientInterfaces.launchInstanceAndWait(vdu.getVimInstance(), vnfcInstance.getHostname(), image_id, flavor_id, vdu.getVimInstance().getKeyPair(), networkIds, vdu.getVimInstance().getSecurityGroups(), userdata);
 
         log.debug("launched instance with id " + server.getExtId());
-        //Set external id
-        vdu.setExtId(server.getExtId());
+        //Set external ID of VNFCInstance
+        vnfcInstance.setVc_id(server.getExtId());
+
+        if (vdu.getVnfc_instance() == null)
+            vdu.setVnfc_instance(new HashSet<VNFCInstance>());
+        vdu.getVnfc_instance().add(vnfcInstance);
+
         //Set ips
         for (String network : server.getIps().keySet()) {
             for (String ip : server.getIps().get(network)) {
                 vnfr.getVnf_address().add(ip);
             }
         }
-        return new AsyncResult<String>(vdu.getExtId());
+        return new AsyncResult<String>(vnfcInstance.getVc_id());
     }
 
-    public void release(VirtualNetworkFunctionRecord vnfr, VirtualDeploymentUnit vdu) throws NotFoundException {
-        if (vdu.getExtId() == null)
+    public void release(VirtualNetworkFunctionRecord vnfr, VirtualDeploymentUnit vdu, VNFCInstance vnfcInstance) throws NotFoundException {
+        if (vdu.getVnfc() == null || vdu.getVnfc().size() == 0 )
             return;
 
         //TODO use the VNFComponent
@@ -101,13 +118,15 @@ public class ResourceManagement {
         Server server = null;
         List<Server> serverList = clientInterfaces.listServer(vdu.getVimInstance());
         for (Server tmpServer : serverList) {
-            if (vdu.getExtId().equals(tmpServer.getExtId())) {
-                server = tmpServer;
-                break;
+            for (VNFCInstance vnfci : vdu.getVnfc_instance()) {
+                if (vnfci.getVc_id().equals(tmpServer.getExtId())) {
+                    server = tmpServer;
+                    break;
+                }
             }
         }
         if (server == null) {
-            throw new NotFoundException("Not found Server with id " + vdu.getExtId());
+            throw new NotFoundException("Not found Server with id " + vnfcInstance.getVc_id());
         }
         //Remove associated ips
         for (String network : server.getIps().keySet()) {
@@ -116,9 +135,9 @@ public class ResourceManagement {
             }
         }
         //Terminate server and wait unitl finished
-        clientInterfaces.deleteServerByIdAndWait(vdu.getVimInstance(), vdu.getExtId());
+        clientInterfaces.deleteServerByIdAndWait(vdu.getVimInstance(), vnfcInstance.getVc_id());
         //Remove corresponding vdu from vnfr
-        vdu.setExtId(null);
+        vdu.getVnfc_instance().remove(vnfcInstance);
     }
 
     public synchronized Item getMeasurementResults(VirtualDeploymentUnit vdu, String metric, String period) {
@@ -158,12 +177,11 @@ public class ResourceManagement {
         return flavor_id;
     }
 
-    public Set<String> getNetworkIds(VirtualDeploymentUnit vdu) {
+    public Set<String> getNetworkIds(VNFCInstance vnfcInstance) {
         Set<String> networks = new HashSet<String>();
-        for (VNFComponent vnfc: vdu.getVnfc()) {
-            for (VNFDConnectionPoint vnfdConnectionPoint : vnfc.getConnection_point()) {
-                networks.add(vnfdConnectionPoint.getExtId());
-            }
+        for (VNFDConnectionPoint vnfdConnectionPoint : vnfcInstance.getConnection_point()) {
+            networks.add(vnfdConnectionPoint.getExtId());
+
         }
         return networks;
     }

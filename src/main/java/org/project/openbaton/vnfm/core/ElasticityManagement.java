@@ -6,6 +6,7 @@ import org.project.openbaton.catalogue.mano.descriptor.VNFComponent;
 import org.project.openbaton.catalogue.mano.descriptor.VNFDConnectionPoint;
 import org.project.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.project.openbaton.catalogue.mano.record.Status;
+import org.project.openbaton.catalogue.mano.record.VNFCInstance;
 import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.project.openbaton.catalogue.nfvo.Action;
 import org.project.openbaton.catalogue.nfvo.CoreMessage;
@@ -80,86 +81,103 @@ public class ElasticityManagement {
 
     public void scaleUp(VirtualNetworkFunctionRecord vnfr, AutoScalePolicy autoScalePolicy) {
         log.debug("Scaling up vnfr " + vnfr.getId());
-        Set<VirtualDeploymentUnit> consideredVDUs = new HashSet<VirtualDeploymentUnit>();
         for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
-            if (consideredVDUs.contains(vdu)) {
+            if (vdu.getVnfc_instance().size() < vdu.getScale_in_out()) {
+                if (vdu.getVnfc().iterator().hasNext()) {
+                    try {
+                        resourceManagement.allocate(vnfr, vdu, vdu.getVnfc().iterator().next(), false);
+                        log.debug("Scaled up vnfr " + vnfr.getId());
+                    } catch (NotFoundException e) {
+                        log.error(e.getMessage(), e);
+                    } catch (VimDriverException e) {
+                        log.error(e.getMessage(), e);
+                    }
+                    return;
+                }
+            } else {
                 continue;
             }
-            int leftInstances = vdu.getScale_in_out();
-            for (VirtualDeploymentUnit tmpVDU : vnfr.getVdu()) {
-                if (tmpVDU.getVimInstance().getName().equals(vdu.getVimInstance().getName())) {
-                    consideredVDUs.add(tmpVDU);
-                    leftInstances--;
-                }
-            }
-            if (leftInstances <= 0) {
-                log.debug("Maximum number of instances are reached on VimInstance " + vdu.getVimInstance());
-                break;
-            }
-            VirtualDeploymentUnit newVDU = new VirtualDeploymentUnit();
-            newVDU.setVimInstance(vdu.getVimInstance());
-            newVDU.setVm_image(vdu.getVm_image());
-            newVDU.setVnfc(new HashSet<VNFComponent>());
-            for (VNFComponent vnfc : vdu.getVnfc()) {
-                VNFComponent newVnfc = new VNFComponent();
-                newVnfc.setConnection_point(new HashSet<VNFDConnectionPoint>());
-                for (VNFDConnectionPoint vnfdCP : vnfc.getConnection_point()) {
-                    VNFDConnectionPoint newVnfdCP = new VNFDConnectionPoint();
-                    newVnfdCP.setName(vnfdCP.getName());
-                    newVnfdCP.setType(vnfdCP.getType());
-                    newVnfdCP.setExtId(vnfdCP.getExtId());
-                    newVnfdCP.setVirtual_link_reference(vnfdCP.getVirtual_link_reference());
-                    newVnfc.getConnection_point().add(newVnfdCP);
-                }
-                newVDU.getVnfc().add(newVnfc);
-            }
-            newVDU.setComputation_requirement(vdu.getComputation_requirement());
-            newVDU.setHigh_availability(vdu.getHigh_availability());
-            newVDU.setMonitoring_parameter(vdu.getMonitoring_parameter());
-            newVDU.setLifecycle_event(vdu.getLifecycle_event());
-            newVDU.setScale_in_out(vdu.getScale_in_out());
-            newVDU.setVdu_constraint(vdu.getVdu_constraint());
-            newVDU.setVirtual_memory_resource_element(vdu.getVirtual_memory_resource_element());
-            newVDU.setVirtual_network_bandwidth_resource(vdu.getVirtual_network_bandwidth_resource());
-            try {
-                try {
-                    //TODO Wait until launching is finished
-                    resourceManagement.allocate(vnfr, newVDU, false).get();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                } catch (ExecutionException e) {
-                    e.printStackTrace();
-                }
-            } catch (VimDriverException e) {
-                log.error("Cannot launch VDU on cloud environment", e);
-                try {
-                    CoreMessage coreMessage = new CoreMessage();
-                    coreMessage.setAction(Action.ERROR);
-                    coreMessage.setVirtualNetworkFunctionRecord(vnfr);
-                    UtilsJMS.sendToQueue(coreMessage, "vnfm-core-actions");
-                } catch (NamingException exc) {
-                    log.error(exc.getMessage(), exc);
-                } catch (JMSException exc) {
-                    log.error(exc.getMessage(), exc);
-                }
-            } catch (NotFoundException e) {
-                e.printStackTrace();
-            }
-            vnfr.getVdu().add(newVDU);
-            log.debug("Scaled up vnfr " + vnfr.getId());
-            return;
+//        Set<VirtualDeploymentUnit> consideredVDUs = new HashSet<VirtualDeploymentUnit>();
+//        for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
+//            if (consideredVDUs.contains(vdu)) {
+//                continue;
+//            }
+//            int leftInstances = vdu.getScale_in_out();
+//            for (VirtualDeploymentUnit tmpVDU : vnfr.getVdu()) {
+//                if (tmpVDU.getVimInstance().getName().equals(vdu.getVimInstance().getName())) {
+//                    consideredVDUs.add(tmpVDU);
+//                    leftInstances--;
+//                }
+//            }
+//            if (leftInstances <= 0) {
+//                log.debug("Maximum number of instances are reached on VimInstance " + vdu.getVimInstance());
+//                break;
+//            }
+//            VirtualDeploymentUnit newVDU = new VirtualDeploymentUnit();
+//            newVDU.setVimInstance(vdu.getVimInstance());
+//            newVDU.setVm_image(vdu.getVm_image());
+//            newVDU.setVnfc(new HashSet<VNFComponent>());
+//            for (VNFComponent vnfc : vdu.getVnfc()) {
+//                VNFComponent newVnfc = new VNFComponent();
+//                newVnfc.setConnection_point(new HashSet<VNFDConnectionPoint>());
+//                for (VNFDConnectionPoint vnfdCP : vnfc.getConnection_point()) {
+//                    VNFDConnectionPoint newVnfdCP = new VNFDConnectionPoint();
+//                    newVnfdCP.setName(vnfdCP.getName());
+//                    newVnfdCP.setType(vnfdCP.getType());
+//                    newVnfdCP.setExtId(vnfdCP.getExtId());
+//                    newVnfdCP.setVirtual_link_reference(vnfdCP.getVirtual_link_reference());
+//                    newVnfc.getConnection_point().add(newVnfdCP);
+//                }
+//                newVDU.getVnfc().add(newVnfc);
+//            }
+//            newVDU.setComputation_requirement(vdu.getComputation_requirement());
+//            newVDU.setHigh_availability(vdu.getHigh_availability());
+//            newVDU.setMonitoring_parameter(vdu.getMonitoring_parameter());
+//            newVDU.setLifecycle_event(vdu.getLifecycle_event());
+//            newVDU.setScale_in_out(vdu.getScale_in_out());
+//            newVDU.setVdu_constraint(vdu.getVdu_constraint());
+//            newVDU.setVirtual_memory_resource_element(vdu.getVirtual_memory_resource_element());
+//            newVDU.setVirtual_network_bandwidth_resource(vdu.getVirtual_network_bandwidth_resource());
+//            try {
+//                try {
+//                    //TODO Wait until launching is finished
+//                    resourceManagement.allocate(vnfr, newVDU, false).get();
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                } catch (ExecutionException e) {
+//                    e.printStackTrace();
+//                }
+//            } catch (VimDriverException e) {
+//                log.error("Cannot launch VDU on cloud environment", e);
+//                try {
+//                    CoreMessage coreMessage = new CoreMessage();
+//                    coreMessage.setAction(Action.ERROR);
+//                    coreMessage.setVirtualNetworkFunctionRecord(vnfr);
+//                    UtilsJMS.sendToQueue(coreMessage, "vnfm-core-actions");
+//                } catch (NamingException exc) {
+//                    log.error(exc.getMessage(), exc);
+//                } catch (JMSException exc) {
+//                    log.error(exc.getMessage(), exc);
+//                }
+//            } catch (NotFoundException e) {
+//                e.printStackTrace();
+//            }
+//            vnfr.getVdu().add(newVDU);
+//            log.debug("Scaled up vnfr " + vnfr.getId());
+//            return;
         }
     }
 
     public void scaleDown(VirtualNetworkFunctionRecord vnfr, AutoScalePolicy autoScalePolicy) throws NotFoundException {
         log.debug("Scaling down vnfr " + vnfr.getId());
-        if (vnfr.getVdu().iterator().hasNext()) {
-            VirtualDeploymentUnit vdu = vnfr.getVdu().iterator().next();
-            resourceManagement.release(vnfr, vdu);
-            vnfr.getVdu().remove(vdu);
-            log.debug("Scaled down vnfr " + vnfr.getId());
-        } else {
-            log.warn("Cannot terminate the last VDU.");
+        for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
+            if (vdu.getVnfc_instance().size() > 1 && vdu.getVnfc_instance().iterator().hasNext()) {
+                resourceManagement.release(vnfr, vdu, vdu.getVnfc_instance().iterator().next());
+                vnfr.getVdu().remove(vdu);
+                log.debug("Scaled down vnfr " + vnfr.getId());
+            } else {
+                log.warn("Cannot terminate the last VDU.");
+            }
         }
     }
 
@@ -167,10 +185,12 @@ public class ElasticityManagement {
         List<Item> measurementResults = new ArrayList<Item>();
         log.debug("Getting all measurement results for vnfr " + vnfr.getId() + " on metric " + metric + ".");
         for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
-            log.debug("Getting measurement result for vdu " + vdu.getId() + " on metric " + metric + ".");
-            Item measurementResult = resourceManagement.getMeasurementResults(vdu, metric, period);
-            measurementResults.add(measurementResult);
-            log.debug("Got measurement result for vdu " + vdu.getId() + " on metric " + metric + " -> " + measurementResult + ".");
+            for (VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
+                log.debug("Getting measurement result for VNFCInstance " + vdu.getId() + " on metric " + metric + ".");
+                Item measurementResult = resourceManagement.getMeasurementResults(vnfcInstance, metric, period);
+                measurementResults.add(measurementResult);
+                log.debug("Got measurement result for VNFCInstance " + vnfcInstance.getId() + " on metric " + metric + " -> " + measurementResult + ".");
+            }
         }
         log.debug("Got all measurement results for vnfr " + vnfr.getId() + " on metric " + metric + " -> " + measurementResults + ".");
         return measurementResults;
@@ -243,30 +263,21 @@ public class ElasticityManagement {
 
     public boolean checkFeasibility(VirtualNetworkFunctionRecord vnfr, AutoScalePolicy autoScalePolicy) {
         if (autoScalePolicy.getAction().equals("scaleup")) {
-            Set<VirtualDeploymentUnit> consideredVDUs = new HashSet<VirtualDeploymentUnit>();
             for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
-                if (consideredVDUs.contains(vdu)) {
-                    continue;
-                }
-                int leftInstances = vdu.getScale_in_out();
-                for (VirtualDeploymentUnit tmpVDU : vnfr.getVdu()) {
-                    if (tmpVDU.getVimInstance().getName().equals(vdu.getVimInstance().getName())) {
-                        consideredVDUs.add(tmpVDU);
-                        leftInstances--;
-                    }
-                }
-                if (leftInstances >= 1) {
-                    log.debug("Maximum number of instances are not reached on VimInstance " + vdu.getVimInstance());
+                if (vdu.getVnfc_instance().size() < vdu.getScale_in_out()) {
                     return true;
                 }
             }
             log.debug("Maximum number of instances are reached on all VimInstances");
             return false;
         } else if (autoScalePolicy.getAction().equals("scaledown")) {
-            if (vnfr.getVdu().size() <= 1) {
-                log.warn("Cannot terminate the last VDU.");
-                return false;
+            for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
+                if (vdu.getVnfc_instance().size() > 1) {
+                    return true;
+                }
             }
+            log.warn("Cannot terminate the last VDU.");
+            return false;
         }
         return true;
     }

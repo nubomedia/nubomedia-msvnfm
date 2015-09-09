@@ -2,8 +2,10 @@ package org.project.openbaton.vnfm;
 
 import javassist.NotFoundException;
 import org.project.openbaton.catalogue.mano.common.Event;
+import org.project.openbaton.catalogue.mano.descriptor.VNFComponent;
 import org.project.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.project.openbaton.catalogue.mano.record.Status;
+import org.project.openbaton.catalogue.mano.record.VNFCInstance;
 import org.project.openbaton.catalogue.mano.record.VNFRecordDependency;
 import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.project.openbaton.catalogue.nfvo.Action;
@@ -17,6 +19,7 @@ import org.project.openbaton.vnfm.utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.scheduling.annotation.EnableAsync;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,7 +43,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     private LifecycleManagement lifecycleManagement;
 
     @Override
-    public CoreMessage instantiate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
+    public VirtualNetworkFunctionRecord instantiate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
         log.info("Instantiation of VirtualNetworkFunctionRecord " + virtualNetworkFunctionRecord.getName());
         log.trace("Instantiation of VirtualNetworkFunctionRecord " + virtualNetworkFunctionRecord);
 
@@ -56,12 +59,15 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                     CoreMessage coreMessage = new CoreMessage();
                     coreMessage.setAction(Action.GRANT_OPERATION);
                     coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
-                    return coreMessage;
+                    sendToNfvo(coreMessage);
+                    return null;
                 }
                 //Allocate Resources
                 for(VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
-                    Future<String> allocate = resourceManagement.allocate(virtualNetworkFunctionRecord, vdu, true);
-                    ids.add(allocate);
+                    for (VNFComponent vnfComponent : vdu.getVnfc()) {
+                        Future<String> allocate = resourceManagement.allocate(virtualNetworkFunctionRecord, vdu, vnfComponent, true);
+                        ids.add(allocate);
+                    }
                 }
                 //Print ids of deployed VDUs
                 for(Future<String> id : ids) {
@@ -72,18 +78,17 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                         CoreMessage coreMessage = new CoreMessage();
                         coreMessage.setAction(Action.ERROR);
                         coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
-                        return coreMessage;
+                        sendToNfvo(coreMessage);
+                        return null;
                     } catch (ExecutionException e) {
                         log.error(e.getMessage(), e);
                         CoreMessage coreMessage = new CoreMessage();
                         coreMessage.setAction(Action.ERROR);
                         coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
-                        return coreMessage;
+                        sendToNfvo(coreMessage);
+                        return null;
                     }
                 }
-                //Put EVENT ALLOCATE to history
-//                lifecycleManagement.removeEvent(vnfr, Event.ALLOCATE);
-                updateVnfr(virtualNetworkFunctionRecord,Event.ALLOCATE);
             } catch (NotFoundException e) {
                 log.error(e.getMessage(), e);
             } catch (VimDriverException e) {
@@ -91,14 +96,16 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                 CoreMessage coreMessage = new CoreMessage();
                 coreMessage.setAction(Action.ERROR);
                 coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
-                return coreMessage;
+                sendToNfvo(coreMessage);
+                return null;
             }
         }
         log.trace("I've finished initialization of vnf " + virtualNetworkFunctionRecord.getName() + " in facts there are only " + virtualNetworkFunctionRecord.getLifecycle_event().size() + " events");
-        CoreMessage coreMessage = new CoreMessage();
-        coreMessage.setAction(Action.INSTANTIATE_FINISH);
-        coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
-        return coreMessage;
+//        CoreMessage coreMessage = new CoreMessage();
+//        coreMessage.setAction(Action.INSTANTIATE_FINISH);
+//        coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
+//        return coreMessage;
+        return virtualNetworkFunctionRecord;
     }
 
     @Override
@@ -147,12 +154,14 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
             elasticityManagement.deactivate(virtualNetworkFunctionRecord);
 
         for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
-            try {
-                log.debug("Releasing resources for vdu with id " + vdu.getId());
-                resourceManagement.release(virtualNetworkFunctionRecord, vdu);
-                log.debug("Released resources for vdu with id " + vdu.getId());
-            } catch (NotFoundException e) {
-                log.error(e.getMessage(), e);
+            for (VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
+                try {
+                    log.debug("Releasing resources for vdu with id " + vdu.getId());
+                    resourceManagement.release(virtualNetworkFunctionRecord, vdu, vnfcInstance);
+                    log.debug("Released resources for vdu with id " + vdu.getId());
+                } catch (NotFoundException e) {
+                    log.error(e.getMessage(), e);
+                }
             }
         }
         //TODO remove VDU from the vnfr
@@ -185,11 +194,6 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
             log.debug("Processing event SCALE");
             elasticityManagement.activate(virtualNetworkFunctionRecord);
             //Put EVENT SCALE to history
-//            try {
-//                lifecycleManagement.removeEvent(virtualNetworkFunctionRecord, Event.SCALE);
-//            } catch (NotFoundException e) {
-//                log.warn(e.getMessage());
-//            }
             updateVnfr(virtualNetworkFunctionRecord, Event.SCALE);
         }
         return coreMessage;
@@ -223,8 +227,11 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     }
 
     public static void main(String[] args) {
-
         SpringApplication.run(MediaServerManager.class, args);
+    }
 
+    @Override
+    public void NotifyChange() {
+        throw new NotImplementedException();
     }
 }
