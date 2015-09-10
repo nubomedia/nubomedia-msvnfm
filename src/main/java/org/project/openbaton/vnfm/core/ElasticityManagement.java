@@ -2,31 +2,30 @@ package org.project.openbaton.vnfm.core;
 
 import javassist.NotFoundException;
 import org.project.openbaton.catalogue.mano.common.AutoScalePolicy;
-import org.project.openbaton.catalogue.mano.descriptor.VNFComponent;
-import org.project.openbaton.catalogue.mano.descriptor.VNFDConnectionPoint;
 import org.project.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.project.openbaton.catalogue.mano.record.Status;
 import org.project.openbaton.catalogue.mano.record.VNFCInstance;
 import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.project.openbaton.catalogue.nfvo.Action;
-import org.project.openbaton.catalogue.nfvo.CoreMessage;
 import org.project.openbaton.catalogue.nfvo.Item;
 import org.project.openbaton.clients.exceptions.VimDriverException;
-import org.project.openbaton.common.vnfm_sdk.utils.UtilsJMS;
+import org.project.openbaton.monitoring.interfaces.ResourcePerformanceManagement;
+import org.project.openbaton.nfvo.plugin.utils.PluginBroker;
+import org.project.openbaton.nfvo.vim_interfaces.vim.Vim;
 import org.project.openbaton.vnfm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
-import javax.jms.JMSException;
-import javax.naming.NamingException;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledFuture;
 
 /**
@@ -39,7 +38,10 @@ public class ElasticityManagement {
     protected Logger log = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
-    protected ResourceManagement resourceManagement;
+    @Qualifier("openstackVIM")
+    protected Vim resourceManagement;
+
+    protected ResourcePerformanceManagement monitor;
 
     private ThreadPoolTaskScheduler taskScheduler;
 
@@ -55,6 +57,14 @@ public class ElasticityManagement {
         this.taskScheduler.setPoolSize(10);
         this.taskScheduler.setWaitForTasksToCompleteOnShutdown(true);
         this.taskScheduler.initialize();
+        PluginBroker<ResourcePerformanceManagement> pluginBroker = new PluginBroker<>();
+        try {
+            this.monitor = pluginBroker.getPlugin("monitoring-plugin");
+        } catch (RemoteException e) {
+            log.error(e.getLocalizedMessage());
+        } catch (NotBoundException e) {
+            log.error(e.getLocalizedMessage());
+        }
     }
 
     public void activate(VirtualNetworkFunctionRecord vnfr) {
@@ -85,10 +95,8 @@ public class ElasticityManagement {
             if (vdu.getVnfc_instance().size() < vdu.getScale_in_out()) {
                 if (vdu.getVnfc().iterator().hasNext()) {
                     try {
-                        resourceManagement.allocate(vnfr, vdu, vdu.getVnfc().iterator().next(), false);
+                        resourceManagement.allocate(vdu, vnfr, vdu.getVnfc().iterator().next());
                         log.debug("Scaled up vnfr " + vnfr.getId());
-                    } catch (NotFoundException e) {
-                        log.error(e.getMessage(), e);
                     } catch (VimDriverException e) {
                         log.error(e.getMessage(), e);
                     }
@@ -172,7 +180,7 @@ public class ElasticityManagement {
         log.debug("Scaling down vnfr " + vnfr.getId());
         for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
             if (vdu.getVnfc_instance().size() > 1 && vdu.getVnfc_instance().iterator().hasNext()) {
-                resourceManagement.release(vnfr, vdu, vdu.getVnfc_instance().iterator().next());
+                resourceManagement.release(vdu.getVnfc_instance().iterator().next(), vdu.getVimInstance());
                 vnfr.getVdu().remove(vdu);
                 log.debug("Scaled down vnfr " + vnfr.getId());
             } else {
@@ -187,7 +195,7 @@ public class ElasticityManagement {
         for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
             for (VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
                 log.debug("Getting measurement result for VNFCInstance " + vdu.getId() + " on metric " + metric + ".");
-                Item measurementResult = resourceManagement.getMeasurementResults(vnfcInstance, metric, period);
+                Item measurementResult = monitor.getMeasurementResults(vnfcInstance, metric, period);
                 measurementResults.add(measurementResult);
                 log.debug("Got measurement result for VNFCInstance " + vnfcInstance.getId() + " on metric " + metric + " -> " + measurementResult + ".");
             }

@@ -19,12 +19,20 @@ rootProject.projectDir = file('.')
 
 include 'catalogue'
 include 'vim-drivers'
+include 'vim-int'
+include 'vim-impl'
 include 'vnfm-sdk'
 include 'monitoring'
+
+include 'plugin'
+include 'common'
 
 
 project(':catalogue').projectDir = file('openbaton-libs/catalogue')
 project(':vim-drivers').projectDir = file('openbaton-libs/vim-drivers')
+project(':vim-int').projectDir = file('openbaton-libs/vim-int')
+project(':vim-impl').projectDir = file('openbaton-libs/vim-impl')
+project(':plugin').projectDir = file('openbaton-libs/plugin')
 project(':vnfm-sdk').projectDir = file('openbaton-libs/vnfm-sdk')
 project(':monitoring').projectDir = file('openbaton-libs/monitoring')
 

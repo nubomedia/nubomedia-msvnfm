@@ -1,6 +1,5 @@
 package org.project.openbaton.vnfm;
 
-import javassist.NotFoundException;
 import org.project.openbaton.catalogue.mano.common.Event;
 import org.project.openbaton.catalogue.mano.descriptor.VNFComponent;
 import org.project.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
@@ -12,11 +11,11 @@ import org.project.openbaton.catalogue.nfvo.Action;
 import org.project.openbaton.catalogue.nfvo.CoreMessage;
 import org.project.openbaton.clients.exceptions.VimDriverException;
 import org.project.openbaton.common.vnfm_sdk.jms.AbstractVnfmSpringJMS;
+import org.project.openbaton.nfvo.vim_interfaces.vim.Vim;
 import org.project.openbaton.vnfm.core.ElasticityManagement;
 import org.project.openbaton.vnfm.core.LifecycleManagement;
-import org.project.openbaton.vnfm.core.ResourceManagement;
-import org.project.openbaton.vnfm.utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.SpringApplication;
 import org.springframework.scheduling.annotation.EnableAsync;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
@@ -34,10 +33,11 @@ import java.util.concurrent.Future;
 public class MediaServerManager extends AbstractVnfmSpringJMS {
 
     @Autowired
-    private ResourceManagement resourceManagement;
+    private ElasticityManagement elasticityManagement;
 
     @Autowired
-    private ElasticityManagement elasticityManagement;
+    @Qualifier("openstackVIM")
+    private Vim resourceManagement;
 
     @Autowired
     private LifecycleManagement lifecycleManagement;
@@ -65,7 +65,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                 //Allocate Resources
                 for(VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
                     for (VNFComponent vnfComponent : vdu.getVnfc()) {
-                        Future<String> allocate = resourceManagement.allocate(virtualNetworkFunctionRecord, vdu, vnfComponent, true);
+                        Future<String> allocate = resourceManagement.allocate(vdu, virtualNetworkFunctionRecord, vnfComponent);
                         ids.add(allocate);
                     }
                 }
@@ -89,8 +89,6 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                         return null;
                     }
                 }
-            } catch (NotFoundException e) {
-                log.error(e.getMessage(), e);
             } catch (VimDriverException e) {
                 log.error(e.getMessage(), e);
                 CoreMessage coreMessage = new CoreMessage();
@@ -155,13 +153,9 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
 
         for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
             for (VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
-                try {
-                    log.debug("Releasing resources for vdu with id " + vdu.getId());
-                    resourceManagement.release(virtualNetworkFunctionRecord, vdu, vnfcInstance);
-                    log.debug("Released resources for vdu with id " + vdu.getId());
-                } catch (NotFoundException e) {
-                    log.error(e.getMessage(), e);
-                }
+                log.debug("Releasing resources for vdu with id " + vdu.getId());
+                resourceManagement.release(vnfcInstance, vdu.getVimInstance());
+                log.debug("Released resources for vdu with id " + vdu.getId());
             }
         }
         //TODO remove VDU from the vnfr
@@ -216,13 +210,6 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     @Override
     protected void setup() {
         super.setup();
-        try {
-            resourceManagement.setClientInterfaces(Utils.getVimDriverPlugin(properties));
-            resourceManagement.setResourcePerformanceManagement(Utils.getMonitoringPlugin(properties));
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.exit(123);
-        }
 
     }
 
