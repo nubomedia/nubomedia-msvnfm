@@ -26,9 +26,11 @@ include 'monitoring'
 
 include 'plugin'
 include 'common'
+include 'exception'
 
 
 project(':catalogue').projectDir = file('openbaton-libs/catalogue')
+project(':exception').projectDir = file('openbaton-libs/exception')
 project(':vim-drivers').projectDir = file('openbaton-libs/vim-drivers')
 project(':vim-int').projectDir = file('openbaton-libs/vim-int')
 project(':vim-impl').projectDir = file('openbaton-libs/vim-impl')

@@ -11,6 +11,7 @@ import org.project.openbaton.catalogue.nfvo.Action;
 import org.project.openbaton.catalogue.nfvo.CoreMessage;
 import org.project.openbaton.clients.exceptions.VimDriverException;
 import org.project.openbaton.common.vnfm_sdk.jms.AbstractVnfmSpringJMS;
+import org.project.openbaton.exceptions.VimException;
 import org.project.openbaton.nfvo.plugin.utils.PluginStartup;
 import org.project.openbaton.nfvo.vim_interfaces.vim.Vim;
 import org.project.openbaton.vnfm.core.ElasticityManagement;
@@ -19,9 +20,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.SpringApplication;
 import org.springframework.scheduling.annotation.EnableAsync;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.IOException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -98,6 +100,13 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                 coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
                 sendToNfvo(coreMessage);
                 return null;
+            } catch (VimException e) {
+                log.error(e.getMessage(), e);
+                CoreMessage coreMessage = new CoreMessage();
+                coreMessage.setAction(Action.ERROR);
+                coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
+                sendToNfvo(coreMessage);
+                return null;
             }
         }
         log.trace("I've finished initialization of vnf " + virtualNetworkFunctionRecord.getName() + " in facts there are only " + virtualNetworkFunctionRecord.getLifecycle_event().size() + " events");
@@ -156,7 +165,16 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
         for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
             for (VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
                 log.debug("Releasing resources for vdu with id " + vdu.getId());
-                resourceManagement.release(vnfcInstance, vdu.getVimInstance());
+                try {
+                    resourceManagement.release(vnfcInstance, vdu.getVimInstance());
+                } catch (VimException e) {
+                    log.error(e.getMessage(), e);
+                    CoreMessage coreMessage = new CoreMessage();
+                    coreMessage.setAction(Action.ERROR);
+                    coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
+                    sendToNfvo(coreMessage);
+                    return null;
+                }
                 log.debug("Released resources for vdu with id " + vdu.getId());
             }
         }
@@ -213,6 +231,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     protected void setup() {
         super.setup();
         try {
+            Registry registry = LocateRegistry.createRegistry(19345);
             PluginStartup.startPluginRecursive("./plugins");
         } catch (IOException e) {
             e.printStackTrace();
@@ -225,6 +244,6 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
 
     @Override
     public void NotifyChange() {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 }

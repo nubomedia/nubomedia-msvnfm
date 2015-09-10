@@ -9,9 +9,10 @@ import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.project.openbaton.catalogue.nfvo.Action;
 import org.project.openbaton.catalogue.nfvo.Item;
 import org.project.openbaton.clients.exceptions.VimDriverException;
+import org.project.openbaton.nfvo.vim_interfaces.vim.Vim;
+import org.project.openbaton.exceptions.VimException;
 import org.project.openbaton.monitoring.interfaces.ResourcePerformanceManagement;
 import org.project.openbaton.nfvo.plugin.utils.PluginBroker;
-import org.project.openbaton.nfvo.vim_interfaces.vim.Vim;
 import org.project.openbaton.vnfm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -99,6 +100,8 @@ public class ElasticityManagement {
                         log.debug("Scaled up vnfr " + vnfr.getId());
                     } catch (VimDriverException e) {
                         log.error(e.getMessage(), e);
+                    } catch (VimException e) {
+                        log.error(e.getMessage(), e);
                     }
                     return;
                 }
@@ -176,7 +179,7 @@ public class ElasticityManagement {
         }
     }
 
-    public void scaleDown(VirtualNetworkFunctionRecord vnfr, AutoScalePolicy autoScalePolicy) throws NotFoundException {
+    public void scaleDown(VirtualNetworkFunctionRecord vnfr, AutoScalePolicy autoScalePolicy) throws NotFoundException, VimException {
         log.debug("Scaling down vnfr " + vnfr.getId());
         for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
             if (vdu.getVnfc_instance().size() > 1 && vdu.getVnfc_instance().iterator().hasNext()) {
@@ -265,6 +268,8 @@ public class ElasticityManagement {
                     break;
             }
         } catch (NotFoundException e) {
+            log.error(e.getMessage());
+        } catch (VimException e) {
             log.error(e.getMessage());
         }
     }
