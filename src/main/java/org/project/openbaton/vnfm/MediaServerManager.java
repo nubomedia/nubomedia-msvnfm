@@ -11,6 +11,7 @@ import org.project.openbaton.catalogue.nfvo.Action;
 import org.project.openbaton.catalogue.nfvo.CoreMessage;
 import org.project.openbaton.clients.exceptions.VimDriverException;
 import org.project.openbaton.common.vnfm_sdk.jms.AbstractVnfmSpringJMS;
+import org.project.openbaton.nfvo.plugin.utils.PluginStartup;
 import org.project.openbaton.nfvo.vim_interfaces.vim.Vim;
 import org.project.openbaton.vnfm.core.ElasticityManagement;
 import org.project.openbaton.vnfm.core.LifecycleManagement;
@@ -20,6 +21,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.scheduling.annotation.EnableAsync;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -210,7 +212,11 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     @Override
     protected void setup() {
         super.setup();
-
+        try {
+            PluginStartup.startPluginRecursive("./plugins");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void main(String[] args) {
