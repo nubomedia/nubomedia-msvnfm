@@ -1,7 +1,6 @@
 package org.project.openbaton.vnfm;
 
 import org.project.openbaton.catalogue.mano.common.Event;
-import org.project.openbaton.catalogue.mano.descriptor.VNFComponent;
 import org.project.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.project.openbaton.catalogue.mano.record.Status;
 import org.project.openbaton.catalogue.mano.record.VNFCInstance;
@@ -76,10 +75,11 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                 }
                 //Allocate Resources
                 for(VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
-                    for (VNFComponent vnfComponent : vdu.getVnfc()) {
-                        Future<String> allocate = resourceManagement.allocate(vdu, virtualNetworkFunctionRecord, vnfComponent);
+                    log.debug("Creating " + vdu.getVnfc().size() + " VMs");
+//                    for (VNFComponent vnfComponent : vdu.getVnfc()) {
+                        Future<String> allocate = resourceManagement.allocate(vdu, virtualNetworkFunctionRecord, vdu.getVnfc().iterator().next());
                         ids.add(allocate);
-                    }
+//                    }
                 }
                 //Print ids of deployed VDUs
                 for(Future<String> id : ids) {
