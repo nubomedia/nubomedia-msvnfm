@@ -13,12 +13,12 @@ import org.project.openbaton.clients.exceptions.VimDriverException;
 import org.project.openbaton.common.vnfm_sdk.jms.AbstractVnfmSpringJMS;
 import org.project.openbaton.exceptions.VimException;
 import org.project.openbaton.nfvo.plugin.utils.PluginStartup;
-import org.project.openbaton.nfvo.vim_interfaces.vim.Vim;
+import org.project.openbaton.nfvo.vim_interfaces.resource_management.ResourceManagement;
 import org.project.openbaton.vnfm.core.ElasticityManagement;
 import org.project.openbaton.vnfm.core.LifecycleManagement;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.SpringApplication;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.scheduling.annotation.EnableAsync;
 
 import java.io.IOException;
@@ -40,11 +40,19 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     private ElasticityManagement elasticityManagement;
 
     @Autowired
-    @Qualifier("openstackVIM")
-    private Vim resourceManagement;
+    private ConfigurableApplicationContext context;
+
+    private ResourceManagement resourceManagement;
 
     @Autowired
     private LifecycleManagement lifecycleManagement;
+
+    /**
+     * Vim must be initialized only after the registry is up and plugin registered
+     */
+    private void initilizeVim(){
+        resourceManagement = (ResourceManagement) context.getBean("openstackVIM", "openstack-media-server", 19345);
+    }
 
     @Override
     public VirtualNetworkFunctionRecord instantiate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
@@ -232,10 +240,14 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
         super.setup();
         try {
             Registry registry = LocateRegistry.createRegistry(19345);
-            PluginStartup.startPluginRecursive("./plugins");
+            log.debug("Registry created: ");
+            log.debug(registry.toString() + " has: " + registry.list().length + " entries");
+            PluginStartup.startPluginRecursive("./plugins", true);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        elasticityManagement.initilizeVim();
+        this.initilizeVim();
     }
 
     public static void main(String[] args) {

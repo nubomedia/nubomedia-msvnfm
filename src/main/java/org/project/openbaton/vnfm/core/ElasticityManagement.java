@@ -9,16 +9,16 @@ import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.project.openbaton.catalogue.nfvo.Action;
 import org.project.openbaton.catalogue.nfvo.Item;
 import org.project.openbaton.clients.exceptions.VimDriverException;
-import org.project.openbaton.nfvo.vim_interfaces.vim.Vim;
 import org.project.openbaton.exceptions.VimException;
 import org.project.openbaton.monitoring.interfaces.ResourcePerformanceManagement;
 import org.project.openbaton.nfvo.plugin.utils.PluginBroker;
+import org.project.openbaton.nfvo.vim_interfaces.resource_management.ResourceManagement;
 import org.project.openbaton.vnfm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
@@ -38,9 +38,7 @@ public class ElasticityManagement {
 
     protected Logger log = LoggerFactory.getLogger(this.getClass());
 
-    @Autowired
-    @Qualifier("openstackVIM")
-    protected Vim resourceManagement;
+    protected ResourceManagement resourceManagement;
 
     protected ResourcePerformanceManagement monitor;
 
@@ -51,6 +49,24 @@ public class ElasticityManagement {
 
     private Map<String, Set<ScheduledFuture>> tasks;
 
+    @Autowired
+    private ConfigurableApplicationContext context;
+
+    /**
+     * Vim must be initialized only after the registry is up and plugin registered
+     */
+    public void initilizeVim(){
+        PluginBroker<ResourcePerformanceManagement> pluginBroker = new PluginBroker<>();
+        try {
+            this.monitor = pluginBroker.getPlugin("monitoring-plugin", 19345);
+        } catch (RemoteException e) {
+            log.error(e.getLocalizedMessage());
+        } catch (NotBoundException e) {
+            log.error(e.getLocalizedMessage());
+        }
+        resourceManagement = (ResourceManagement) context.getBean("openstackVIM", "openstack-media-server", 19345);
+    }
+
     @PostConstruct
     private void init() {
         tasks = new HashMap<>();
@@ -58,14 +74,6 @@ public class ElasticityManagement {
         this.taskScheduler.setPoolSize(10);
         this.taskScheduler.setWaitForTasksToCompleteOnShutdown(true);
         this.taskScheduler.initialize();
-        PluginBroker<ResourcePerformanceManagement> pluginBroker = new PluginBroker<>();
-        try {
-            this.monitor = pluginBroker.getPlugin("monitoring-plugin");
-        } catch (RemoteException e) {
-            log.error(e.getLocalizedMessage());
-        } catch (NotBoundException e) {
-            log.error(e.getLocalizedMessage());
-        }
     }
 
     public void activate(VirtualNetworkFunctionRecord vnfr) {
