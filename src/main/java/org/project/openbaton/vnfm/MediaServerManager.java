@@ -50,7 +50,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
      * Vim must be initialized only after the registry is up and plugin registered
      */
     private void initilizeVim(){
-        resourceManagement = (ResourceManagement) context.getBean("openstackVIM", "openstack-media-server", 19345);
+        resourceManagement = (ResourceManagement) context.getBean("openstackVIM", "openstack", 19345);
     }
 
     @Override
@@ -239,10 +239,11 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     protected void setup() {
         super.setup();
         try {
-            Registry registry = LocateRegistry.createRegistry(19345);
+            int registryport = 19345;
+            Registry registry = LocateRegistry.createRegistry(registryport);
             log.debug("Registry created: ");
             log.debug(registry.toString() + " has: " + registry.list().length + " entries");
-            PluginStartup.startPluginRecursive("./plugins", true);
+            PluginStartup.startPluginRecursive("./plugins", true,"localhost","" + registryport);
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -64,7 +64,7 @@ public class ElasticityManagement {
         } catch (NotBoundException e) {
             log.error(e.getLocalizedMessage());
         }
-        resourceManagement = (ResourceManagement) context.getBean("openstackVIM", "openstack-media-server", 19345);
+        resourceManagement = (ResourceManagement) context.getBean("openstackVIM", "openstack", 19345);
     }
 
     @PostConstruct
