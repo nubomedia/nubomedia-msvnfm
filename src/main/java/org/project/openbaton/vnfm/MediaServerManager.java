@@ -150,12 +150,8 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     }
 
     @Override
-    public CoreMessage modify(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, VNFRecordDependency dependency) {
-        CoreMessage coreMessage = new CoreMessage();
-        coreMessage.setAction(Action.MODIFY);
-        coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
-        updateVnfr(virtualNetworkFunctionRecord,Event.CONFIGURE);
-        return coreMessage;
+    public VirtualNetworkFunctionRecord modify(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, VNFRecordDependency dependency) {
+        return virtualNetworkFunctionRecord;
     }
 
     @Override
@@ -164,7 +160,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     }
 
     @Override
-    public CoreMessage terminate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
+    public VirtualNetworkFunctionRecord terminate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
         log.info("Terminating vnfr with id " + virtualNetworkFunctionRecord.getId());
         Set<Event> events = lifecycleManagement.listEvents(virtualNetworkFunctionRecord);
         if (events.contains(Event.SCALE))
@@ -188,10 +184,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
         }
         //TODO remove VDU from the vnfr
         log.info("Terminated vnfr with id " + virtualNetworkFunctionRecord.getId());
-        CoreMessage coreMessage = new CoreMessage();
-        coreMessage.setAction(Action.RELEASE_RESOURCES_FINISH);
-        coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
-        return coreMessage;
+        return virtualNetworkFunctionRecord;
     }
 
     @Override
@@ -204,11 +197,11 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     }
 
     @Override
-    protected CoreMessage start(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
-        CoreMessage coreMessage = new CoreMessage();
-        coreMessage.setAction(Action.START);
-        coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
-        updateVnfr(virtualNetworkFunctionRecord, Event.START);
+    protected VirtualNetworkFunctionRecord start(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
+//        CoreMessage coreMessage = new CoreMessage();
+//        coreMessage.setAction(Action.START);
+//        coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
+//        updateVnfr(virtualNetworkFunctionRecord, Event.START);
         //TODO where to set it to active?
         //virtualNetworkFunctionRecord.setStatus(Status.ACTIVE);
         Set<Event> events = lifecycleManagement.listEvents(virtualNetworkFunctionRecord);
@@ -216,9 +209,9 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
             log.debug("Processing event SCALE");
             elasticityManagement.activate(virtualNetworkFunctionRecord);
             //Put EVENT SCALE to history
-            updateVnfr(virtualNetworkFunctionRecord, Event.SCALE);
+//            updateVnfr(virtualNetworkFunctionRecord, Event.SCALE);
         }
-        return coreMessage;
+        return virtualNetworkFunctionRecord;
     }
 
     @Override

@@ -7,23 +7,29 @@ import org.project.openbaton.catalogue.mano.record.Status;
 import org.project.openbaton.catalogue.mano.record.VNFCInstance;
 import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.project.openbaton.catalogue.nfvo.Action;
+import org.project.openbaton.catalogue.nfvo.CoreMessage;
 import org.project.openbaton.catalogue.nfvo.Item;
 import org.project.openbaton.clients.exceptions.VimDriverException;
 import org.project.openbaton.exceptions.VimException;
 import org.project.openbaton.monitoring.interfaces.ResourcePerformanceManagement;
 import org.project.openbaton.nfvo.plugin.utils.PluginBroker;
 import org.project.openbaton.nfvo.vim_interfaces.resource_management.ResourceManagement;
-import org.project.openbaton.vnfm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Scope;
+import org.springframework.jms.core.JmsTemplate;
+import org.springframework.jms.core.MessageCreator;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.Session;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.*;
@@ -304,12 +310,16 @@ public class ElasticityManagement {
     }
 }
 
+@Component
 class ElasticityTask implements Runnable {
 
     protected Logger log = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
     private ElasticityManagement elasticityManagement;
+
+    @Autowired
+    protected JmsTemplate jmsTemplate;
 
     private static VirtualNetworkFunctionRecord vnfr;
 
@@ -332,13 +342,16 @@ class ElasticityTask implements Runnable {
             log.debug("Final measurement result on vnfr " + vnfr.getId() + " on metric " + autoScalePolicy.getMetric() + " with statistic " + autoScalePolicy.getStatistic() + " is " + finalResult + " " + measurementResults);
             if (elasticityManagement.triggerAction(autoScalePolicy, finalResult) && elasticityManagement.checkFeasibility(vnfr, autoScalePolicy) && setStatus(Status.SCALING) == true) {
                 //setStatus(Status.SCALING);
-                Utils.sendToCore(vnfr, Action.SCALING);
+                this.sendToNfvo(Action.SCALING, vnfr);
+//                Utils.sendToCore(vnfr, Action.SCALING);
                 log.debug("Executing scaling action of AutoScalePolicy with id " + autoScalePolicy.getId());
                 elasticityManagement.executeAction(vnfr, autoScalePolicy);
                 if (autoScalePolicy.getAction().equals("scaleup")) {
-                    Utils.sendToCore(vnfr, Action.SCALE_OUT_FINISHED);
+                    this.sendToNfvo(Action.SCALE_OUT_FINISHED, vnfr);
+//                    Utils.sendToCore(vnfr, Action.SCALE_OUT_FINISHED);
                 } else if (autoScalePolicy.getAction().equals("scaledown")) {
-                    Utils.sendToCore(vnfr, Action.SCALE_IN_FINISHED);
+                    this.sendToNfvo(Action.SCALE_IN_FINISHED,vnfr);
+//                    Utils.sendToCore(vnfr, Action.SCALE_IN_FINISHED);
                 }
                 log.debug("Starting cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
                 //TODO Launching a new instance should not be part of the cooldown
@@ -352,6 +365,18 @@ class ElasticityTask implements Runnable {
         } catch (InterruptedException e) {
             log.warn("ElasticityTask was interrupted");
         }
+    }
+
+    private void sendToNfvo(Action action, VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
+        final CoreMessage coreMessage = new CoreMessage();
+        coreMessage.setAction(action);
+        coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
+        jmsTemplate.send("vnfm-core-actions", new MessageCreator() {
+            @Override
+            public Message createMessage(Session session) throws JMSException {
+                return session.createObjectMessage(coreMessage);
+            }
+        });
     }
 
     private synchronized boolean checkStatus() {

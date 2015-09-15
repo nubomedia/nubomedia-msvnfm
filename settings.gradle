@@ -15,28 +15,32 @@
  */
 
 rootProject.name = 'ms-vnfm'
-rootProject.projectDir = file('.')
+//rootProject.projectDir = file('.')
 
-include 'catalogue'
-include 'vim-drivers'
-include 'vim-int'
-include 'vim-impl'
-include 'vnfm-sdk'
-include 'monitoring'
+apply from: 'openbaton-libs/vnfm-sdk/gradle/gradle/settings-parent-vnfm-sdk-jms.gradle'
 
-include 'plugin'
-include 'common'
-include 'exception'
+apply from: 'openbaton-libs/vnfm-sdk/gradle/gradle/settings-parent-vnfm-vim.gradle'
 
-
-project(':catalogue').projectDir = file('openbaton-libs/catalogue')
-project(':exception').projectDir = file('openbaton-libs/exception')
-project(':vim-drivers').projectDir = file('openbaton-libs/vim-drivers')
-project(':vim-int').projectDir = file('openbaton-libs/vim-int')
-project(':vim-impl').projectDir = file('openbaton-libs/vim-impl')
-project(':plugin').projectDir = file('openbaton-libs/plugin')
-project(':vnfm-sdk').projectDir = file('openbaton-libs/vnfm-sdk')
-project(':monitoring').projectDir = file('openbaton-libs/monitoring')
+//include 'catalogue'
+//include 'vim-drivers'
+//include 'vim-int'
+//include 'vim-impl'
+//include 'vnfm-sdk'
+//include 'monitoring'
+//
+//include 'plugin'
+//include 'common'
+//include 'exception'
+//
+//
+//project(':catalogue').projectDir = file('openbaton-libs/catalogue')
+//project(':exception').projectDir = file('openbaton-libs/exception')
+//project(':vim-drivers').projectDir = file('openbaton-libs/vim-drivers')
+//project(':vim-int').projectDir = file('openbaton-libs/vim-int')
+//project(':vim-impl').projectDir = file('openbaton-libs/vim-impl')
+//project(':plugin').projectDir = file('openbaton-libs/plugin')
+//project(':vnfm-sdk').projectDir = file('openbaton-libs/vnfm-sdk')
+//project(':monitoring').projectDir = file('openbaton-libs/monitoring')
 
 //File vnfmDir = file('.')
 //String vnfmName = vnfmDir.name
