@@ -1,15 +1,16 @@
 package org.project.openbaton.vnfm;
 
 import org.project.openbaton.catalogue.mano.common.Event;
+import org.project.openbaton.catalogue.mano.descriptor.InternalVirtualLink;
 import org.project.openbaton.catalogue.mano.descriptor.VNFComponent;
 import org.project.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
-import org.project.openbaton.catalogue.mano.record.Status;
-import org.project.openbaton.catalogue.mano.record.VNFCInstance;
-import org.project.openbaton.catalogue.mano.record.VNFRecordDependency;
-import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
+import org.project.openbaton.catalogue.mano.descriptor.VirtualNetworkFunctionDescriptor;
+import org.project.openbaton.catalogue.mano.record.*;
 import org.project.openbaton.catalogue.nfvo.Action;
 import org.project.openbaton.catalogue.nfvo.CoreMessage;
 import org.project.openbaton.clients.exceptions.VimDriverException;
+import org.project.openbaton.common.vnfm_sdk.exception.BadFormatException;
+import org.project.openbaton.common.vnfm_sdk.exception.NotFoundException;
 import org.project.openbaton.common.vnfm_sdk.jms.AbstractVnfmSpringJMS;
 import org.project.openbaton.exceptions.VimException;
 import org.project.openbaton.nfvo.plugin.utils.PluginStartup;
@@ -26,6 +27,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -71,7 +73,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                     CoreMessage coreMessage = new CoreMessage();
                     coreMessage.setAction(Action.GRANT_OPERATION);
                     coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
-                    sendToNfvo(coreMessage);
+                    //sendToNfvo(coreMessage);
                     return null;
                 }
                 //Allocate Resources
@@ -91,14 +93,14 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                         CoreMessage coreMessage = new CoreMessage();
                         coreMessage.setAction(Action.ERROR);
                         coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
-                        sendToNfvo(coreMessage);
+                        //sendToNfvo(coreMessage);
                         return null;
                     } catch (ExecutionException e) {
                         log.error(e.getMessage(), e);
                         CoreMessage coreMessage = new CoreMessage();
                         coreMessage.setAction(Action.ERROR);
                         coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
-                        sendToNfvo(coreMessage);
+                        //sendToNfvo(coreMessage);
                         return null;
                     }
                 }
@@ -107,14 +109,14 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                 CoreMessage coreMessage = new CoreMessage();
                 coreMessage.setAction(Action.ERROR);
                 coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
-                sendToNfvo(coreMessage);
+                //sendToNfvo(coreMessage);
                 return null;
             } catch (VimException e) {
                 log.error(e.getMessage(), e);
                 CoreMessage coreMessage = new CoreMessage();
                 coreMessage.setAction(Action.ERROR);
                 coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
-                sendToNfvo(coreMessage);
+                //sendToNfvo(coreMessage);
                 return null;
             }
         }
@@ -177,7 +179,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                     CoreMessage coreMessage = new CoreMessage();
                     coreMessage.setAction(Action.ERROR);
                     coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
-                    sendToNfvo(coreMessage);
+                    //sendToNfvo(coreMessage);
                     return null;
                 }
                 log.debug("Released resources for vdu with id " + vdu.getId());
@@ -257,5 +259,18 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     @Override
     protected void checkEmsStarted(String hostname) {
 
+    }
+
+    @Override
+    protected VirtualNetworkFunctionRecord createVirtualNetworkFunctionRecord(VirtualNetworkFunctionDescriptor virtualNetworkFunctionDescriptor, Map<String, String> extention, String flavorkey) throws BadFormatException, NotFoundException {
+        VirtualNetworkFunctionRecord virtualNetworkFunctionRecord = super.createVirtualNetworkFunctionRecord(virtualNetworkFunctionDescriptor, extention, flavorkey);
+        for (InternalVirtualLink internalVirtualLink : virtualNetworkFunctionRecord.getVirtual_link()) {
+            for (VirtualLinkRecord virtualLinkRecord : getVlr()) {
+                if (internalVirtualLink.getName().equals(virtualLinkRecord.getName())) {
+                    internalVirtualLink.setExtId(virtualLinkRecord.getExtId());
+                }
+            }
+        }
+        return virtualNetworkFunctionRecord;
     }
 }
