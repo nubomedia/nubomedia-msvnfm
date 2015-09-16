@@ -182,6 +182,12 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                     //sendToNfvo(coreMessage);
                     return null;
                 }
+                for (VNFComponent vnfComponent : vdu.getVnfc()) {
+                    if (vnfcInstance.getVnfc_reference().equals(vnfComponent.getId())) {
+                        vdu.getVnfc().remove(vnfComponent);
+                        break;
+                    }
+                }
                 log.debug("Released resources for vdu with id " + vdu.getId());
             }
         }
