@@ -2,6 +2,8 @@ package org.project.openbaton.vnfm.core;
 
 import javassist.NotFoundException;
 import org.project.openbaton.catalogue.mano.common.AutoScalePolicy;
+import org.project.openbaton.catalogue.mano.descriptor.VNFComponent;
+import org.project.openbaton.catalogue.mano.descriptor.VNFDConnectionPoint;
 import org.project.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.project.openbaton.catalogue.mano.record.Status;
 import org.project.openbaton.catalogue.mano.record.VNFCInstance;
@@ -9,6 +11,10 @@ import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.project.openbaton.catalogue.nfvo.Action;
 import org.project.openbaton.catalogue.nfvo.CoreMessage;
 import org.project.openbaton.catalogue.nfvo.Item;
+import org.project.openbaton.catalogue.nfvo.messages.Interfaces.NFVMessage;
+import org.project.openbaton.catalogue.nfvo.messages.OrVnfmGenericMessage;
+import org.project.openbaton.catalogue.nfvo.messages.VnfmOrGenericMessage;
+import org.project.openbaton.catalogue.nfvo.messages.VnfmOrInstantiateMessage;
 import org.project.openbaton.clients.exceptions.VimDriverException;
 import org.project.openbaton.exceptions.VimException;
 import org.project.openbaton.monitoring.interfaces.ResourcePerformanceManagement;
@@ -29,7 +35,9 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
 import javax.jms.JMSException;
 import javax.jms.Message;
+import javax.jms.ObjectMessage;
 import javax.jms.Session;
+import java.io.Serializable;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.*;
@@ -61,10 +69,10 @@ public class ElasticityManagement {
     /**
      * Vim must be initialized only after the registry is up and plugin registered
      */
-    public void initilizeVim(){
+    public void initilizeVim() {
         PluginBroker<ResourcePerformanceManagement> pluginBroker = new PluginBroker<>();
         try {
-            this.monitor = pluginBroker.getPlugin("monitoring-plugin", 19345);
+            this.monitor = pluginBroker.getPlugin("monitor", "dummy", 19345);
         } catch (RemoteException e) {
             log.error(e.getLocalizedMessage());
         } catch (NotBoundException e) {
@@ -104,109 +112,99 @@ public class ElasticityManagement {
         log.debug("Deactivated Elasticity for vnfr " + vnfr.getId());
     }
 
-    public void scaleUp(VirtualNetworkFunctionRecord vnfr, AutoScalePolicy autoScalePolicy) {
-        log.debug("Scaling up vnfr " + vnfr.getId());
+    public void scaleVNFComponents(VirtualNetworkFunctionRecord vnfr, AutoScalePolicy autoScalePolicy) {
+        if (autoScalePolicy.getAction().equals("scaleup")) {
+            for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
+                if (vdu.getVnfc().size() < vdu.getScale_in_out() && (vdu.getVnfc().iterator().hasNext())) {
+                    VNFComponent vnfComponent_copy = vdu.getVnfc().iterator().next();
+                    VNFComponent vnfComponent_new = new VNFComponent();
+                    vnfComponent_new.setConnection_point(new HashSet<VNFDConnectionPoint>());
+                    for (VNFDConnectionPoint vnfdConnectionPoint_copy : vnfComponent_copy.getConnection_point()) {
+                        VNFDConnectionPoint vnfdConnectionPoint_new = new VNFDConnectionPoint();
+                        vnfdConnectionPoint_new.setVirtual_link_reference(vnfdConnectionPoint_copy.getVirtual_link_reference());
+                        vnfdConnectionPoint_new.setType(vnfdConnectionPoint_copy.getType());
+                        vnfComponent_new.getConnection_point().add(vnfdConnectionPoint_new);
+                    }
+                    vdu.getVnfc().add(vnfComponent_new);
+                    log.debug("SCALING: Added new Component to VDU " + vdu.getId());
+                    return;
+                } else {
+                    continue;
+                }
+            }
+            log.debug("Not found any VDU to scale out a VNFComponent. Limits are reached.");
+        } else if (autoScalePolicy.getAction().equals("scaledown")) {
+            for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
+                if (vdu.getVnfc().size() > 1 && vdu.getVnfc().iterator().hasNext()) {
+                    VNFComponent vnfComponent_remove = vdu.getVnfc().iterator().next();
+                    vdu.getVnfc().remove(vnfComponent_remove);
+                    log.debug("SCALING: Removed Component " + vnfComponent_remove.getId() + " from VDU " + vdu.getId());
+                    return;
+                } else {
+                    continue;
+                }
+            }
+            log.debug("Not found any VDU to scale in a VNFComponent. Limits are reached.");
+        }
+    }
+
+    public void scaleVNFCInstances(VirtualNetworkFunctionRecord vnfr) {
         for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
-            if (vdu.getVnfc_instance().size() < vdu.getScale_in_out()) {
-                if (vdu.getVnfc().iterator().hasNext()) {
+            //Check for additional components for scaling out
+            for (VNFComponent vnfComponent : vdu.getVnfc()) {
+                //VNFComponent ID is null -> NEW
+                boolean found = false;
+                //Check if VNFCInstance for VNFComponent already exists
+                for (VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
+                    if (vnfComponent.getId().equals(vnfcInstance.getVnfc_reference())) {
+                        found = true;
+                        break;
+                    }
+                }
+                //If the Instance doesn't exists, allocate a new one
+                if (!found) {
                     try {
-                        resourceManagement.allocate(vdu, vnfr, vdu.getVnfc().iterator().next());
-                        log.debug("Scaled up vnfr " + vnfr.getId());
-                    } catch (VimDriverException e) {
-                        log.error(e.getMessage(), e);
+                        resourceManagement.allocate(vdu, vnfr, vnfComponent);
+                        continue;
                     } catch (VimException e) {
                         log.error(e.getMessage(), e);
+                        throw new RuntimeException();
+                    } catch (VimDriverException e) {
+                        log.error(e.getMessage(), e);
+                        throw new RuntimeException();
                     }
-                    return;
                 }
-            } else {
-                continue;
             }
-//        Set<VirtualDeploymentUnit> consideredVDUs = new HashSet<VirtualDeploymentUnit>();
-//        for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
-//            if (consideredVDUs.contains(vdu)) {
-//                continue;
-//            }
-//            int leftInstances = vdu.getScale_in_out();
-//            for (VirtualDeploymentUnit tmpVDU : vnfr.getVdu()) {
-//                if (tmpVDU.getVimInstance().getName().equals(vdu.getVimInstance().getName())) {
-//                    consideredVDUs.add(tmpVDU);
-//                    leftInstances--;
-//                }
-//            }
-//            if (leftInstances <= 0) {
-//                log.debug("Maximum number of instances are reached on VimInstance " + vdu.getVimInstance());
-//                break;
-//            }
-//            VirtualDeploymentUnit newVDU = new VirtualDeploymentUnit();
-//            newVDU.setVimInstance(vdu.getVimInstance());
-//            newVDU.setVm_image(vdu.getVm_image());
-//            newVDU.setVnfc(new HashSet<VNFComponent>());
-//            for (VNFComponent vnfc : vdu.getVnfc()) {
-//                VNFComponent newVnfc = new VNFComponent();
-//                newVnfc.setConnection_point(new HashSet<VNFDConnectionPoint>());
-//                for (VNFDConnectionPoint vnfdCP : vnfc.getConnection_point()) {
-//                    VNFDConnectionPoint newVnfdCP = new VNFDConnectionPoint();
-//                    newVnfdCP.setName(vnfdCP.getName());
-//                    newVnfdCP.setType(vnfdCP.getType());
-//                    newVnfdCP.setExtId(vnfdCP.getExtId());
-//                    newVnfdCP.setVirtual_link_reference(vnfdCP.getVirtual_link_reference());
-//                    newVnfc.getConnection_point().add(newVnfdCP);
-//                }
-//                newVDU.getVnfc().add(newVnfc);
-//            }
-//            newVDU.setComputation_requirement(vdu.getComputation_requirement());
-//            newVDU.setHigh_availability(vdu.getHigh_availability());
-//            newVDU.setMonitoring_parameter(vdu.getMonitoring_parameter());
-//            newVDU.setLifecycle_event(vdu.getLifecycle_event());
-//            newVDU.setScale_in_out(vdu.getScale_in_out());
-//            newVDU.setVdu_constraint(vdu.getVdu_constraint());
-//            newVDU.setVirtual_memory_resource_element(vdu.getVirtual_memory_resource_element());
-//            newVDU.setVirtual_network_bandwidth_resource(vdu.getVirtual_network_bandwidth_resource());
-//            try {
-//                try {
-//                    //TODO Wait until launching is finished
-//                    resourceManagement.allocate(vnfr, newVDU, false).get();
-//                } catch (InterruptedException e) {
-//                    e.printStackTrace();
-//                } catch (ExecutionException e) {
-//                    e.printStackTrace();
-//                }
-//            } catch (VimDriverException e) {
-//                log.error("Cannot launch VDU on cloud environment", e);
-//                try {
-//                    CoreMessage coreMessage = new CoreMessage();
-//                    coreMessage.setAction(Action.ERROR);
-//                    coreMessage.setVirtualNetworkFunctionRecord(vnfr);
-//                    UtilsJMS.sendToQueue(coreMessage, "vnfm-core-actions");
-//                } catch (NamingException exc) {
-//                    log.error(exc.getMessage(), exc);
-//                } catch (JMSException exc) {
-//                    log.error(exc.getMessage(), exc);
-//                }
-//            } catch (NotFoundException e) {
-//                e.printStackTrace();
-//            }
-//            vnfr.getVdu().add(newVDU);
-//            log.debug("Scaled up vnfr " + vnfr.getId());
-//            return;
+            //Check for removed Components to scale in
+            Set<VNFCInstance> removed_instances = new HashSet<>();
+            for (VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
+                boolean found = false;
+                for (VNFComponent vnfComponent : vdu.getVnfc()) {
+                    if (vnfcInstance.getVnfc_reference().equals(vnfComponent.getId())) {
+                        log.debug("VNCInstance: " + vnfcInstance.toString() + " stays");
+                        found = true;
+                        //VNFComponent is still existing
+                        break;
+                    }
+                }
+                //VNFComponent is not exsting anymore -> Remove VNFCInstance
+                if (!found) {
+                    try {
+                        log.debug("VNCInstance: " + vnfcInstance.toString() + " removing");
+                        resourceManagement.release(vnfcInstance, vdu.getVimInstance());
+                        removed_instances.add(vnfcInstance);
+                    } catch (VimException e) {
+                        log.error(e.getMessage(), e);
+                        throw new RuntimeException();
+                    }
+                }
+            }
+            //Remove terminated VNFCInstances
+            vdu.getVnfc_instance().removeAll(removed_instances);
         }
     }
 
-    public void scaleDown(VirtualNetworkFunctionRecord vnfr, AutoScalePolicy autoScalePolicy) throws NotFoundException, VimException {
-        log.debug("Scaling down vnfr " + vnfr.getId());
-        for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
-            if (vdu.getVnfc_instance().size() > 1 && vdu.getVnfc_instance().iterator().hasNext()) {
-                resourceManagement.release(vdu.getVnfc_instance().iterator().next(), vdu.getVimInstance());
-                vnfr.getVdu().remove(vdu);
-                log.debug("Scaled down vnfr " + vnfr.getId());
-            } else {
-                log.warn("Cannot terminate the last VDU.");
-            }
-        }
-    }
-
-    public List<Item> getRawMeasurementResults(VirtualNetworkFunctionRecord vnfr, String metric, String period) {
+    public synchronized List<Item> getRawMeasurementResults(VirtualNetworkFunctionRecord vnfr, String metric, String period) {
         List<Item> measurementResults = new ArrayList<Item>();
         log.debug("Getting all measurement results for vnfr " + vnfr.getId() + " on metric " + metric + ".");
         for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
@@ -271,27 +269,10 @@ public class ElasticityManagement {
         return false;
     }
 
-    public void executeAction(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, AutoScalePolicy autoScalePolicy) {
-        try {
-            switch (autoScalePolicy.getAction()) {
-                case "scaleup":
-                    scaleUp(virtualNetworkFunctionRecord, autoScalePolicy);
-                    break;
-                case "scaledown":
-                    scaleDown(virtualNetworkFunctionRecord, autoScalePolicy);
-                    break;
-            }
-        } catch (NotFoundException e) {
-            log.error(e.getMessage());
-        } catch (VimException e) {
-            log.error(e.getMessage());
-        }
-    }
-
     public boolean checkFeasibility(VirtualNetworkFunctionRecord vnfr, AutoScalePolicy autoScalePolicy) {
         if (autoScalePolicy.getAction().equals("scaleup")) {
             for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
-                if (vdu.getVnfc_instance().size() < vdu.getScale_in_out()) {
+                if (vdu.getVnfc().size() < vdu.getScale_in_out()) {
                     return true;
                 }
             }
@@ -299,7 +280,7 @@ public class ElasticityManagement {
             return false;
         } else if (autoScalePolicy.getAction().equals("scaledown")) {
             for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
-                if (vdu.getVnfc_instance().size() > 1) {
+                if (vdu.getVnfc().size() > 1) {
                     return true;
                 }
             }
@@ -312,6 +293,8 @@ public class ElasticityManagement {
 
 @Component
 class ElasticityTask implements Runnable {
+
+    protected static final String nfvoQueue = "vnfm-core-actions";
 
     protected Logger log = LoggerFactory.getLogger(this.getClass());
 
@@ -340,26 +323,22 @@ class ElasticityTask implements Runnable {
             List<Item> measurementResults = elasticityManagement.getRawMeasurementResults(vnfr, autoScalePolicy.getMetric(), Integer.toString(autoScalePolicy.getPeriod()));
             double finalResult = elasticityManagement.calculateMeasurementResult(autoScalePolicy, measurementResults);
             log.debug("Final measurement result on vnfr " + vnfr.getId() + " on metric " + autoScalePolicy.getMetric() + " with statistic " + autoScalePolicy.getStatistic() + " is " + finalResult + " " + measurementResults);
-            if (elasticityManagement.triggerAction(autoScalePolicy, finalResult) && elasticityManagement.checkFeasibility(vnfr, autoScalePolicy) && setStatus(Status.SCALING) == true) {
-                //setStatus(Status.SCALING);
-                this.sendToNfvo(Action.SCALING, vnfr);
-//                Utils.sendToCore(vnfr, Action.SCALING);
-                log.debug("Executing scaling action of AutoScalePolicy with id " + autoScalePolicy.getId());
-                elasticityManagement.executeAction(vnfr, autoScalePolicy);
-                if (autoScalePolicy.getAction().equals("scaleup")) {
-                    this.sendToNfvo(Action.SCALE_OUT_FINISHED, vnfr);
-//                    Utils.sendToCore(vnfr, Action.SCALE_OUT_FINISHED);
-                } else if (autoScalePolicy.getAction().equals("scaledown")) {
-                    this.sendToNfvo(Action.SCALE_IN_FINISHED,vnfr);
-//                    Utils.sendToCore(vnfr, Action.SCALE_IN_FINISHED);
+            if (vnfr.getStatus().equals(Status.ACTIVE)) {
+                if (elasticityManagement.triggerAction(autoScalePolicy, finalResult) && elasticityManagement.checkFeasibility(vnfr, autoScalePolicy) && setStatus(Status.SCALING) == true) {
+                    log.debug("Executing scaling action of AutoScalePolicy with id " + autoScalePolicy.getId());
+                    elasticityManagement.scaleVNFComponents(vnfr, autoScalePolicy);
+                    //sendToNfvo(Action.SCALING, vnfr);
+                    scalingOperation(vnfr);
+                    elasticityManagement.scaleVNFCInstances(vnfr);
+                    log.debug("Starting cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
+                    Thread.sleep(autoScalePolicy.getCooldown() * 1000);
+                    log.debug("Finished cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
+                    //sendToNfvo(Action.SCALED, vnfr);
+                    scaledOperation(vnfr);
+                    setStatus(Status.ACTIVE);
+                } else {
+                    log.debug("Scaling of AutoScalePolicy with id " + autoScalePolicy.getId() + " is not executed");
                 }
-                log.debug("Starting cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
-                //TODO Launching a new instance should not be part of the cooldown
-                Thread.sleep(autoScalePolicy.getCooldown() * 1000);
-                log.debug("Finished cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
-                setStatus(Status.ACTIVE);
-            } else {
-                log.debug("Scaling of AutoScalePolicy with id " + autoScalePolicy.getId() + " is not executed");
             }
             log.debug("Starting sleeping period (" + autoScalePolicy.getPeriod() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
         } catch (InterruptedException e) {
@@ -368,13 +347,11 @@ class ElasticityTask implements Runnable {
     }
 
     private void sendToNfvo(Action action, VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
-        final CoreMessage coreMessage = new CoreMessage();
-        coreMessage.setAction(action);
-        coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
+        final VnfmOrGenericMessage vnfmOrGenericMessage = new VnfmOrGenericMessage(virtualNetworkFunctionRecord, action);
         jmsTemplate.send("vnfm-core-actions", new MessageCreator() {
             @Override
             public Message createMessage(Session session) throws JMSException {
-                return session.createObjectMessage(coreMessage);
+                return session.createObjectMessage(vnfmOrGenericMessage);
             }
         });
     }
@@ -400,4 +377,62 @@ class ElasticityTask implements Runnable {
             return false;
         }
     }
+
+    protected NFVMessage getNfvMessage(Action action, VirtualNetworkFunctionRecord payload) {
+        NFVMessage nfvMessage = null;
+        if (Action.INSTANTIATE.ordinal() == action.ordinal())
+            nfvMessage = new VnfmOrInstantiateMessage(payload);
+        else
+            nfvMessage = new VnfmOrGenericMessage(payload, action);
+        return nfvMessage;
+    }
+
+    protected boolean scalingOperation(VirtualNetworkFunctionRecord vnfr) {
+        NFVMessage response = null;
+        try {
+            response = sendAndReceiveNfvMessage(nfvoQueue, getNfvMessage(Action.SCALING, vnfr));
+        } catch (JMSException e) {
+            log.error("" + e.getMessage());
+            return false;
+        }
+        log.debug("" + response);
+        if (response.getAction().ordinal() == Action.ERROR.ordinal())
+            return false;
+        OrVnfmGenericMessage orVnfmGenericMessage = (OrVnfmGenericMessage) response;
+        this.vnfr = orVnfmGenericMessage.getVnfr();
+        return true;
+    }
+
+    protected boolean scaledOperation(VirtualNetworkFunctionRecord vnfr) {
+        NFVMessage response = null;
+        try {
+            response = sendAndReceiveNfvMessage(nfvoQueue, getNfvMessage(Action.SCALED, vnfr));
+        } catch (JMSException e) {
+            log.error("" + e.getMessage());
+            return false;
+        }
+        log.debug("" + response);
+        if (response.getAction().ordinal() == Action.ERROR.ordinal())
+            return false;
+        OrVnfmGenericMessage orVnfmGenericMessage = (OrVnfmGenericMessage) response;
+        this.vnfr = orVnfmGenericMessage.getVnfr();
+        return true;
+    }
+
+    private NFVMessage sendAndReceiveNfvMessage(String destination, NFVMessage nfvMessage) throws JMSException {
+        Message response = jmsTemplate.sendAndReceive(destination, getObjectMessageCreator(nfvMessage));
+        return (NFVMessage) ((ObjectMessage) response).getObject();
+    }
+
+    private MessageCreator getObjectMessageCreator(final Serializable message) {
+        MessageCreator messageCreator = new MessageCreator() {
+            @Override
+            public Message createMessage(Session session) throws JMSException {
+                ObjectMessage objectMessage = session.createObjectMessage(message);
+                return objectMessage;
+            }
+        };
+        return messageCreator;
+    }
+
 }
