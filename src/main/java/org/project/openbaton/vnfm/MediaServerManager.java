@@ -8,9 +8,12 @@ import org.project.openbaton.catalogue.mano.descriptor.VirtualNetworkFunctionDes
 import org.project.openbaton.catalogue.mano.record.*;
 import org.project.openbaton.catalogue.nfvo.Action;
 import org.project.openbaton.catalogue.nfvo.CoreMessage;
+import org.project.openbaton.catalogue.nfvo.messages.Interfaces.NFVMessage;
+import org.project.openbaton.catalogue.nfvo.messages.VnfmOrGenericMessage;
 import org.project.openbaton.clients.exceptions.VimDriverException;
 import org.project.openbaton.common.vnfm_sdk.exception.BadFormatException;
 import org.project.openbaton.common.vnfm_sdk.exception.NotFoundException;
+import org.project.openbaton.common.vnfm_sdk.exception.VnfmSdkException;
 import org.project.openbaton.common.vnfm_sdk.jms.AbstractVnfmSpringJMS;
 import org.project.openbaton.exceptions.VimException;
 import org.project.openbaton.nfvo.plugin.utils.PluginStartup;
@@ -57,7 +60,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     }
 
     @Override
-    public VirtualNetworkFunctionRecord instantiate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
+    public VirtualNetworkFunctionRecord instantiate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) throws Exception{
         log.info("Instantiation of VirtualNetworkFunctionRecord " + virtualNetworkFunctionRecord.getName());
         log.trace("Instantiation of VirtualNetworkFunctionRecord " + virtualNetworkFunctionRecord);
 
@@ -66,65 +69,45 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
         if (events.contains(Event.ALLOCATE) && !historyEvents.contains(Event.ALLOCATE)) {
             log.debug("Processing event ALLOCATE");
             List<Future<String>> ids = new ArrayList<>();
+
             try {
-                //GrantingLifecycleOperation for initial Allocation
-                if (!historyEvents.contains(Event.GRANTED)) {
-                    //resourceManagement.grantLifecycleOperation(vnfr);
-                    CoreMessage coreMessage = new CoreMessage();
-                    coreMessage.setAction(Action.GRANT_OPERATION);
-                    coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
-                    //sendToNfvo(coreMessage);
-                    return null;
-                }
-                //Allocate Resources
-                for(VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
-                    log.debug("Creating " + vdu.getVnfc().size() + " VMs");
-                    for (VNFComponent vnfComponent : vdu.getVnfc()) {
-                        Future<String> allocate = resourceManagement.allocate(vdu, virtualNetworkFunctionRecord, vnfComponent);
-                        ids.add(allocate);
-                    }
-                }
-                //Print ids of deployed VDUs
-                for(Future<String> id : ids) {
+                virtualNetworkFunctionRecord = grantLifecycleOperation(virtualNetworkFunctionRecord);
+//                if(grantLifecycleOperation(virtualNetworkFunctionRecord)) {
                     try {
-                        log.debug("Created VDU with id: " + id.get());
-                    } catch (InterruptedException e) {
+                        //Allocate Resources
+                        for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
+                            log.debug("Creating " + vdu.getVnfc().size() + " VMs");
+                            for (VNFComponent vnfComponent : vdu.getVnfc()) {
+                                Future<String> allocate = resourceManagement.allocate(vdu, virtualNetworkFunctionRecord, vnfComponent);
+                                ids.add(allocate);
+                            }
+                        }
+                        //Print ids of deployed VDUs
+                        for (Future<String> id : ids) {
+                            try {
+                                log.debug("Created VDU with id: " + id.get());
+                            } catch (InterruptedException e) {
+                                log.error(e.getMessage(), e);
+                                throw new RuntimeException(e.getMessage(), e);
+                            } catch (ExecutionException e) {
+                                log.error(e.getMessage(), e);
+                                throw new RuntimeException(e.getMessage(), e);
+                            }
+                        }
+                    } catch (VimDriverException e) {
                         log.error(e.getMessage(), e);
-                        CoreMessage coreMessage = new CoreMessage();
-                        coreMessage.setAction(Action.ERROR);
-                        coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
-                        //sendToNfvo(coreMessage);
-                        return null;
-                    } catch (ExecutionException e) {
+                        throw new RuntimeException(e.getMessage(), e);
+                    } catch (VimException e) {
                         log.error(e.getMessage(), e);
-                        CoreMessage coreMessage = new CoreMessage();
-                        coreMessage.setAction(Action.ERROR);
-                        coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
-                        //sendToNfvo(coreMessage);
-                        return null;
+                        throw new RuntimeException(e.getMessage(), e);
                     }
-                }
-            } catch (VimDriverException e) {
-                log.error(e.getMessage(), e);
-                CoreMessage coreMessage = new CoreMessage();
-                coreMessage.setAction(Action.ERROR);
-                coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
-                //sendToNfvo(coreMessage);
-                return null;
-            } catch (VimException e) {
-                log.error(e.getMessage(), e);
-                CoreMessage coreMessage = new CoreMessage();
-                coreMessage.setAction(Action.ERROR);
-                coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
-                //sendToNfvo(coreMessage);
-                return null;
+//                }
+            } catch (VnfmSdkException e) {
+                e.printStackTrace();
+                throw e;
             }
         }
         log.trace("I've finished initialization of vnf " + virtualNetworkFunctionRecord.getName() + " in facts there are only " + virtualNetworkFunctionRecord.getLifecycle_event().size() + " events");
-//        CoreMessage coreMessage = new CoreMessage();
-//        coreMessage.setAction(Action.INSTANTIATE_FINISH);
-//        coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
-//        return coreMessage;
         return virtualNetworkFunctionRecord;
     }
 
@@ -176,11 +159,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                     resourceManagement.release(vnfcInstance, vdu.getVimInstance());
                 } catch (VimException e) {
                     log.error(e.getMessage(), e);
-                    CoreMessage coreMessage = new CoreMessage();
-                    coreMessage.setAction(Action.ERROR);
-                    coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
-                    //sendToNfvo(coreMessage);
-                    return null;
+                    throw new RuntimeException(e.getMessage(), e);
                 }
                 for (VNFComponent vnfComponent : vdu.getVnfc()) {
                     if (vnfcInstance.getVnfc_reference().equals(vnfComponent.getId())) {
@@ -207,18 +186,12 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
 
     @Override
     protected VirtualNetworkFunctionRecord start(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
-//        CoreMessage coreMessage = new CoreMessage();
-//        coreMessage.setAction(Action.START);
-//        coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
-//        updateVnfr(virtualNetworkFunctionRecord, Event.START);
         //TODO where to set it to active?
-        //virtualNetworkFunctionRecord.setStatus(Status.ACTIVE);
+        virtualNetworkFunctionRecord.setStatus(Status.ACTIVE);
         Set<Event> events = lifecycleManagement.listEvents(virtualNetworkFunctionRecord);
         if (virtualNetworkFunctionRecord.getStatus().equals(Status.ACTIVE) && events.contains(Event.SCALE)) {
             log.debug("Processing event SCALE");
             elasticityManagement.activate(virtualNetworkFunctionRecord);
-            //Put EVENT SCALE to history
-//            updateVnfr(virtualNetworkFunctionRecord, Event.SCALE);
         }
         return virtualNetworkFunctionRecord;
     }
@@ -268,12 +241,13 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     }
 
     @Override
-    protected VirtualNetworkFunctionRecord createVirtualNetworkFunctionRecord(VirtualNetworkFunctionDescriptor virtualNetworkFunctionDescriptor, Map<String, String> extention, String flavorkey) throws BadFormatException, NotFoundException {
-        VirtualNetworkFunctionRecord virtualNetworkFunctionRecord = super.createVirtualNetworkFunctionRecord(virtualNetworkFunctionDescriptor, extention, flavorkey);
+    protected VirtualNetworkFunctionRecord createVirtualNetworkFunctionRecord(VirtualNetworkFunctionDescriptor virtualNetworkFunctionDescriptor, String flavourId, String vnfInstanceName, Set<VirtualLinkRecord> virtualLink, Map<String, String> extension ) throws BadFormatException, NotFoundException {
+        VirtualNetworkFunctionRecord virtualNetworkFunctionRecord = super.createVirtualNetworkFunctionRecord(virtualNetworkFunctionDescriptor, flavourId, vnfInstanceName, virtualLink, extension);
         for (InternalVirtualLink internalVirtualLink : virtualNetworkFunctionRecord.getVirtual_link()) {
-            for (VirtualLinkRecord virtualLinkRecord : getVlr()) {
+            for (VirtualLinkRecord virtualLinkRecord : virtualLink) {
                 if (internalVirtualLink.getName().equals(virtualLinkRecord.getName())) {
                     internalVirtualLink.setExtId(virtualLinkRecord.getExtId());
+                    internalVirtualLink.setConnectivity_type(virtualLinkRecord.getConnectivity_type());
                 }
             }
         }
