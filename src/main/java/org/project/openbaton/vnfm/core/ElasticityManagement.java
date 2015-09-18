@@ -41,6 +41,8 @@ import java.io.Serializable;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
 
 /**
@@ -65,6 +67,9 @@ public class ElasticityManagement {
 
     @Autowired
     private ConfigurableApplicationContext context;
+
+    @Autowired
+    private VnfrMonitor vnfrMonitor;
 
     /**
      * Vim must be initialized only after the registry is up and plugin registered
@@ -94,9 +99,8 @@ public class ElasticityManagement {
         log.debug("Activating Elasticity for vnfr " + vnfr.getId());
         tasks.put(vnfr.getId(), new HashSet<ScheduledFuture>());
         for (AutoScalePolicy policy : vnfr.getAuto_scale_policy()) {
-            ElasticityTask elasticityTask = new ElasticityTask();
+            ElasticityTask elasticityTask = (ElasticityTask) context.getBean("elasticityTask");
             elasticityTask.init(vnfr, policy);
-            beanFactory.autowireBean(elasticityTask);
             //taskExecutor.execute(elasticityTask);
             ScheduledFuture scheduledFuture = taskScheduler.scheduleAtFixedRate(elasticityTask, policy.getPeriod() * 1000);
             tasks.get(vnfr.getId()).add(scheduledFuture);
@@ -108,7 +112,9 @@ public class ElasticityManagement {
         log.debug("Deactivating Elasticity for vnfr " + vnfr.getId());
         for (ScheduledFuture scheduledFuture : tasks.get(vnfr.getId())) {
             scheduledFuture.cancel(false);
+            //((ElasticityTask) scheduledFuture).removeVNFR(vnfr);
         }
+        vnfrMonitor.removeVNFR(vnfr.getId());
         log.debug("Deactivated Elasticity for vnfr " + vnfr.getId());
     }
 
@@ -149,6 +155,7 @@ public class ElasticityManagement {
     }
 
     public void scaleVNFCInstances(VirtualNetworkFunctionRecord vnfr) {
+        List<Future<String>> ids = new ArrayList<>();
         for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
             //Check for additional components for scaling out
             for (VNFComponent vnfComponent : vdu.getVnfc()) {
@@ -164,7 +171,8 @@ public class ElasticityManagement {
                 //If the Instance doesn't exists, allocate a new one
                 if (!found) {
                     try {
-                        resourceManagement.allocate(vdu, vnfr, vnfComponent);
+                        Future<String> allocate = resourceManagement.allocate(vdu, vnfr, vnfComponent);
+                        ids.add(allocate);
                         continue;
                     } catch (VimException e) {
                         log.error(e.getMessage(), e);
@@ -201,6 +209,18 @@ public class ElasticityManagement {
             }
             //Remove terminated VNFCInstances
             vdu.getVnfc_instance().removeAll(removed_instances);
+        }
+        //Print ids of deployed VDUs
+        for (Future<String> id : ids) {
+            try {
+                log.debug("Created VNFCInstance with id: " + id.get());
+            } catch (InterruptedException e) {
+                log.error(e.getMessage(), e);
+                throw new RuntimeException(e.getMessage(), e);
+            } catch (ExecutionException e) {
+                log.error(e.getMessage(), e);
+                throw new RuntimeException(e.getMessage(), e);
+            }
         }
     }
 
@@ -291,7 +311,8 @@ public class ElasticityManagement {
     }
 }
 
-@Component
+@Service
+@Scope("prototype")
 class ElasticityTask implements Runnable {
 
     protected static final String nfvoQueue = "vnfm-core-actions";
@@ -304,14 +325,18 @@ class ElasticityTask implements Runnable {
     @Autowired
     protected JmsTemplate jmsTemplate;
 
-    private static VirtualNetworkFunctionRecord vnfr;
+    @Autowired
+    private VnfrMonitor monitor;
+
+    private String vnfr_id;
 
     private AutoScalePolicy autoScalePolicy;
 
     private String name;
 
     public void init(VirtualNetworkFunctionRecord vnfr, AutoScalePolicy autoScalePolicy) {
-        this.vnfr = vnfr;
+        this.monitor.addVNFR(vnfr);
+        this.vnfr_id = vnfr.getId();
         this.autoScalePolicy = autoScalePolicy;
         this.name = "ElasticityTask#" + vnfr.getId();
     }
@@ -320,6 +345,7 @@ class ElasticityTask implements Runnable {
     public void run() {
         log.debug("Check if scaling is needed.");
         try {
+            VirtualNetworkFunctionRecord vnfr = monitor.getVNFR(vnfr_id);
             List<Item> measurementResults = elasticityManagement.getRawMeasurementResults(vnfr, autoScalePolicy.getMetric(), Integer.toString(autoScalePolicy.getPeriod()));
             double finalResult = elasticityManagement.calculateMeasurementResult(autoScalePolicy, measurementResults);
             log.debug("Final measurement result on vnfr " + vnfr.getId() + " on metric " + autoScalePolicy.getMetric() + " with statistic " + autoScalePolicy.getStatistic() + " is " + finalResult + " " + measurementResults);
@@ -329,6 +355,7 @@ class ElasticityTask implements Runnable {
                     elasticityManagement.scaleVNFComponents(vnfr, autoScalePolicy);
                     //sendToNfvo(Action.SCALING, vnfr);
                     scalingOperation(vnfr);
+                    vnfr = monitor.getVNFR(vnfr_id);
                     elasticityManagement.scaleVNFCInstances(vnfr);
                     log.debug("Starting cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
                     Thread.sleep(autoScalePolicy.getCooldown() * 1000);
@@ -339,6 +366,8 @@ class ElasticityTask implements Runnable {
                 } else {
                     log.debug("Scaling of AutoScalePolicy with id " + autoScalePolicy.getId() + " is not executed");
                 }
+            } else {
+                log.debug("ElasticityTask: In State Scaling -> waiting until finished");
             }
             log.debug("Starting sleeping period (" + autoScalePolicy.getPeriod() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
         } catch (InterruptedException e) {
@@ -359,7 +388,7 @@ class ElasticityTask implements Runnable {
     private synchronized boolean checkStatus() {
         Collection<Status> nonBlockingStatus = new HashSet<Status>();
         nonBlockingStatus.add(Status.ACTIVE);
-        if (nonBlockingStatus.contains(this.vnfr.getStatus())) {
+        if (nonBlockingStatus.contains(this.monitor.getVNFR(vnfr_id).getStatus())) {
             return true;
         } else {
             return false;
@@ -367,11 +396,11 @@ class ElasticityTask implements Runnable {
     }
 
     private synchronized boolean setStatus(Status status) {
-        log.debug("Set status of vnfr " + vnfr.getId() + " to " + status.name());
+        log.debug("Set status of vnfr " + monitor.getVNFR(vnfr_id).getId() + " to " + status.name());
         Collection<Status> nonBlockingStatus = new HashSet<Status>();
         nonBlockingStatus.add(Status.ACTIVE);
-        if (nonBlockingStatus.contains(this.vnfr.getStatus()) || status.equals(Status.ACTIVE)) {
-            vnfr.setStatus(status);
+        if (nonBlockingStatus.contains(this.monitor.getVNFR(vnfr_id).getStatus()) || status.equals(Status.ACTIVE)) {
+            monitor.getVNFR(vnfr_id).setStatus(status);
             return true;
         } else {
             return false;
@@ -399,7 +428,7 @@ class ElasticityTask implements Runnable {
         if (response.getAction().ordinal() == Action.ERROR.ordinal())
             return false;
         OrVnfmGenericMessage orVnfmGenericMessage = (OrVnfmGenericMessage) response;
-        this.vnfr = orVnfmGenericMessage.getVnfr();
+        this.monitor.addVNFR(orVnfmGenericMessage.getVnfr());
         return true;
     }
 
@@ -415,7 +444,7 @@ class ElasticityTask implements Runnable {
         if (response.getAction().ordinal() == Action.ERROR.ordinal())
             return false;
         OrVnfmGenericMessage orVnfmGenericMessage = (OrVnfmGenericMessage) response;
-        this.vnfr = orVnfmGenericMessage.getVnfr();
+        this.monitor.addVNFR(orVnfmGenericMessage.getVnfr());
         return true;
     }
 
@@ -433,6 +462,11 @@ class ElasticityTask implements Runnable {
             }
         };
         return messageCreator;
+    }
+
+    public void removeVNFR(VirtualNetworkFunctionRecord vnfr) {
+        if (this.monitor.getVNFR(vnfr.getId()) != null)
+            this.monitor.removeVNFR(vnfr.getId());
     }
 
 }

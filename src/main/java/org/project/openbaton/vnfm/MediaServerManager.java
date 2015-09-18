@@ -85,7 +85,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                         //Print ids of deployed VDUs
                         for (Future<String> id : ids) {
                             try {
-                                log.debug("Created VDU with id: " + id.get());
+                                log.debug("Created VNFCInstance with id: " + id.get());
                             } catch (InterruptedException e) {
                                 log.error(e.getMessage(), e);
                                 throw new RuntimeException(e.getMessage(), e);
@@ -163,14 +163,13 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                 }
                 for (VNFComponent vnfComponent : vdu.getVnfc()) {
                     if (vnfcInstance.getVnfc_reference().equals(vnfComponent.getId())) {
-                        vdu.getVnfc().remove(vnfComponent);
+                        vdu.getVnfc_instance().remove(vnfcInstance);
                         break;
                     }
                 }
                 log.debug("Released resources for vdu with id " + vdu.getId());
             }
         }
-        //TODO remove VDU from the vnfr
         log.info("Terminated vnfr with id " + virtualNetworkFunctionRecord.getId());
         return virtualNetworkFunctionRecord;
     }
