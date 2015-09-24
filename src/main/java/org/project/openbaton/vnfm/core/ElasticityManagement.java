@@ -16,10 +16,12 @@ import org.project.openbaton.catalogue.nfvo.messages.OrVnfmGenericMessage;
 import org.project.openbaton.catalogue.nfvo.messages.VnfmOrGenericMessage;
 import org.project.openbaton.catalogue.nfvo.messages.VnfmOrInstantiateMessage;
 import org.project.openbaton.clients.exceptions.VimDriverException;
+import org.project.openbaton.common.vnfm_sdk.VnfmHelper;
 import org.project.openbaton.exceptions.VimException;
 import org.project.openbaton.monitoring.interfaces.ResourcePerformanceManagement;
 import org.project.openbaton.nfvo.plugin.utils.PluginBroker;
 import org.project.openbaton.nfvo.vim_interfaces.resource_management.ResourceManagement;
+import org.project.openbaton.vnfm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -171,7 +173,8 @@ public class ElasticityManagement {
                 //If the Instance doesn't exists, allocate a new one
                 if (!found) {
                     try {
-                        Future<String> allocate = resourceManagement.allocate(vdu, vnfr, vnfComponent);
+                        String userdata = Utils.getUserdata();
+                        Future<String> allocate = resourceManagement.allocate(vdu, vnfr, vnfComponent, userdata, vnfComponent.isExposed());
                         ids.add(allocate);
                         continue;
                     } catch (VimException e) {
@@ -320,6 +323,9 @@ class ElasticityTask implements Runnable {
     protected Logger log = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
+    private VnfmHelper vnfmHelper;
+
+    @Autowired
     private ElasticityManagement elasticityManagement;
 
     @Autowired
@@ -353,16 +359,12 @@ class ElasticityTask implements Runnable {
                 if (elasticityManagement.triggerAction(autoScalePolicy, finalResult) && elasticityManagement.checkFeasibility(vnfr, autoScalePolicy) && setStatus(Status.SCALING) == true) {
                     log.debug("Executing scaling action of AutoScalePolicy with id " + autoScalePolicy.getId());
                     elasticityManagement.scaleVNFComponents(vnfr, autoScalePolicy);
-                    //sendToNfvo(Action.SCALING, vnfr);
-                    scalingOperation(vnfr);
-                    vnfr = monitor.getVNFR(vnfr_id);
+                    vnfr = updateOnNFVO(vnfr, Action.SCALING);
                     elasticityManagement.scaleVNFCInstances(vnfr);
                     log.debug("Starting cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
                     Thread.sleep(autoScalePolicy.getCooldown() * 1000);
                     log.debug("Finished cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
-                    //sendToNfvo(Action.SCALED, vnfr);
-                    scaledOperation(vnfr);
-                    setStatus(Status.ACTIVE);
+                    vnfr = updateOnNFVO(vnfr, Action.SCALED);
                 } else {
                     log.debug("Scaling of AutoScalePolicy with id " + autoScalePolicy.getId() + " is not executed");
                 }
@@ -372,26 +374,6 @@ class ElasticityTask implements Runnable {
             log.debug("Starting sleeping period (" + autoScalePolicy.getPeriod() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
         } catch (InterruptedException e) {
             log.warn("ElasticityTask was interrupted");
-        }
-    }
-
-    private void sendToNfvo(Action action, VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
-        final VnfmOrGenericMessage vnfmOrGenericMessage = new VnfmOrGenericMessage(virtualNetworkFunctionRecord, action);
-        jmsTemplate.send("vnfm-core-actions", new MessageCreator() {
-            @Override
-            public Message createMessage(Session session) throws JMSException {
-                return session.createObjectMessage(vnfmOrGenericMessage);
-            }
-        });
-    }
-
-    private synchronized boolean checkStatus() {
-        Collection<Status> nonBlockingStatus = new HashSet<Status>();
-        nonBlockingStatus.add(Status.ACTIVE);
-        if (nonBlockingStatus.contains(this.monitor.getVNFR(vnfr_id).getStatus())) {
-            return true;
-        } else {
-            return false;
         }
     }
 
@@ -407,66 +389,28 @@ class ElasticityTask implements Runnable {
         }
     }
 
-    protected NFVMessage getNfvMessage(Action action, VirtualNetworkFunctionRecord payload) {
-        NFVMessage nfvMessage = null;
-        if (Action.INSTANTIATE.ordinal() == action.ordinal())
-            nfvMessage = new VnfmOrInstantiateMessage(payload);
-        else
-            nfvMessage = new VnfmOrGenericMessage(payload, action);
-        return nfvMessage;
-    }
-
-    protected boolean scalingOperation(VirtualNetworkFunctionRecord vnfr) {
+    protected VirtualNetworkFunctionRecord updateOnNFVO(VirtualNetworkFunctionRecord vnfr, Action action) {
         NFVMessage response = null;
         try {
-            response = sendAndReceiveNfvMessage(nfvoQueue, getNfvMessage(Action.SCALING, vnfr));
+            response = vnfmHelper.sendAndReceive(action, vnfr);
         } catch (JMSException e) {
             log.error("" + e.getMessage());
-            return false;
-        }
-        log.debug("" + response);
-        if (response.getAction().ordinal() == Action.ERROR.ordinal())
-            return false;
-        OrVnfmGenericMessage orVnfmGenericMessage = (OrVnfmGenericMessage) response;
-        this.monitor.addVNFR(orVnfmGenericMessage.getVnfr());
-        return true;
-    }
-
-    protected boolean scaledOperation(VirtualNetworkFunctionRecord vnfr) {
-        NFVMessage response = null;
-        try {
-            response = sendAndReceiveNfvMessage(nfvoQueue, getNfvMessage(Action.SCALED, vnfr));
-        } catch (JMSException e) {
+            vnfr.setStatus(Status.ERROR);
+            return vnfr;
+        } catch (Exception e) {
+            vnfr.setStatus(Status.ERROR);
             log.error("" + e.getMessage());
-            return false;
+            return vnfr;
         }
         log.debug("" + response);
-        if (response.getAction().ordinal() == Action.ERROR.ordinal())
-            return false;
+        if (response.getAction().ordinal() == Action.ERROR.ordinal()) {
+            vnfr.setStatus(Status.ERROR);
+            return vnfr;
+        }
         OrVnfmGenericMessage orVnfmGenericMessage = (OrVnfmGenericMessage) response;
-        this.monitor.addVNFR(orVnfmGenericMessage.getVnfr());
-        return true;
-    }
-
-    private NFVMessage sendAndReceiveNfvMessage(String destination, NFVMessage nfvMessage) throws JMSException {
-        Message response = jmsTemplate.sendAndReceive(destination, getObjectMessageCreator(nfvMessage));
-        return (NFVMessage) ((ObjectMessage) response).getObject();
-    }
-
-    private MessageCreator getObjectMessageCreator(final Serializable message) {
-        MessageCreator messageCreator = new MessageCreator() {
-            @Override
-            public Message createMessage(Session session) throws JMSException {
-                ObjectMessage objectMessage = session.createObjectMessage(message);
-                return objectMessage;
-            }
-        };
-        return messageCreator;
-    }
-
-    public void removeVNFR(VirtualNetworkFunctionRecord vnfr) {
-        if (this.monitor.getVNFR(vnfr.getId()) != null)
-            this.monitor.removeVNFR(vnfr.getId());
+        vnfr = orVnfmGenericMessage.getVnfr();
+        this.monitor.addVNFR(vnfr);
+        return vnfr;
     }
 
 }

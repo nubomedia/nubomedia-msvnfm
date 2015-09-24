@@ -20,6 +20,7 @@ import org.project.openbaton.nfvo.plugin.utils.PluginStartup;
 import org.project.openbaton.nfvo.vim_interfaces.resource_management.ResourceManagement;
 import org.project.openbaton.vnfm.core.ElasticityManagement;
 import org.project.openbaton.vnfm.core.LifecycleManagement;
+import org.project.openbaton.vnfm.utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -28,10 +29,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import java.io.IOException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -60,51 +58,51 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     }
 
     @Override
-    public VirtualNetworkFunctionRecord instantiate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) throws Exception{
+    public VirtualNetworkFunctionRecord instantiate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, Object object) {
         log.info("Instantiation of VirtualNetworkFunctionRecord " + virtualNetworkFunctionRecord.getName());
         log.trace("Instantiation of VirtualNetworkFunctionRecord " + virtualNetworkFunctionRecord);
 
-        Set<Event> events = lifecycleManagement.listEvents(virtualNetworkFunctionRecord);
-        Set<Event> historyEvents = lifecycleManagement.listHistoryEvents(virtualNetworkFunctionRecord);
-        if (events.contains(Event.ALLOCATE) && !historyEvents.contains(Event.ALLOCATE)) {
-            log.debug("Processing event ALLOCATE");
-            List<Future<String>> ids = new ArrayList<>();
+        log.debug("Processing GrantLifeCycleOperation for vnfr: " + virtualNetworkFunctionRecord);
+        //Granting LifeCycleOperation
+        try {
+            virtualNetworkFunctionRecord = vnfmHelper.grantLifecycleOperation(virtualNetworkFunctionRecord).get();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (VnfmSdkException e) {
+            e.printStackTrace();
+        }
 
+        //Allocation of Resources
+        log.debug("Processing allocation of Recourses for vnfr: " + virtualNetworkFunctionRecord);
+        List<Future<String>> ids = new ArrayList<>();
+        try {
+            for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
+                log.debug("Creating " + vdu.getVnfc().size() + " VMs");
+                String userdata = Utils.getUserdata();
+                for (VNFComponent vnfComponent : vdu.getVnfc()) {
+                    Future<String> allocate = resourceManagement.allocate(vdu, virtualNetworkFunctionRecord, vnfComponent, userdata , vnfComponent.isExposed());
+                    ids.add(allocate);
+                }
+            }
+        } catch (VimDriverException e) {
+            log.error(e.getMessage(), e);
+            throw new RuntimeException(e.getMessage(), e);
+        } catch (VimException e) {
+            log.error(e.getMessage(), e);
+            throw new RuntimeException(e.getMessage(), e);
+        }
+        //Print ids of deployed VDUs
+        for (Future<String> id : ids) {
             try {
-                virtualNetworkFunctionRecord = grantLifecycleOperation(virtualNetworkFunctionRecord);
-//                if(grantLifecycleOperation(virtualNetworkFunctionRecord)) {
-                    try {
-                        //Allocate Resources
-                        for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
-                            log.debug("Creating " + vdu.getVnfc().size() + " VMs");
-                            for (VNFComponent vnfComponent : vdu.getVnfc()) {
-                                Future<String> allocate = resourceManagement.allocate(vdu, virtualNetworkFunctionRecord, vnfComponent);
-                                ids.add(allocate);
-                            }
-                        }
-                        //Print ids of deployed VDUs
-                        for (Future<String> id : ids) {
-                            try {
-                                log.debug("Created VNFCInstance with id: " + id.get());
-                            } catch (InterruptedException e) {
-                                log.error(e.getMessage(), e);
-                                throw new RuntimeException(e.getMessage(), e);
-                            } catch (ExecutionException e) {
-                                log.error(e.getMessage(), e);
-                                throw new RuntimeException(e.getMessage(), e);
-                            }
-                        }
-                    } catch (VimDriverException e) {
-                        log.error(e.getMessage(), e);
-                        throw new RuntimeException(e.getMessage(), e);
-                    } catch (VimException e) {
-                        log.error(e.getMessage(), e);
-                        throw new RuntimeException(e.getMessage(), e);
-                    }
-//                }
-            } catch (VnfmSdkException e) {
-                e.printStackTrace();
-                throw e;
+                log.debug("Created VNFCInstance with id: " + id.get());
+            } catch (InterruptedException e) {
+                log.error(e.getMessage(), e);
+                throw new RuntimeException(e.getMessage(), e);
+            } catch (ExecutionException e) {
+                log.error(e.getMessage(), e);
+                throw new RuntimeException(e.getMessage(), e);
             }
         }
         log.trace("I've finished initialization of vnf " + virtualNetworkFunctionRecord.getName() + " in facts there are only " + virtualNetworkFunctionRecord.getLifecycle_event().size() + " events");
@@ -113,26 +111,27 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
 
     @Override
     public void query() {
-
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void scale() {
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void checkInstantiationFeasibility() {
-
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void heal() {
-
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void updateSoftware() {
-
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -142,7 +141,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
 
     @Override
     public void upgradeSoftware() {
-
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -153,6 +152,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
             elasticityManagement.deactivate(virtualNetworkFunctionRecord);
 
         for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
+            Set<VNFCInstance> vnfciToRem = new HashSet<>();
             for (VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
                 log.debug("Releasing resources for vdu with id " + vdu.getId());
                 try {
@@ -161,30 +161,22 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                     log.error(e.getMessage(), e);
                     throw new RuntimeException(e.getMessage(), e);
                 }
-                for (VNFComponent vnfComponent : vdu.getVnfc()) {
-                    if (vnfcInstance.getVnfc_reference().equals(vnfComponent.getId())) {
-                        vdu.getVnfc_instance().remove(vnfcInstance);
-                        break;
-                    }
-                }
+                vnfciToRem.add(vnfcInstance);
                 log.debug("Released resources for vdu with id " + vdu.getId());
             }
+            vdu.getVnfc_instance().removeAll(vnfciToRem);
         }
         log.info("Terminated vnfr with id " + virtualNetworkFunctionRecord.getId());
         return virtualNetworkFunctionRecord;
     }
 
     @Override
-    public CoreMessage handleError(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
+    public void handleError(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
         log.error("Error arrised.");
-        CoreMessage coreMessage = new CoreMessage();
-        coreMessage.setAction(Action.ERROR);
-        coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
-        return coreMessage;
     }
 
     @Override
-    protected VirtualNetworkFunctionRecord start(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
+    public VirtualNetworkFunctionRecord start(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
         //TODO where to set it to active?
         virtualNetworkFunctionRecord.setStatus(Status.ACTIVE);
         Set<Event> events = lifecycleManagement.listEvents(virtualNetworkFunctionRecord);
@@ -196,16 +188,10 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     }
 
     @Override
-    protected VirtualNetworkFunctionRecord configure(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
+    public VirtualNetworkFunctionRecord configure(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
         /**
          * This message should never arrive!
          */
-        CoreMessage coreMessage = new CoreMessage();
-        coreMessage.setAction(Action.CONFIGURE);
-        coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
-
-        updateVnfr(virtualNetworkFunctionRecord,Event.CONFIGURE);
-
         return virtualNetworkFunctionRecord;
     }
 
@@ -236,20 +222,6 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
 
     @Override
     protected void checkEmsStarted(String hostname) {
-
-    }
-
-    @Override
-    protected VirtualNetworkFunctionRecord createVirtualNetworkFunctionRecord(VirtualNetworkFunctionDescriptor virtualNetworkFunctionDescriptor, String flavourId, String vnfInstanceName, Set<VirtualLinkRecord> virtualLink, Map<String, String> extension ) throws BadFormatException, NotFoundException {
-        VirtualNetworkFunctionRecord virtualNetworkFunctionRecord = super.createVirtualNetworkFunctionRecord(virtualNetworkFunctionDescriptor, flavourId, vnfInstanceName, virtualLink, extension);
-        for (InternalVirtualLink internalVirtualLink : virtualNetworkFunctionRecord.getVirtual_link()) {
-            for (VirtualLinkRecord virtualLinkRecord : virtualLink) {
-                if (internalVirtualLink.getName().equals(virtualLinkRecord.getName())) {
-                    internalVirtualLink.setExtId(virtualLinkRecord.getExtId());
-                    internalVirtualLink.setConnectivity_type(virtualLinkRecord.getConnectivity_type());
-                }
-            }
-        }
-        return virtualNetworkFunctionRecord;
+        throw new UnsupportedOperationException();
     }
 }
