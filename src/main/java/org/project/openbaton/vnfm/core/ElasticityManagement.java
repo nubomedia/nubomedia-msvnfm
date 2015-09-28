@@ -157,7 +157,7 @@ public class ElasticityManagement {
     }
 
     public void scaleVNFCInstances(VirtualNetworkFunctionRecord vnfr) {
-        List<Future<String>> ids = new ArrayList<>();
+        List<Future<VNFCInstance>> vnfcInstances = new ArrayList<>();
         for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
             //Check for additional components for scaling out
             for (VNFComponent vnfComponent : vdu.getVnfc()) {
@@ -174,8 +174,8 @@ public class ElasticityManagement {
                 if (!found) {
                     try {
                         String userdata = Utils.getUserdata();
-                        Future<String> allocate = resourceManagement.allocate(vdu, vnfr, vnfComponent, userdata, vnfComponent.isExposed());
-                        ids.add(allocate);
+                        Future<VNFCInstance> allocate = resourceManagement.allocate(vdu, vnfr, vnfComponent, userdata, vnfComponent.isExposed());
+                        vnfcInstances.add(allocate);
                         continue;
                     } catch (VimException e) {
                         log.error(e.getMessage(), e);
@@ -214,9 +214,9 @@ public class ElasticityManagement {
             vdu.getVnfc_instance().removeAll(removed_instances);
         }
         //Print ids of deployed VDUs
-        for (Future<String> id : ids) {
+        for (Future<VNFCInstance> vnfcInstance : vnfcInstances) {
             try {
-                log.debug("Created VNFCInstance with id: " + id.get());
+                log.debug("Created VNFCInstance with id: " + vnfcInstance.get());
             } catch (InterruptedException e) {
                 log.error(e.getMessage(), e);
                 throw new RuntimeException(e.getMessage(), e);

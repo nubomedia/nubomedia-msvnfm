@@ -76,14 +76,14 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
 
         //Allocation of Resources
         log.debug("Processing allocation of Recourses for vnfr: " + virtualNetworkFunctionRecord);
-        List<Future<String>> ids = new ArrayList<>();
+        List<Future<VNFCInstance>> vnfcInstances = new ArrayList<>();
         try {
             for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
                 log.debug("Creating " + vdu.getVnfc().size() + " VMs");
                 String userdata = Utils.getUserdata();
                 for (VNFComponent vnfComponent : vdu.getVnfc()) {
-                    Future<String> allocate = resourceManagement.allocate(vdu, virtualNetworkFunctionRecord, vnfComponent, userdata , vnfComponent.isExposed());
-                    ids.add(allocate);
+                    Future<VNFCInstance> allocate = resourceManagement.allocate(vdu, virtualNetworkFunctionRecord, vnfComponent, userdata , vnfComponent.isExposed());
+                    vnfcInstances.add(allocate);
                 }
             }
         } catch (VimDriverException e) {
@@ -94,9 +94,9 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
             throw new RuntimeException(e.getMessage(), e);
         }
         //Print ids of deployed VDUs
-        for (Future<String> id : ids) {
+        for (Future<VNFCInstance> vnfcInstance : vnfcInstances) {
             try {
-                log.debug("Created VNFCInstance with id: " + id.get());
+                log.debug("Created VNFCInstance with id: " + vnfcInstance.get());
             } catch (InterruptedException e) {
                 log.error(e.getMessage(), e);
                 throw new RuntimeException(e.getMessage(), e);
