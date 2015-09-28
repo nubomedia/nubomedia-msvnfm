@@ -3,7 +3,7 @@ package org.project.openbaton.vnfm.exceptions;
 /**
  * Created by lto on 21/07/15.
  */
-public class PluginInstallException extends Exception{
+public class PluginInstallException extends Exception {
 
     public PluginInstallException() {
     }

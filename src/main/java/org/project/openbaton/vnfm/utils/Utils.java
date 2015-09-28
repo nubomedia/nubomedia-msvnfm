@@ -211,7 +211,7 @@ public class Utils {
     public static String getUserdataFromFS() {
         File folder = new File("/etc/openbaton/scripts/ms-vnfm");
         List<String> lines = new ArrayList<String>();
-        for (File file: folder.listFiles()) {
+        for (File file : folder.listFiles()) {
             if (file.getAbsolutePath().endsWith(".sh")) {
                 try {
                     lines.addAll(Files.readAllLines(Paths.get(file.getAbsolutePath()), StandardCharsets.UTF_8));
@@ -223,7 +223,7 @@ public class Utils {
         }
         //Create the script
         StringBuilder script = new StringBuilder();
-        for (String line: lines) {
+        for (String line : lines) {
             script.append(line).append("\n");
         }
         return script.toString();

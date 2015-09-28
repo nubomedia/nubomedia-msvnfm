@@ -18,11 +18,11 @@ public class VnfrMonitor {
         this.virtualNetworkFunctionRecords = new HashMap<>();
     }
 
-    public synchronized VirtualNetworkFunctionRecord getVNFR(String id){
+    public synchronized VirtualNetworkFunctionRecord getVNFR(String id) {
         return virtualNetworkFunctionRecords.get(id);
     }
 
-    public synchronized void addVNFR(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord){
+    public synchronized void addVNFR(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
         virtualNetworkFunctionRecords.put(virtualNetworkFunctionRecord.getId(), virtualNetworkFunctionRecord);
     }
 

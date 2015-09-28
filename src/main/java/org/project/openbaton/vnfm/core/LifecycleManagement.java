@@ -27,7 +27,7 @@ public class LifecycleManagement {
 
     public void removeEvent(VirtualNetworkFunctionRecord vnfr, Event event) throws NotFoundException {
         LifecycleEvent lifecycleEvent = null;
-        if(vnfr.getLifecycle_event_history() == null)
+        if (vnfr.getLifecycle_event_history() == null)
             vnfr.setLifecycle_event_history(new HashSet<LifecycleEvent>());
         for (LifecycleEvent tmpLifecycleEvent : vnfr.getLifecycle_event()) {
             if (event.equals(tmpLifecycleEvent.getEvent())) {

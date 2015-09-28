@@ -1,18 +1,13 @@
 package org.project.openbaton.vnfm;
 
 import org.project.openbaton.catalogue.mano.common.Event;
-import org.project.openbaton.catalogue.mano.descriptor.InternalVirtualLink;
 import org.project.openbaton.catalogue.mano.descriptor.VNFComponent;
 import org.project.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
-import org.project.openbaton.catalogue.mano.descriptor.VirtualNetworkFunctionDescriptor;
-import org.project.openbaton.catalogue.mano.record.*;
-import org.project.openbaton.catalogue.nfvo.Action;
-import org.project.openbaton.catalogue.nfvo.CoreMessage;
-import org.project.openbaton.catalogue.nfvo.messages.Interfaces.NFVMessage;
-import org.project.openbaton.catalogue.nfvo.messages.VnfmOrGenericMessage;
+import org.project.openbaton.catalogue.mano.record.Status;
+import org.project.openbaton.catalogue.mano.record.VNFCInstance;
+import org.project.openbaton.catalogue.mano.record.VNFRecordDependency;
+import org.project.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.project.openbaton.clients.exceptions.VimDriverException;
-import org.project.openbaton.common.vnfm_sdk.exception.BadFormatException;
-import org.project.openbaton.common.vnfm_sdk.exception.NotFoundException;
 import org.project.openbaton.common.vnfm_sdk.exception.VnfmSdkException;
 import org.project.openbaton.common.vnfm_sdk.jms.AbstractVnfmSpringJMS;
 import org.project.openbaton.exceptions.VimException;
@@ -29,7 +24,10 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import java.io.IOException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -53,7 +51,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     /**
      * Vim must be initialized only after the registry is up and plugin registered
      */
-    private void initilizeVim(){
+    private void initilizeVim() {
         resourceManagement = (ResourceManagement) context.getBean("openstackVIM", "openstack", 19345);
     }
 
@@ -82,7 +80,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                 log.debug("Creating " + vdu.getVnfc().size() + " VMs");
                 String userdata = Utils.getUserdata();
                 for (VNFComponent vnfComponent : vdu.getVnfc()) {
-                    Future<VNFCInstance> allocate = resourceManagement.allocate(vdu, virtualNetworkFunctionRecord, vnfComponent, userdata , vnfComponent.isExposed());
+                    Future<VNFCInstance> allocate = resourceManagement.allocate(vdu, virtualNetworkFunctionRecord, vnfComponent, userdata, vnfComponent.isExposed());
                     vnfcInstances.add(allocate);
                 }
             }
@@ -203,7 +201,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
             Registry registry = LocateRegistry.createRegistry(registryport);
             log.debug("Registry created: ");
             log.debug(registry.toString() + " has: " + registry.list().length + " entries");
-            PluginStartup.startPluginRecursive("./plugins", true,"localhost","" + registryport);
+            PluginStartup.startPluginRecursive("./plugins", true, "localhost", "" + registryport);
         } catch (IOException e) {
             e.printStackTrace();
         }
