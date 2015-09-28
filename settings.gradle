@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-rootProject.name = 'ms-vnfm'
 //rootProject.projectDir = file('.')
 
 apply from: 'openbaton-libs/vnfm-sdk/gradle/gradle/settings-parent-vnfm-sdk-jms.gradle'
 
 apply from: 'openbaton-libs/vnfm-sdk/gradle/gradle/settings-parent-vnfm-vim.gradle'
+rootProject.name = 'ms-vnfm'
 
 //include 'catalogue'
 //include 'vim-drivers'
