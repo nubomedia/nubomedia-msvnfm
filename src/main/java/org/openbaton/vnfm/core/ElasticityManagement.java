@@ -71,9 +71,9 @@ public class ElasticityManagement {
         try {
             this.monitor = pluginBroker.getPlugin("monitor", "dummy", 19345);
         } catch (RemoteException e) {
-            log.error(e.getLocalizedMessage());
+            log.error(e.getLocalizedMessage(), e);
         } catch (NotBoundException e) {
-            log.error(e.getLocalizedMessage());
+            log.warn("Monitoring " + e.getLocalizedMessage() + ". ElasticityManagement will not start.");
         }
         resourceManagement = (ResourceManagement) context.getBean("openstackVIM", "openstack", 19345);
     }
@@ -89,15 +89,19 @@ public class ElasticityManagement {
 
     public void activate(VirtualNetworkFunctionRecord vnfr) {
         log.debug("Activating Elasticity for vnfr " + vnfr.getId());
-        tasks.put(vnfr.getId(), new HashSet<ScheduledFuture>());
-        for (AutoScalePolicy policy : vnfr.getAuto_scale_policy()) {
-            ElasticityTask elasticityTask = (ElasticityTask) context.getBean("elasticityTask");
-            elasticityTask.init(vnfr, policy);
-            //taskExecutor.execute(elasticityTask);
-            ScheduledFuture scheduledFuture = taskScheduler.scheduleAtFixedRate(elasticityTask, policy.getPeriod() * 1000);
-            tasks.get(vnfr.getId()).add(scheduledFuture);
+        if (monitor != null) {
+            tasks.put(vnfr.getId(), new HashSet<ScheduledFuture>());
+            for (AutoScalePolicy policy : vnfr.getAuto_scale_policy()) {
+                ElasticityTask elasticityTask = (ElasticityTask) context.getBean("elasticityTask");
+                elasticityTask.init(vnfr, policy);
+                //taskExecutor.execute(elasticityTask);
+                ScheduledFuture scheduledFuture = taskScheduler.scheduleAtFixedRate(elasticityTask, policy.getPeriod() * 1000);
+                tasks.get(vnfr.getId()).add(scheduledFuture);
+            }
+            log.debug("Activated Elasticity for vnfr " + vnfr.getId());
+        } else {
+            log.warn("Cannot activate ElasticityManagement because the MonitoringAgent is not available");
         }
-        log.debug("Activated Elasticity for vnfr " + vnfr.getId());
     }
 
     public void deactivate(VirtualNetworkFunctionRecord vnfr) {
