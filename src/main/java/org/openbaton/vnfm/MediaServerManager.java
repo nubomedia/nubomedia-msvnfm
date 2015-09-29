@@ -65,11 +65,11 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
         try {
             virtualNetworkFunctionRecord = vnfmHelper.grantLifecycleOperation(virtualNetworkFunctionRecord).get();
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            log.warn(e.getMessage(), e);
         } catch (ExecutionException e) {
-            e.printStackTrace();
+            log.warn(e.getMessage(), e);
         } catch (VnfmSdkException e) {
-            e.printStackTrace();
+            log.warn(e.getMessage(), e);
         }
 
         //Allocation of Resources
