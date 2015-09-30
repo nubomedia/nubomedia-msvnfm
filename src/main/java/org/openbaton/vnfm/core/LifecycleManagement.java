@@ -33,7 +33,6 @@ public class LifecycleManagement {
             if (event.equals(tmpLifecycleEvent.getEvent())) {
                 lifecycleEvent = tmpLifecycleEvent;
                 vnfr.getLifecycle_event_history().add(lifecycleEvent);
-//                vnfr.getLifecycle_event().remove(lifecycleEvent);
                 break;
             }
         }

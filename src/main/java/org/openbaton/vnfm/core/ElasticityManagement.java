@@ -11,6 +11,7 @@ import org.openbaton.catalogue.nfvo.Action;
 import org.openbaton.catalogue.nfvo.Item;
 import org.openbaton.catalogue.nfvo.messages.Interfaces.NFVMessage;
 import org.openbaton.catalogue.nfvo.messages.OrVnfmGenericMessage;
+import org.openbaton.common.vnfm_sdk.utils.VnfmUtils;
 import org.openbaton.vim.drivers.exceptions.VimDriverException;
 import org.openbaton.common.vnfm_sdk.VnfmHelper;
 import org.openbaton.exceptions.VimException;
@@ -382,7 +383,7 @@ class ElasticityTask implements Runnable {
     protected VirtualNetworkFunctionRecord updateOnNFVO(VirtualNetworkFunctionRecord vnfr, Action action) {
         NFVMessage response = null;
         try {
-            response = vnfmHelper.sendAndReceive(action, vnfr);
+            response = vnfmHelper.sendAndReceive(VnfmUtils.getNfvMessage(action, vnfr));
         } catch (JMSException e) {
             log.error("" + e.getMessage());
             vnfr.setStatus(Status.ERROR);

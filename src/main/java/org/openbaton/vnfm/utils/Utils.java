@@ -29,19 +29,6 @@ public class Utils {
 
     private final static Logger log = LoggerFactory.getLogger(Utils.class);
 
-//    public static void sendToCore(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, Action action) {
-//        CoreMessage coreMessage = new CoreMessage();
-//        coreMessage.setAction(action);
-//        coreMessage.setVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord);
-//        try {
-//            UtilsJMS.sendToQueue(coreMessage, "vnfm-core-actions");
-//        } catch (NamingException e) {
-//            e.printStackTrace();
-//        } catch (JMSException e) {
-//            e.printStackTrace();
-//        }
-//    }
-
     public static ClientInterfaces getVimDriverPlugin(Properties properties) throws Exception {
         List<String> classes = new ArrayList<>();
 

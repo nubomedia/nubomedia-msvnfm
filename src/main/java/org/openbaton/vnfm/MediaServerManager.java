@@ -7,12 +7,11 @@ import org.openbaton.catalogue.mano.record.Status;
 import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.catalogue.mano.record.VNFRecordDependency;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
-import org.openbaton.vim.drivers.exceptions.VimDriverException;
-import org.openbaton.common.vnfm_sdk.exception.VnfmSdkException;
 import org.openbaton.common.vnfm_sdk.jms.AbstractVnfmSpringJMS;
 import org.openbaton.exceptions.VimException;
 import org.openbaton.nfvo.plugin.utils.PluginStartup;
 import org.openbaton.nfvo.vim_interfaces.resource_management.ResourceManagement;
+import org.openbaton.vim.drivers.exceptions.VimDriverException;
 import org.openbaton.vnfm.core.ElasticityManagement;
 import org.openbaton.vnfm.core.LifecycleManagement;
 import org.openbaton.vnfm.utils.Utils;
@@ -61,18 +60,11 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
         log.trace("Instantiation of VirtualNetworkFunctionRecord " + virtualNetworkFunctionRecord);
 
         log.debug("Processing GrantLifeCycleOperation for vnfr: " + virtualNetworkFunctionRecord);
-        //Granting LifeCycleOperation
-        try {
-            virtualNetworkFunctionRecord = vnfmHelper.grantLifecycleOperation(virtualNetworkFunctionRecord).get();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        } catch (VnfmSdkException e) {
-            e.printStackTrace();
-        }
 
-        //Allocation of Resources
+        /**
+         * Allocation of Resources
+         *  the grant operation is already done before this method
+         */
         log.debug("Processing allocation of Recourses for vnfr: " + virtualNetworkFunctionRecord);
         List<Future<VNFCInstance>> vnfcInstances = new ArrayList<>();
         try {
