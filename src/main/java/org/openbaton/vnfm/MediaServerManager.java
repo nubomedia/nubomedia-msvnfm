@@ -147,6 +147,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                 log.debug("Releasing resources for vdu with id " + vdu.getId());
                 try {
                     resourceManagement.release(vnfcInstance, vdu.getVimInstance());
+                    log.debug("Removed VNFCinstance: " + vnfcInstance);
                 } catch (VimException e) {
                     log.error(e.getMessage(), e);
                     throw new RuntimeException(e.getMessage(), e);
