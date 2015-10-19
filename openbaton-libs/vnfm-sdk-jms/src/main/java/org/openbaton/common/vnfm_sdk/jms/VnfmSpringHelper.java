@@ -28,6 +28,9 @@ import javax.jms.*;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Created by lto on 23/09/15.
@@ -38,19 +41,23 @@ public class VnfmSpringHelper extends VnfmHelper {
 
     private static final String nfvoQueue = "vnfm-core-actions";
 
+    private ExecutorService executorService;
+    private Properties properties;
+
     public JmsTemplate getJmsTemplate() {
         return jmsTemplate;
     }
 
     @Autowired
     private JmsTemplate jmsTemplate;
+    @Autowired
+    private ConnectionFactory connectionFactory;
 
     @PostConstruct
     private void init() throws IOException {
-        Properties properties = new Properties();
+        properties = new Properties();
         properties.load(this.getClass().getResourceAsStream("/conf.properties"));
-
-
+        executorService = Executors.newFixedThreadPool(20);
     }
 
     public void sendMessageToQueue(String sendToQueueName, final Serializable message) {
@@ -103,8 +110,19 @@ public class VnfmSpringHelper extends VnfmHelper {
      * @return
      * @throws JMSException
      */
-    public String receiveTextFromQueue(String queueName) throws JMSException {
-        return ((TextMessage) this.jmsTemplate.receive(queueName)).getText();
+    public String receiveTextFromQueue(String queueName) throws JMSException, ExecutionException, InterruptedException {
+        String res;
+
+        Connection connection = connectionFactory.createConnection();
+        Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+        MessageConsumer consumer = session.createConsumer(session.createQueue(queueName));
+        connection.start();
+        res = ((TextMessage)consumer.receive(Long.parseLong(properties.getProperty("ems-timeout","200000")))).getText();
+        log.debug("Received Text from " + queueName + ": " + res);
+        consumer.close();
+        session.close();
+        connection.close();
+        return res;
     }
 
     @Override
@@ -117,5 +135,4 @@ public class VnfmSpringHelper extends VnfmHelper {
         Message response = this.jmsTemplate.sendAndReceive(nfvoQueue, getObjectMessageCreator(message));
         return (NFVMessage) ((ObjectMessage) response).getObject();
     }
-
 }

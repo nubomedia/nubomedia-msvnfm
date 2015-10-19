@@ -15,7 +15,6 @@
 
 package org.openbaton.common.vnfm_sdk.jms;
 
-import org.apache.activemq.ActiveMQConnectionFactory;
 import org.openbaton.catalogue.nfvo.messages.Interfaces.NFVMessage;
 import org.openbaton.common.vnfm_sdk.AbstractVnfm;
 import org.openbaton.common.vnfm_sdk.VnfmHelper;
@@ -27,9 +26,9 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.jms.annotation.JmsListenerConfigurer;
-import org.springframework.jms.config.DefaultJmsListenerContainerFactory;
 import org.springframework.jms.config.JmsListenerContainerFactory;
 import org.springframework.jms.config.JmsListenerEndpointRegistrar;
+import org.springframework.jms.config.SimpleJmsListenerContainerFactory;
 import org.springframework.jms.config.SimpleJmsListenerEndpoint;
 
 import javax.jms.*;
@@ -43,40 +42,41 @@ import javax.jms.*;
 public abstract class AbstractVnfmSpringJMS extends AbstractVnfm implements MessageListener, JmsListenerConfigurer {
 
     @Autowired
-    private JmsListenerContainerFactory<?> jmsListenerContainerFactory;
-
-    @Autowired
     private ConfigurableApplicationContext context;
 
-    @Bean
-    ConnectionFactory connectionFactory() {
-        return new ActiveMQConnectionFactory();
-    }
+    @Autowired
+    private JmsListenerContainerFactory containerFactory;
+
+//    @Bean
+//    ConnectionFactory connectionFactory() {
+//        return new ActiveMQConnectionFactory();
+//    }
 
     @Bean
     JmsListenerContainerFactory<?> jmsListenerContainerFactory(ConnectionFactory connectionFactory) {
-        DefaultJmsListenerContainerFactory factory = new DefaultJmsListenerContainerFactory();
-        factory.setCacheLevelName("CACHE_CONNECTION");
+        SimpleJmsListenerContainerFactory factory = new SimpleJmsListenerContainerFactory();
         factory.setConnectionFactory(connectionFactory);
         loadProperties();
-        log.debug("Properties are: " + properties);
+        log.debug("JMSCONTAINER Properties are: " + properties);
         factory.setSessionTransacted(Boolean.valueOf(properties.getProperty("transacted", "false")));
-        factory.setConcurrency(properties.getProperty("concurrency", "15"));
+//        factory.setSessionTransacted(true);
         return factory;
     }
 
     @Override
     public void configureJmsListeners(JmsListenerEndpointRegistrar registrar) {
-        registrar.setContainerFactory(jmsListenerContainerFactory);
+        registrar.setContainerFactory(containerFactory);
         SimpleJmsListenerEndpoint endpoint = new SimpleJmsListenerEndpoint();
         endpoint.setDestination("core-" + this.type + "-actions");
         endpoint.setMessageListener(this);
         loadProperties();
-        endpoint.setConcurrency(properties.getProperty("concurrency", "15"));
+        log.debug("CONFIGURE Properties are: " + properties);
+        endpoint.setConcurrency("5-" + properties.getProperty("concurrency","15"));
         endpoint.setId(String.valueOf(Thread.currentThread().getId()));
         registrar.registerEndpoint(endpoint);
     }
 
+//    @JmsListener(destination = "core-generic-actions", concurrency = "5-15")
     @Override
     public void onMessage(Message message) {
         NFVMessage msg = null;
