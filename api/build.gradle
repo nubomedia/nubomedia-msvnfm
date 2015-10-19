@@ -1,0 +1,13 @@
+dependencies {
+
+    compile project(':catalogue')
+
+    compile("mysql:mysql-connector-java:5.1.35")
+    compile("org.hsqldb:hsqldb:2.0.0")
+
+    compile("org.springframework.boot:spring-boot-starter-websocket:" + springBootVersion)
+
+    testCompile("com.jayway.jsonpath:json-path-assert:2.0.0")
+    testCompile("org.mockito:mockito-all:1.10.19")
+    testCompile("junit:junit:4.12")
+}

@@ -10,12 +10,6 @@ apply plugin: 'maven'
 apply plugin: "jacoco"
 test { finalizedBy jacocoTestReport }
 
-apply from: 'openbaton-libs/gradle/gradle/command.line.helper.gradle'
-apply from: 'openbaton-libs/gradle/gradle/git.helpers.gradle'
-
-sourceCompatibility = 1.7
-targetCompatibility = 1.7
-
 
 project.ext {
     //------------------------------------------------//
@@ -32,13 +26,6 @@ project.ext {
     applicationVersion = "0.4-alpha"
     applicationVersionDebian = "1";
 
-    applicationRelease = isApplicationRelease()
-    applicationDate = new Date()
-    applicationRevision = getRevision()
-
-    applicationVersionSnapshot = (!applicationRelease) ? "+SNAPSHOT.${asUTC(applicationDate, 'yyMMddHHmm')}.git${applicationRevision}" : ""
-    applicationVersionFull = "${applicationVersion}${applicationVersionSnapshot}"
-    //------------------------------------------------//
     //------------------------------------------------//
     /**
      * gradle Related Vars
@@ -53,26 +40,7 @@ repositories {
 }
 
 dependencies {
-    compile project(':vnfm-sdk-jms')
-    compile project(':vim-drivers')
-    compile project(':vim-int')
-    compile project(':monitoring')
-
-    runtime project(':vim-impl')
-
-    compile 'net.sourceforge.jeval:jeval:0.9.4'
-//
-//    compile ('org.apache.jclouds.driver:jclouds-slf4j:1.9.0')
-//    compile ('org.apache.jclouds.driver:jclouds-sshj:1.9.0')
-//    compile ('org.apache.jclouds.api:openstack-keystone:1.9.0')
-//    compile ('org.apache.jclouds.api:openstack-nova:1.9.0')
-//    compile ('org.apache.jclouds.api:openstack-swift:1.9.0')
-//    compile ('org.apache.jclouds.api:openstack-cinder:1.9.0')
-//    compile ('org.apache.jclouds.api:openstack-trove:1.9.0')
-//    compile ('org.apache.jclouds.labs:openstack-glance:1.9.0')
-//    compile ('org.apache.jclouds.labs:openstack-neutron:1.9.0')
-//    compile ('org.apache.jclouds.labs:openstack-marconi:1.9.0')
-//
+    compile project(':main')
     compile 'org.hibernate:hibernate-core:4.3.10.Final'
 }
 
