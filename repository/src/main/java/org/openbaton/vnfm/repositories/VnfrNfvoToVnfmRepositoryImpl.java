@@ -17,9 +17,8 @@
 package org.openbaton.vnfm.repositories;
 
 
-import org.openbaton.vnfm.catalogue.VNFCInstancePoints;
+import org.openbaton.vnfm.catalogue.VnfrNfvoToVnfm;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.repository.CrudRepository;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -27,20 +26,19 @@ import java.util.Set;
 /**
  * Created by lto on 06/05/15.
  */
-public class VNFCInstancePointsRepositoryImpl implements VNFCInstancePointsRepositoryCustom {
+public class VnfrNfvoToVnfmRepositoryImpl implements VnrfNfvoToVnfmRepositoryCustom {
 
     @Autowired
-    private VNFCInstancePointsRepository vnfcInstancePointsRepository;
+    private VnrfNfvoToVnfmRepository vnrfNfvoToVnfmRepository;
 
     @Override
-    public Set<VNFCInstancePoints> findAllByVNFR(String id) {
-        Set<VNFCInstancePoints> entities = new HashSet<VNFCInstancePoints>();
-        Iterable<VNFCInstancePoints> allEntitites = vnfcInstancePointsRepository.findAll();
-        for (VNFCInstancePoints vnfcInstancePoints : allEntitites) {
-            if(vnfcInstancePoints.getVnfrId().equals(id)) {
-                entities.add(vnfcInstancePoints);
+    public VnfrNfvoToVnfm findVnfrVnfmIdByVnfrNfvoId(String vnfr_id) {
+        Iterable<VnfrNfvoToVnfm> vnfrNfvoToVnfms = vnrfNfvoToVnfmRepository.findAll();
+        for (VnfrNfvoToVnfm vnfrNfvoToVnfm : vnfrNfvoToVnfms) {
+            if (vnfrNfvoToVnfm.getVnfrNfvoId().equals(vnfr_id)) {
+                return vnfrNfvoToVnfm;
             }
         }
-        return entities;
+        return null;
     }
 }

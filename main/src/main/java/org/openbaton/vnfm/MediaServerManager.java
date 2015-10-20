@@ -7,19 +7,21 @@ import org.openbaton.catalogue.mano.record.Status;
 import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.catalogue.mano.record.VNFRecordDependency;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
+import org.openbaton.catalogue.nfvo.VimInstance;
 import org.openbaton.common.vnfm_sdk.jms.AbstractVnfmSpringJMS;
 import org.openbaton.exceptions.VimException;
 import org.openbaton.nfvo.vim_interfaces.resource_management.ResourceManagement;
 import org.openbaton.plugin.utils.PluginStartup;
 import org.openbaton.vim.drivers.exceptions.VimDriverException;
 import org.openbaton.vnfm.catalogue.VNFCInstancePoints;
+import org.openbaton.vnfm.catalogue.VnfrNfvoToVnfm;
 import org.openbaton.vnfm.core.ElasticityManagement;
 import org.openbaton.vnfm.core.LifecycleManagement;
-import org.openbaton.vnfm.repositories.VNFCInstancePointsRepository;
 
-import org.openbaton.vnfm.core.ElasticityManagement;
-import org.openbaton.vnfm.core.LifecycleManagement;
+import org.openbaton.vnfm.repositories.VNFCInstancePointsRepository;
+import org.openbaton.vnfm.repositories.VimInstanceRepository;
 import org.openbaton.vnfm.repositories.VirtualNetworkFunctionRecordRepository;
+import org.openbaton.vnfm.repositories.VnrfNfvoToVnfmRepository;
 import org.openbaton.vnfm.utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -46,8 +48,8 @@ import java.util.concurrent.Future;
  * Created by lto on 27/05/15.
  */
 @SpringBootApplication
-@Configuration
-@EnableAutoConfiguration
+//@Configuration
+//@EnableAutoConfiguration
 //@EnableAsync
 @EntityScan({"org.openbaton.vnfm.catalogue", "org.openbaton.catalogue"})
 @ComponentScan("org.openbaton.vnfm.api")
@@ -71,6 +73,12 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     @Autowired
     private VNFCInstancePointsRepository vnfcInstancePointsRepository;
 
+    @Autowired
+    private VnrfNfvoToVnfmRepository vnrfNfvoToVnfmRepository;
+
+    @Autowired
+    private VimInstanceRepository vimInstanceRepository;
+
     /**
      * Vim must be initialized only after the registry is up and plugin registered
      */
@@ -82,9 +90,6 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     public VirtualNetworkFunctionRecord instantiate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, Object object) {
         log.info("Instantiation of VirtualNetworkFunctionRecord " + virtualNetworkFunctionRecord.getName());
         log.trace("Instantiation of VirtualNetworkFunctionRecord " + virtualNetworkFunctionRecord);
-
-        log.debug("Processing GrantLifeCycleOperation for vnfr: " + virtualNetworkFunctionRecord);
-
         /**
          * Allocation of Resources
          *  the grant operation is already done before this method
@@ -111,14 +116,6 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
         for (Future<VNFCInstance> vnfcInstance : vnfcInstances) {
             try {
                 log.debug("Created VNFCInstance with id: " + vnfcInstance.get());
-                log.debug("Initializing VNFCInstancesPoints:");
-                VNFCInstancePoints vnfcInstancePoints = new VNFCInstancePoints();
-                vnfcInstancePoints.setVnfrId(virtualNetworkFunctionRecord.getId());
-                vnfcInstancePoints.setVnfcInstance(vnfcInstance.get());
-                vnfcInstancePoints.setStatus(org.openbaton.vnfm.catalogue.Status.IDLE);
-                vnfcInstancePoints.setUsedPoints("0");
-                vnfcInstancePointsRepository.save(vnfcInstancePoints);
-                log.debug("Created VNFCInstancePoints: " + vnfcInstancePoints);
             } catch (InterruptedException e) {
                 log.error(e.getMessage(), e);
                 throw new RuntimeException(e.getMessage(), e);
@@ -128,7 +125,28 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
             }
         }
         log.trace("I've finished initialization of vnfr " + virtualNetworkFunctionRecord.getName() + " in facts there are only " + virtualNetworkFunctionRecord.getLifecycle_event().size() + " events");
-        virtualNetworkFunctionRecordRepository.save(virtualNetworkFunctionRecord);
+        VirtualNetworkFunctionRecord virtualNetworkFunctionRecord_vnfm = virtualNetworkFunctionRecordRepository.save(virtualNetworkFunctionRecord);
+//        for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
+//            vdu.setVimInstance(vimInstanceRepository.save(vdu.getVimInstance()));
+//        }
+
+        VnfrNfvoToVnfm vnfrNfvoToVnfm = new VnfrNfvoToVnfm();
+        vnfrNfvoToVnfm.setVnfrNfvoId(virtualNetworkFunctionRecord.getId());
+        vnfrNfvoToVnfm.setVnfrVnfmId(virtualNetworkFunctionRecord_vnfm.getId());
+        vnrfNfvoToVnfmRepository.save(vnfrNfvoToVnfm);
+
+        log.debug("Initializing VNFCInstancesPoints");
+        for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord_vnfm.getVdu()) {
+            for (VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
+                VNFCInstancePoints vnfcInstancePoints = new VNFCInstancePoints();
+                vnfcInstancePoints.setVnfrId(virtualNetworkFunctionRecord.getId());
+                vnfcInstancePoints.setVnfcInstance(vnfcInstance);
+                vnfcInstancePoints.setStatus(org.openbaton.vnfm.catalogue.Status.IDLE);
+                vnfcInstancePoints.setUsedPoints("0");
+                vnfcInstancePointsRepository.save(vnfcInstancePoints);
+                log.debug("Created VNFCInstancePoints: " + vnfcInstancePoints);
+            }
+        }
         return virtualNetworkFunctionRecord;
     }
 

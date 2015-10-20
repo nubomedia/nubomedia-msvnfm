@@ -60,7 +60,7 @@ public class RestApplication {
      */
     @RequestMapping(value = "{vnfrId}/app/{appId}", method = RequestMethod.DELETE)
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable("vnfrId") String vnfrId, @PathVariable("appId") String appId) {
+    public void delete(@PathVariable("vnfrId") String vnfrId, @PathVariable("appId") String appId) throws NotFoundException {
         applicationManagement.delete(vnfrId, appId);
     }
 }

@@ -25,4 +25,5 @@ import org.springframework.data.repository.CrudRepository;
  * Created by lto on 06/05/15.
  */
 public interface VNFCInstancePointsRepository extends CrudRepository<VNFCInstancePoints, String>, VNFCInstancePointsRepositoryCustom {
+
 }

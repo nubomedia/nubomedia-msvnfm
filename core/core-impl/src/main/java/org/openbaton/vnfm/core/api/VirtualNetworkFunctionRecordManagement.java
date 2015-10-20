@@ -35,7 +35,7 @@ public class VirtualNetworkFunctionRecordManagement implements org.openbaton.vnf
 
     @Override
     public VirtualNetworkFunctionRecord query(String id) {
-        return virtualNetworkFunctionRecordRepository.findFirstById(id);
+        return virtualNetworkFunctionRecordRepository.findOne(id);
     }
 
     @Override

@@ -160,7 +160,7 @@ public class ElasticityManagement {
                 boolean found = false;
                 //Check if VNFCInstance for VNFComponent already exists
                 for (VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
-                    if (vnfComponent.getId().equals(vnfcInstance.getVnfc_reference())) {
+                    if (vnfComponent.getId().equals(vnfcInstance.getVnfComponent().getId())) {
                         found = true;
                         break;
                     }
@@ -186,7 +186,7 @@ public class ElasticityManagement {
             for (VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
                 boolean found = false;
                 for (VNFComponent vnfComponent : vdu.getVnfc()) {
-                    if (vnfcInstance.getVnfc_reference().equals(vnfComponent.getId())) {
+                    if (vnfcInstance.getVnfComponent().getId().equals(vnfComponent.getId())) {
                         log.debug("VNCInstance: " + vnfcInstance.toString() + " stays");
                         found = true;
                         //VNFComponent is still existing

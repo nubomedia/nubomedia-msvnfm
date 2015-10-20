@@ -16,13 +16,13 @@
 
 package org.openbaton.vnfm.repositories;
 
-
-import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
+import org.openbaton.catalogue.nfvo.VimInstance;
+import org.openbaton.vnfm.catalogue.Application;
 import org.springframework.data.repository.CrudRepository;
 
 /**
  * Created by lto on 06/05/15.
  */
-public interface VirtualNetworkFunctionRecordRepository extends CrudRepository<VirtualNetworkFunctionRecord, String> {
+public interface VimInstanceRepository extends CrudRepository<VimInstance, String> {
 
 }

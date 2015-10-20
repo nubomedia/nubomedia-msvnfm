@@ -11,7 +11,7 @@ import org.openbaton.vnfm.catalogue.Application;
 public interface ApplicationManagement {
     Application add(Application application) throws NotFoundException;
 
-    void delete(String vnfrId, String appId);
+    void delete(String vnfrId, String appId) throws NotFoundException;
 
     Iterable<Application> query();
 
