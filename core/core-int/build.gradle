@@ -16,5 +16,6 @@
 
 dependencies {
     compile project(':catalogue')
+    compile project(':exception')
     compile project(':vnfm-catalogue')
 }

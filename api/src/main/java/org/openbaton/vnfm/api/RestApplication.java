@@ -16,10 +16,11 @@
 
 package org.openbaton.vnfm.api;
 
-import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
+import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.vnfm.catalogue.Application;
 import org.openbaton.vnfm.core.interfaces.ApplicationManagement;
-import org.openbaton.vnfm.core.interfaces.VirtualNetworkFunctionRecordManagement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -28,11 +29,11 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 
 @RestController
-@RequestMapping("/vnfr/")
+@RequestMapping("/vnfr")
 public class RestApplication {
 
     //	TODO add log prints
-//	private Logger log = LoggerFactory.getLogger(this.getClass());
+	private Logger log = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
     private ApplicationManagement applicationManagement;
@@ -46,7 +47,8 @@ public class RestApplication {
      */
     @RequestMapping(value = "{vnfrId}/app", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    public Application create(@PathVariable("vnfrId") String vnfrId, @RequestBody @Valid Application application) {
+    public Application create(@PathVariable("vnfrId") String vnfrId, @RequestBody Application application) throws NotFoundException {
+        log.warn("Registering new Application");
         application.setVnfr_id(vnfrId);
         return applicationManagement.add(application);
     }

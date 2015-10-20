@@ -18,8 +18,12 @@ import org.openbaton.vnfm.repositories.VirtualNetworkFunctionRecordRepository;
 import org.openbaton.vnfm.utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.orm.jpa.EntityScan;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.scheduling.annotation.EnableAsync;
 
@@ -36,8 +40,12 @@ import java.util.concurrent.Future;
 /**
  * Created by lto on 27/05/15.
  */
-@EnableAsync
+@SpringBootApplication
+@Configuration
+@EnableAutoConfiguration
+//@EnableAsync
 @EntityScan({"org.openbaton.vnfm.catalogue", "org.openbaton.catalogue"})
+@ComponentScan("org.openbaton.vnfm.api")
 @EnableJpaRepositories("org.openbaton.vnfm")
 public class MediaServerManager extends AbstractVnfmSpringJMS {
 
@@ -103,6 +111,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                 throw new RuntimeException(e.getMessage(), e);
             }
         }
+
         log.trace("I've finished initialization of vnf " + virtualNetworkFunctionRecord.getName() + " in facts there are only " + virtualNetworkFunctionRecord.getLifecycle_event().size() + " events");
         virtualNetworkFunctionRecordRepository.save(virtualNetworkFunctionRecord);
         return virtualNetworkFunctionRecord;

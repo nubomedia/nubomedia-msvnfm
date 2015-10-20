@@ -6,8 +6,8 @@ dependencies {
     compile project(':monitoring')
     compile project(':repository')
     compile project(':vnfm-catalogue')
+    compile project(':api')
     runtime project(':vim-impl')
-
 
     compile 'net.sourceforge.jeval:jeval:0.9.4'
 

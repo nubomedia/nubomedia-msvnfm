@@ -20,7 +20,7 @@ public class VNFCInstancePoints implements Serializable{
     @Version
     private int hb_version = 0;
 
-    private String vnfcId;
+    private String vnfciId;
     private String usedPoins;
 
     public String getId() {
@@ -39,12 +39,12 @@ public class VNFCInstancePoints implements Serializable{
         this.hb_version = hb_version;
     }
 
-    public String getVnfcId() {
-        return vnfcId;
+    public String getVnfciId() {
+        return vnfciId;
     }
 
-    public void setVnfcId(String vnfcId) {
-        this.vnfcId = vnfcId;
+    public void setVnfciId(String vnfciId) {
+        this.vnfciId = vnfciId;
     }
 
     public String getUsedPoins() {
@@ -60,7 +60,7 @@ public class VNFCInstancePoints implements Serializable{
         return "VNFCInstancePoints{" +
                 "id='" + id + '\'' +
                 ", hb_version=" + hb_version +
-                ", vnfcId='" + vnfcId + '\'' +
+                ", vnfciId='" + vnfciId + '\'' +
                 ", usedPoins='" + usedPoins + '\'' +
                 '}';
     }

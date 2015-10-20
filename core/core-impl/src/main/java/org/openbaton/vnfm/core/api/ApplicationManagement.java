@@ -1,5 +1,8 @@
 package org.openbaton.vnfm.core.api;
 
+import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
+import org.openbaton.catalogue.mano.record.VNFCInstance;
+import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.vnfm.catalogue.Application;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.openbaton.vnfm.repositories.ApplicationRepository;
@@ -22,8 +25,18 @@ public class ApplicationManagement implements org.openbaton.vnfm.core.interfaces
     private VirtualNetworkFunctionRecordRepository virtualNetworkFunctionRecordRepository;
 
     @Override
-    public Application add(Application application) {
-        // TODO check integrity of VNFD
+    public Application add(Application application) throws NotFoundException {
+        VirtualNetworkFunctionRecord virtualNetworkFunctionRecord = virtualNetworkFunctionRecordRepository.findOne(application.getVnfr_id());
+        if (virtualNetworkFunctionRecord == null) {
+            throw new NotFoundException("VNFR not found");
+        }
+        for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
+            for (VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
+                if (vnfcInstance.getFloatingIps() != null) {
+                    application.setIp(vnfcInstance.getFloatingIps());
+                }
+            }
+        }
         return applicationRepository.save(application);
     }
 

@@ -25,19 +25,25 @@ include 'repository'
 include 'vnfm-catalogue'
 include 'catalogue'
 include 'vnfm-sdk-jms'
+include 'vnfm-sdk'
 include 'main'
 include 'core-impl', 'core-int'
 include 'vim-drivers'
 include 'vim-int'
 include 'vim-impl'
 include 'monitoring'
+include 'exception'
+include 'plugin'
 
 
 project(':core-impl').projectDir = file('core/core-impl')
 project(':core-int').projectDir = file('core/core-int')
 project(':catalogue').projectDir = file('openbaton-libs/catalogue')
 project(':vnfm-sdk-jms').projectDir = file('openbaton-libs/vnfm-sdk-jms')
+project(':vnfm-sdk').projectDir = file('openbaton-libs/vnfm-sdk')
 project(':vim-drivers').projectDir = file('openbaton-libs/vim-drivers')
 project(':vim-int').projectDir = file('openbaton-libs/vim-int')
 project(':vim-impl').projectDir = file('openbaton-libs/vim-impl')
 project(':monitoring').projectDir = file('openbaton-libs/monitoring')
+project(':exception').projectDir = file('openbaton-libs/exception')
+project(':plugin').projectDir = file('openbaton-libs/plugin')

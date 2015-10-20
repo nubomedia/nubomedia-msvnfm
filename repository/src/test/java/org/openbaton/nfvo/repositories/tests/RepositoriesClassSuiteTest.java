@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+/*
 package org.openbaton.nfvo.repositories.tests;
 
 import org.junit.Assert;
@@ -22,14 +23,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
-import org.openbaton.nfvo.repositories.VNFDRepository;
 import org.openbaton.catalogue.mano.common.HighAvailability;
 import org.openbaton.catalogue.mano.descriptor.NetworkServiceDescriptor;
 import org.openbaton.catalogue.mano.descriptor.VNFComponent;
 import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.openbaton.catalogue.mano.descriptor.VirtualNetworkFunctionDescriptor;
 import org.openbaton.catalogue.mano.record.VNFCInstance;
-import org.openbaton.nfvo.repositories.NetworkServiceDescriptorRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,9 +49,6 @@ import static org.springframework.test.jdbc.JdbcTestUtils.countRowsInTable;
 
 //import GenericRepository;
 
-/**
- * Created by lto on 30/04/15.
- */
 @RunWith(SpringJUnit4ClassRunner.class)
 @Transactional
 @TestExecutionListeners({DependencyInjectionTestExecutionListener.class})
@@ -232,3 +228,4 @@ public class RepositoriesClassSuiteTest {
     }
 
 }
+*/
