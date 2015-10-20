@@ -1,9 +1,10 @@
 package org.openbaton.vnfm.catalogue;
 
+import javax.persistence.*;
+
 import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.catalogue.util.IdGenerator;
 
-import javax.persistence.*;
 import java.io.Serializable;
 
 /**
@@ -28,6 +29,8 @@ public class VNFCInstancePoints implements Serializable {
 
     @Enumerated(EnumType.STRING)
     private Status status;
+    private String vnfciId;
+    private String usedPoins;
 
     public String getId() {
         return id;
@@ -77,6 +80,22 @@ public class VNFCInstancePoints implements Serializable {
         this.status = status;
     }
 
+    public String getVnfciId() {
+        return vnfciId;
+    }
+
+    public void setVnfciId(String vnfciId) {
+        this.vnfciId = vnfciId;
+    }
+
+    public String getUsedPoins() {
+        return usedPoins;
+    }
+
+    public void setUsedPoins(String usedPoins) {
+        this.usedPoins = usedPoins;
+    }
+
     @Override
     public String toString() {
         return "VNFCInstancePoints{" +
@@ -86,6 +105,8 @@ public class VNFCInstancePoints implements Serializable {
                 ", vnfcInstance=" + vnfcInstance +
                 ", usedPoints='" + usedPoints + '\'' +
                 ", status=" + status +
+                ", vnfciId='" + vnfciId + '\'' +
+                ", usedPoins='" + usedPoins + '\'' +
                 '}';
     }
 }

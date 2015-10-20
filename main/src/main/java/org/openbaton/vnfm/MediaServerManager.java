@@ -16,6 +16,9 @@ import org.openbaton.vnfm.catalogue.VNFCInstancePoints;
 import org.openbaton.vnfm.core.ElasticityManagement;
 import org.openbaton.vnfm.core.LifecycleManagement;
 import org.openbaton.vnfm.repositories.VNFCInstancePointsRepository;
+
+import org.openbaton.vnfm.core.ElasticityManagement;
+import org.openbaton.vnfm.core.LifecycleManagement;
 import org.openbaton.vnfm.repositories.VirtualNetworkFunctionRecordRepository;
 import org.openbaton.vnfm.utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
