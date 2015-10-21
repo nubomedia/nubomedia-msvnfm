@@ -17,9 +17,8 @@
 package org.openbaton.vnfm.repositories;
 
 
-import org.openbaton.vnfm.catalogue.VNFCInstancePoints;
+import org.openbaton.vnfm.catalogue.MediaServer;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.repository.CrudRepository;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -27,20 +26,25 @@ import java.util.Set;
 /**
  * Created by lto on 06/05/15.
  */
-public class VNFCInstancePointsRepositoryImpl implements VNFCInstancePointsRepositoryCustom {
+public class MediaServerRepositoryImpl implements MediaServerRepositoryCustom {
 
     @Autowired
-    private VNFCInstancePointsRepository vnfcInstancePointsRepository;
+    private MediaServerRepository mediaServerRepository;
 
     @Override
-    public Set<VNFCInstancePoints> findAllByVNFR(String id) {
-        Set<VNFCInstancePoints> entities = new HashSet<VNFCInstancePoints>();
-        Iterable<VNFCInstancePoints> allEntitites = vnfcInstancePointsRepository.findAll();
-        for (VNFCInstancePoints vnfcInstancePoints : allEntitites) {
-            if(vnfcInstancePoints.getVnfrId().equals(id)) {
-                entities.add(vnfcInstancePoints);
+    public Set<MediaServer> findAllByVNFR(String id) {
+        Set<MediaServer> entities = new HashSet<MediaServer>();
+        Iterable<MediaServer> allEntitites = mediaServerRepository.findAll();
+        for (MediaServer mediaServer : allEntitites) {
+            if(mediaServer.getVnfrId().equals(id)) {
+                entities.add(mediaServer);
             }
         }
         return entities;
+    }
+
+    @Override
+    public void deleteByVnfrId(String vnfrId) {
+
     }
 }

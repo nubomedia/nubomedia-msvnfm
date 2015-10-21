@@ -17,13 +17,12 @@
 package org.openbaton.vnfm.repositories;
 
 
-import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
-import org.openbaton.vnfm.catalogue.VNFCInstancePoints;
+import org.openbaton.vnfm.catalogue.MediaServer;
 import org.springframework.data.repository.CrudRepository;
 
 /**
  * Created by lto on 06/05/15.
  */
-public interface VNFCInstancePointsRepository extends CrudRepository<VNFCInstancePoints, String>, VNFCInstancePointsRepositoryCustom {
+public interface MediaServerRepository extends CrudRepository<MediaServer, String>, MediaServerRepositoryCustom {
 
 }

@@ -16,13 +16,12 @@
 
 package org.openbaton.vnfm.repositories;
 
-import org.openbaton.catalogue.nfvo.VimInstance;
-import org.openbaton.vnfm.catalogue.Application;
-import org.springframework.data.repository.CrudRepository;
-
 /**
  * Created by lto on 06/05/15.
  */
-public interface VimInstanceRepository extends CrudRepository<VimInstance, String> {
+public interface ManagedVNFRRepositoryCustom {
 
+    public void findByVnfrId(String vnfrId);
+
+    public void deleteByVnfrId(String vnfrId);
 }

@@ -19,6 +19,7 @@ import org.openbaton.catalogue.util.IdGenerator;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.PrePersist;
 import javax.persistence.Version;
 import java.io.Serializable;
 
@@ -37,6 +38,13 @@ public class Application implements Serializable{
     private int points;
 
     private String ip;
+
+    private String mediaServerId;
+
+    @PrePersist
+    public void ensureId(){
+        id = IdGenerator.createUUID();
+    }
 
     public String getId() {
         return id;
@@ -70,6 +78,14 @@ public class Application implements Serializable{
         this.ip = ip;
     }
 
+    public String getMediaServerId() {
+        return mediaServerId;
+    }
+
+    public void setMediaServerId(String mediaServerId) {
+        this.mediaServerId = mediaServerId;
+    }
+
     @Override
     public String toString() {
         return "Application{" +
@@ -78,6 +94,7 @@ public class Application implements Serializable{
                 ", vnfr_id='" + vnfr_id + '\'' +
                 ", points=" + points +
                 ", ip='" + ip + '\'' +
+                ", mediaServerId='" + mediaServerId + '\'' +
                 '}';
     }
 }

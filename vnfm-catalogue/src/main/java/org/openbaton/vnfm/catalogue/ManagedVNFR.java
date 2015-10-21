@@ -19,11 +19,12 @@ import org.openbaton.catalogue.util.IdGenerator;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.PrePersist;
 import javax.persistence.Version;
 import java.io.Serializable;
 
 @Entity
-public class VnfrNfvoToVnfm implements Serializable{
+public class ManagedVNFR implements Serializable{
     /**
      * ID of the VnfrNfvoToVnfm
      */
@@ -32,9 +33,14 @@ public class VnfrNfvoToVnfm implements Serializable{
     @Version
     private int hb_version = 0;
 
-    private String vnfrNfvoId;
+    private String vnfrId;
 
-    private String vnfrVnfmId;
+    private String nsrId;
+
+    @PrePersist
+    public void ensureId(){
+        id = IdGenerator.createUUID();
+    }
 
     public String getId() {
         return id;
@@ -44,37 +50,29 @@ public class VnfrNfvoToVnfm implements Serializable{
         this.id = id;
     }
 
-    public int getHb_version() {
-        return hb_version;
+    public String getVnfrId() {
+        return vnfrId;
     }
 
-    public void setHb_version(int hb_version) {
-        this.hb_version = hb_version;
+    public void setVnfrId(String vnfrId) {
+        this.vnfrId = vnfrId;
     }
 
-    public String getVnfrVnfmId() {
-        return vnfrVnfmId;
+    public String getNsrId() {
+        return nsrId;
     }
 
-    public void setVnfrVnfmId(String vnfrVnfmId) {
-        this.vnfrVnfmId = vnfrVnfmId;
-    }
-
-    public String getVnfrNfvoId() {
-        return vnfrNfvoId;
-    }
-
-    public void setVnfrNfvoId(String vnfrNfvoId) {
-        this.vnfrNfvoId = vnfrNfvoId;
+    public void setNsrId(String nsrId) {
+        this.nsrId = nsrId;
     }
 
     @Override
     public String toString() {
-        return "VnfrNfvoToVnfm{" +
+        return "VNFR{" +
                 "id='" + id + '\'' +
                 ", hb_version=" + hb_version +
-                ", vnfrNfvoId='" + vnfrNfvoId + '\'' +
-                ", vnfrVnfmId='" + vnfrVnfmId + '\'' +
+                ", vnfrId='" + vnfrId + '\'' +
+                ", nsrId='" + nsrId + '\'' +
                 '}';
     }
 }

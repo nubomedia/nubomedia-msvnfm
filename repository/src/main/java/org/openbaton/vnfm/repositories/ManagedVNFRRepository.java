@@ -16,17 +16,12 @@
 
 package org.openbaton.vnfm.repositories;
 
-
-import org.openbaton.vnfm.catalogue.VNFCInstancePoints;
+import org.openbaton.vnfm.catalogue.ManagedVNFR;
 import org.springframework.data.repository.CrudRepository;
-
-import java.util.Set;
 
 /**
  * Created by lto on 06/05/15.
  */
-public interface VNFCInstancePointsRepositoryCustom {
-
-    Set<VNFCInstancePoints> findAllByVNFR(String id);
+public interface ManagedVNFRRepository extends CrudRepository<ManagedVNFR, String>, ManagedVNFRRepositoryCustom {
 
 }

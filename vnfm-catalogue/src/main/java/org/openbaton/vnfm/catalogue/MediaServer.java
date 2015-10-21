@@ -11,24 +11,30 @@ import java.io.Serializable;
  * Created by mpa on 19.10.15.
  */
 @Entity
-public class VNFCInstancePoints implements Serializable {
+public class MediaServer implements Serializable {
     /**
      * ID of the Application
      */
     @Id
-    private String id = IdGenerator.createUUID();
+    private String id;
     @Version
     private int hb_version = 0;
 
     private String vnfrId;
 
-    @OneToOne(cascade = CascadeType.REFRESH, fetch = FetchType.EAGER)
-    private VNFCInstance vnfcInstance;
+    private String vnfcInstanceId;
 
-    private String usedPoints;
+    private String ip;
+
+    private int usedPoints;
 
     @Enumerated(EnumType.STRING)
     private Status status;
+
+    @PrePersist
+    public void ensureId(){
+        id = IdGenerator.createUUID();
+    }
 
     public String getId() {
         return id;
@@ -46,28 +52,28 @@ public class VNFCInstancePoints implements Serializable {
         this.hb_version = hb_version;
     }
 
-    public VNFCInstance getVnfcInstance() {
-        return vnfcInstance;
-    }
-
-    public void setVnfcInstance(VNFCInstance vnfcInstance) {
-        this.vnfcInstance = vnfcInstance;
-    }
-
-    public String getUsedPoints() {
-        return usedPoints;
-    }
-
-    public void setUsedPoints(String usedPoints) {
-        this.usedPoints = usedPoints;
-    }
-
     public String getVnfrId() {
         return vnfrId;
     }
 
     public void setVnfrId(String vnfrId) {
         this.vnfrId = vnfrId;
+    }
+
+    public String getIp() {
+        return ip;
+    }
+
+    public void setIp(String ip) {
+        this.ip = ip;
+    }
+
+    public int getUsedPoints() {
+        return usedPoints;
+    }
+
+    public void setUsedPoints(int usedPoints) {
+        this.usedPoints = usedPoints;
     }
 
     public Status getStatus() {
@@ -78,13 +84,21 @@ public class VNFCInstancePoints implements Serializable {
         this.status = status;
     }
 
+    public String getVnfcInstanceId() {
+        return vnfcInstanceId;
+    }
+
+    public void setVnfcInstanceId(String vnfcInstanceId) {
+        this.vnfcInstanceId = vnfcInstanceId;
+    }
+
     @Override
     public String toString() {
-        return "VNFCInstancePoints{" +
+        return "Resource{" +
                 "id='" + id + '\'' +
                 ", hb_version=" + hb_version +
                 ", vnfrId='" + vnfrId + '\'' +
-                ", vnfcInstance=" + vnfcInstance +
+                ", ip='" + ip + '\'' +
                 ", usedPoints='" + usedPoints + '\'' +
                 ", status=" + status +
                 '}';

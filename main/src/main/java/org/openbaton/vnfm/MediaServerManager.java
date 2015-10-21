@@ -7,32 +7,26 @@ import org.openbaton.catalogue.mano.record.Status;
 import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.catalogue.mano.record.VNFRecordDependency;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
-import org.openbaton.catalogue.nfvo.VimInstance;
 import org.openbaton.common.vnfm_sdk.jms.AbstractVnfmSpringJMS;
 import org.openbaton.exceptions.VimException;
 import org.openbaton.nfvo.vim_interfaces.resource_management.ResourceManagement;
 import org.openbaton.plugin.utils.PluginStartup;
 import org.openbaton.vim.drivers.exceptions.VimDriverException;
-import org.openbaton.vnfm.catalogue.VNFCInstancePoints;
-import org.openbaton.vnfm.catalogue.VnfrNfvoToVnfm;
+import org.openbaton.vnfm.catalogue.ManagedVNFR;
+import org.openbaton.vnfm.catalogue.MediaServer;
 import org.openbaton.vnfm.core.ElasticityManagement;
 import org.openbaton.vnfm.core.LifecycleManagement;
 
-import org.openbaton.vnfm.repositories.VNFCInstancePointsRepository;
-import org.openbaton.vnfm.repositories.VimInstanceRepository;
-import org.openbaton.vnfm.repositories.VirtualNetworkFunctionRecordRepository;
-import org.openbaton.vnfm.repositories.VnrfNfvoToVnfmRepository;
+import org.openbaton.vnfm.repositories.MediaServerRepository;
+import org.openbaton.vnfm.repositories.ManagedVNFRRepository;
 import org.openbaton.vnfm.utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.orm.jpa.EntityScan;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import org.springframework.scheduling.annotation.EnableAsync;
 
 import java.io.IOException;
 import java.rmi.registry.LocateRegistry;
@@ -51,7 +45,7 @@ import java.util.concurrent.Future;
 //@Configuration
 //@EnableAutoConfiguration
 //@EnableAsync
-@EntityScan({"org.openbaton.vnfm.catalogue", "org.openbaton.catalogue"})
+@EntityScan("org.openbaton.vnfm.catalogue")
 @ComponentScan("org.openbaton.vnfm.api")
 @EnableJpaRepositories("org.openbaton.vnfm")
 public class MediaServerManager extends AbstractVnfmSpringJMS {
@@ -68,16 +62,10 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     private LifecycleManagement lifecycleManagement;
 
     @Autowired
-    private VirtualNetworkFunctionRecordRepository virtualNetworkFunctionRecordRepository;
+    private MediaServerRepository mediaServerRepository;
 
     @Autowired
-    private VNFCInstancePointsRepository vnfcInstancePointsRepository;
-
-    @Autowired
-    private VnrfNfvoToVnfmRepository vnrfNfvoToVnfmRepository;
-
-    @Autowired
-    private VimInstanceRepository vimInstanceRepository;
+    private ManagedVNFRRepository managedVnfrRepository;
 
     /**
      * Vim must be initialized only after the registry is up and plugin registered
@@ -88,6 +76,11 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
 
     @Override
     public VirtualNetworkFunctionRecord instantiate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, Object object) {
+        ManagedVNFR managedVNFR = new ManagedVNFR();
+        managedVNFR.setNsrId(virtualNetworkFunctionRecord.getParent_ns_id());
+        managedVNFR.setVnfrId(virtualNetworkFunctionRecord.getId());
+        managedVnfrRepository.save(managedVNFR);
+
         log.info("Instantiation of VirtualNetworkFunctionRecord " + virtualNetworkFunctionRecord.getName());
         log.trace("Instantiation of VirtualNetworkFunctionRecord " + virtualNetworkFunctionRecord);
         /**
@@ -125,28 +118,6 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
             }
         }
         log.trace("I've finished initialization of vnfr " + virtualNetworkFunctionRecord.getName() + " in facts there are only " + virtualNetworkFunctionRecord.getLifecycle_event().size() + " events");
-        VirtualNetworkFunctionRecord virtualNetworkFunctionRecord_vnfm = virtualNetworkFunctionRecordRepository.save(virtualNetworkFunctionRecord);
-//        for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
-//            vdu.setVimInstance(vimInstanceRepository.save(vdu.getVimInstance()));
-//        }
-
-        VnfrNfvoToVnfm vnfrNfvoToVnfm = new VnfrNfvoToVnfm();
-        vnfrNfvoToVnfm.setVnfrNfvoId(virtualNetworkFunctionRecord.getId());
-        vnfrNfvoToVnfm.setVnfrVnfmId(virtualNetworkFunctionRecord_vnfm.getId());
-        vnrfNfvoToVnfmRepository.save(vnfrNfvoToVnfm);
-
-        log.debug("Initializing VNFCInstancesPoints");
-        for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord_vnfm.getVdu()) {
-            for (VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
-                VNFCInstancePoints vnfcInstancePoints = new VNFCInstancePoints();
-                vnfcInstancePoints.setVnfrId(virtualNetworkFunctionRecord.getId());
-                vnfcInstancePoints.setVnfcInstance(vnfcInstance);
-                vnfcInstancePoints.setStatus(org.openbaton.vnfm.catalogue.Status.IDLE);
-                vnfcInstancePoints.setUsedPoints("0");
-                vnfcInstancePointsRepository.save(vnfcInstancePoints);
-                log.debug("Created VNFCInstancePoints: " + vnfcInstancePoints);
-            }
-        }
         return virtualNetworkFunctionRecord;
     }
 
@@ -209,12 +180,10 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
             vdu.getVnfc_instance().removeAll(vnfciToRem);
         }
         log.info("Terminated vnfr with id " + virtualNetworkFunctionRecord.getId());
-        log.debug("Removing all VNFCinstancePoints for VNFR: " + virtualNetworkFunctionRecord.getId());
-        vnfcInstancePointsRepository.delete(vnfcInstancePointsRepository.findAllByVNFR(virtualNetworkFunctionRecord.getId()));
-        log.debug("Removed all VNFCinstancePoints for VNFR: " + virtualNetworkFunctionRecord.getId());
-        log.debug("Removing VNFR: " + virtualNetworkFunctionRecord);
-        virtualNetworkFunctionRecordRepository.delete(virtualNetworkFunctionRecord.getId());
-        log.debug("Removed VNFR: " + virtualNetworkFunctionRecord.getId());
+        managedVnfrRepository.deleteByVnfrId(virtualNetworkFunctionRecord.getId());
+        log.debug("Removing all Nubomedia MediaServer for VNFR with id: " + virtualNetworkFunctionRecord.getId());
+        mediaServerRepository.deleteByVnfrId(virtualNetworkFunctionRecord.getId());
+        log.debug("Removed all Nubomedia MediaServer for VNFR with id: " + virtualNetworkFunctionRecord.getId());
         return virtualNetworkFunctionRecord;
     }
 
@@ -225,6 +194,19 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
 
     @Override
     public VirtualNetworkFunctionRecord start(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
+        log.debug("Initializing Nubomedia MediaServer:");
+        for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
+            for (VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
+                MediaServer mediaServer = new MediaServer();
+                mediaServer.setVnfrId(virtualNetworkFunctionRecord.getId());
+                mediaServer.setVnfcInstanceId(vnfcInstance.getId());
+                mediaServer.setIp(vnfcInstance.getFloatingIps());
+                mediaServer.setStatus(org.openbaton.vnfm.catalogue.Status.IDLE);
+                mediaServer.setUsedPoints(0);
+                mediaServerRepository.save(mediaServer);
+                log.debug("Created Nubomedia MediaServer: " + mediaServer);
+            }
+        }
         //TODO where to set it to active?
         virtualNetworkFunctionRecord.setStatus(Status.ACTIVE);
         Set<Event> events = lifecycleManagement.listEvents(virtualNetworkFunctionRecord);

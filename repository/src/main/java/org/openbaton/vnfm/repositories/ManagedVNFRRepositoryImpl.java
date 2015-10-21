@@ -16,12 +16,24 @@
 
 package org.openbaton.vnfm.repositories;
 
-import org.openbaton.vnfm.catalogue.VnfrNfvoToVnfm;
-import org.springframework.data.repository.CrudRepository;
+
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Created by lto on 06/05/15.
  */
-public interface VnrfNfvoToVnfmRepository extends CrudRepository<VnfrNfvoToVnfm, String>, VnrfNfvoToVnfmRepositoryCustom {
+public class ManagedVNFRRepositoryImpl implements ManagedVNFRRepositoryCustom {
 
+    @Autowired
+    private org.openbaton.vnfm.repositories.ManagedVNFRRepository ManagedVNFRRepository;
+
+    @Override
+    public void findByVnfrId(String vnfrId) {
+
+    }
+
+    @Override
+    public void deleteByVnfrId(String vnfrId) {
+
+    }
 }

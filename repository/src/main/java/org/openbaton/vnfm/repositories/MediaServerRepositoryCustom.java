@@ -17,28 +17,17 @@
 package org.openbaton.vnfm.repositories;
 
 
-import org.openbaton.vnfm.catalogue.VnfrNfvoToVnfm;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.openbaton.vnfm.catalogue.MediaServer;
 
-import java.util.HashSet;
 import java.util.Set;
 
 /**
  * Created by lto on 06/05/15.
  */
-public class VnfrNfvoToVnfmRepositoryImpl implements VnrfNfvoToVnfmRepositoryCustom {
+public interface MediaServerRepositoryCustom {
 
-    @Autowired
-    private VnrfNfvoToVnfmRepository vnrfNfvoToVnfmRepository;
+    public Set<MediaServer> findAllByVNFR(String id);
 
-    @Override
-    public VnfrNfvoToVnfm findVnfrVnfmIdByVnfrNfvoId(String vnfr_id) {
-        Iterable<VnfrNfvoToVnfm> vnfrNfvoToVnfms = vnrfNfvoToVnfmRepository.findAll();
-        for (VnfrNfvoToVnfm vnfrNfvoToVnfm : vnfrNfvoToVnfms) {
-            if (vnfrNfvoToVnfm.getVnfrNfvoId().equals(vnfr_id)) {
-                return vnfrNfvoToVnfm;
-            }
-        }
-        return null;
-    }
+    public void deleteByVnfrId(String vnfrId);
+
 }
