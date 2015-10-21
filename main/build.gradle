@@ -3,11 +3,14 @@ dependencies {
     compile project(':vnfm-sdk-jms')
     compile project(':vim-drivers')
     compile project(':vim-int')
+    compile project(':core-int')
     compile project(':monitoring')
     compile project(':repository')
     compile project(':vnfm-catalogue')
     compile project(':api')
+
     runtime project(':vim-impl')
+    runtime project(':core-impl')
 
     compile 'net.sourceforge.jeval:jeval:0.9.4'
 

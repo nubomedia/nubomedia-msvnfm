@@ -8,6 +8,7 @@ import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.catalogue.mano.record.VNFRecordDependency;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.openbaton.common.vnfm_sdk.jms.AbstractVnfmSpringJMS;
+import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.exceptions.VimException;
 import org.openbaton.nfvo.vim_interfaces.resource_management.ResourceManagement;
 import org.openbaton.plugin.utils.PluginStartup;
@@ -17,6 +18,8 @@ import org.openbaton.vnfm.catalogue.MediaServer;
 import org.openbaton.vnfm.core.ElasticityManagement;
 import org.openbaton.vnfm.core.LifecycleManagement;
 
+import org.openbaton.vnfm.core.interfaces.MediaServerManagement;
+import org.openbaton.vnfm.core.interfaces.ApplicationManagement;
 import org.openbaton.vnfm.repositories.MediaServerRepository;
 import org.openbaton.vnfm.repositories.ManagedVNFRRepository;
 import org.openbaton.vnfm.utils.Utils;
@@ -42,9 +45,6 @@ import java.util.concurrent.Future;
  * Created by lto on 27/05/15.
  */
 @SpringBootApplication
-//@Configuration
-//@EnableAutoConfiguration
-//@EnableAsync
 @EntityScan("org.openbaton.vnfm.catalogue")
 @ComponentScan("org.openbaton.vnfm.api")
 @EnableJpaRepositories("org.openbaton.vnfm")
@@ -62,7 +62,10 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     private LifecycleManagement lifecycleManagement;
 
     @Autowired
-    private MediaServerRepository mediaServerRepository;
+    private ApplicationManagement applicationManagement;
+
+    @Autowired
+    private MediaServerManagement mediaServerManagement;
 
     @Autowired
     private ManagedVNFRRepository managedVnfrRepository;
@@ -180,10 +183,13 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
             vdu.getVnfc_instance().removeAll(vnfciToRem);
         }
         log.info("Terminated vnfr with id " + virtualNetworkFunctionRecord.getId());
-        managedVnfrRepository.deleteByVnfrId(virtualNetworkFunctionRecord.getId());
-        log.debug("Removing all Nubomedia MediaServer for VNFR with id: " + virtualNetworkFunctionRecord.getId());
-        mediaServerRepository.deleteByVnfrId(virtualNetworkFunctionRecord.getId());
-        log.debug("Removed all Nubomedia MediaServer for VNFR with id: " + virtualNetworkFunctionRecord.getId());
+        try {
+            applicationManagement.deleteByVnfrId(virtualNetworkFunctionRecord.getId());
+            mediaServerManagement.deleteByVnfrId(virtualNetworkFunctionRecord.getId());
+            managedVnfrRepository.deleteByVnfrId(virtualNetworkFunctionRecord.getId());
+        } catch (NotFoundException e) {
+            log.warn(e.getMessage());
+        }
         return virtualNetworkFunctionRecord;
     }
 
@@ -201,9 +207,11 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                 mediaServer.setVnfrId(virtualNetworkFunctionRecord.getId());
                 mediaServer.setVnfcInstanceId(vnfcInstance.getId());
                 mediaServer.setIp(vnfcInstance.getFloatingIps());
-                mediaServer.setStatus(org.openbaton.vnfm.catalogue.Status.IDLE);
-                mediaServer.setUsedPoints(0);
-                mediaServerRepository.save(mediaServer);
+                try {
+                    mediaServerManagement.add(mediaServer);
+                } catch (Exception e) {
+                    log.error(e.getMessage());
+                }
                 log.debug("Created Nubomedia MediaServer: " + mediaServer);
             }
         }

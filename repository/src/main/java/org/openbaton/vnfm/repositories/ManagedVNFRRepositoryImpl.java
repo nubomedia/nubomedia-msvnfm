@@ -16,8 +16,12 @@
 
 package org.openbaton.vnfm.repositories;
 
-
+import org.openbaton.exceptions.NotFoundException;
+import org.openbaton.vnfm.catalogue.ManagedVNFR;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Created by lto on 06/05/15.
@@ -25,15 +29,27 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class ManagedVNFRRepositoryImpl implements ManagedVNFRRepositoryCustom {
 
     @Autowired
-    private org.openbaton.vnfm.repositories.ManagedVNFRRepository ManagedVNFRRepository;
+    private org.openbaton.vnfm.repositories.ManagedVNFRRepository managedVNFRRepository;
 
     @Override
-    public void findByVnfrId(String vnfrId) {
-
+    public Iterable findByVnfrId(String vnfrId) {
+        Set<ManagedVNFR> entities = new HashSet<ManagedVNFR>();
+        Iterable<ManagedVNFR> allEntities = managedVNFRRepository.findAll();
+        for (ManagedVNFR managedVNFR : allEntities) {
+            if (managedVNFR.getVnfrId().equals(vnfrId)) {
+                entities.add(managedVNFR);
+            }
+        }
+        return (Iterable) entities;
     }
 
     @Override
-    public void deleteByVnfrId(String vnfrId) {
-
+    public void deleteByVnfrId(String vnfrId) throws NotFoundException {
+        Iterable<ManagedVNFR> entities = findByVnfrId(vnfrId);
+        if (!entities.iterator().hasNext()) {
+            throw new NotFoundException("Not found any VNFR with id: " + vnfrId + "managed by this VNFM");
+        } else {
+            managedVNFRRepository.delete(entities);
+        }
     }
 }

@@ -41,6 +41,8 @@ public class Application implements Serializable{
 
     private String mediaServerId;
 
+    private String extAppId;
+
     @PrePersist
     public void ensureId(){
         id = IdGenerator.createUUID();
@@ -86,6 +88,14 @@ public class Application implements Serializable{
         this.mediaServerId = mediaServerId;
     }
 
+    public String getExtAppId() {
+        return extAppId;
+    }
+
+    public void setExtAppId(String extAppId) {
+        this.extAppId = extAppId;
+    }
+
     @Override
     public String toString() {
         return "Application{" +
@@ -95,6 +105,7 @@ public class Application implements Serializable{
                 ", points=" + points +
                 ", ip='" + ip + '\'' +
                 ", mediaServerId='" + mediaServerId + '\'' +
+                ", extAppId='" + extAppId + '\'' +
                 '}';
     }
 }

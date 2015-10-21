@@ -16,12 +16,17 @@
 
 package org.openbaton.vnfm.repositories;
 
+import org.openbaton.exceptions.NotFoundException;
+import org.openbaton.vnfm.catalogue.ManagedVNFR;
+
+import java.util.Set;
+
 /**
  * Created by lto on 06/05/15.
  */
 public interface ManagedVNFRRepositoryCustom {
 
-    public void findByVnfrId(String vnfrId);
+    public Iterable findByVnfrId(String vnfrId);
 
-    public void deleteByVnfrId(String vnfrId);
+    public void deleteByVnfrId(String vnfrId) throws NotFoundException;
 }

@@ -107,12 +107,17 @@ public class ElasticityManagement {
 
     public void deactivate(VirtualNetworkFunctionRecord vnfr) {
         log.debug("Deactivating Elasticity for vnfr " + vnfr.getId());
-        for (ScheduledFuture scheduledFuture : tasks.get(vnfr.getId())) {
-            scheduledFuture.cancel(false);
-            //((ElasticityTask) scheduledFuture).removeVNFR(vnfr);
+        if (tasks.containsKey(vnfr.getId())) {
+            Set<ScheduledFuture> vnfrTasks = tasks.get(vnfr.getId());
+            for (ScheduledFuture scheduledFuture : vnfrTasks) {
+                scheduledFuture.cancel(false);
+            }
+            vnfrMonitor.removeVNFR(vnfr.getId());
+            log.debug("Deactivated Elasticity for vnfr " + vnfr.getId());
+        } else {
+            log.debug("Not Found any ElasticityTasks for VNFR with id: " + vnfr.getId());
         }
-        vnfrMonitor.removeVNFR(vnfr.getId());
-        log.debug("Deactivated Elasticity for vnfr " + vnfr.getId());
+
     }
 
     public void scaleVNFComponents(VirtualNetworkFunctionRecord vnfr, AutoScalePolicy autoScalePolicy) {

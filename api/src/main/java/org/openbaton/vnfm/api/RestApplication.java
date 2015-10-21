@@ -27,9 +27,10 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.Set;
 
 @RestController
-@RequestMapping("/vnfr")
+@RequestMapping("/vnfr/{vnfrId}/app")
 public class RestApplication {
 
     //	TODO add log prints
@@ -45,12 +46,12 @@ public class RestApplication {
      * @param vnfrId : ID of VNFR to add the App
      * @return Application: The Application filled with values from the core
      */
-    @RequestMapping(value = "{vnfrId}/app", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public Application create(@PathVariable("vnfrId") String vnfrId, @RequestBody Application application) throws NotFoundException {
-        log.warn("Registering new Application");
         application.setVnfr_id(vnfrId);
-        return applicationManagement.add(application);
+        application = applicationManagement.add(application);
+        return application;
     }
 
     /**
@@ -58,9 +59,33 @@ public class RestApplication {
      *
      * @param appId : The application's id to be deleted
      */
-    @RequestMapping(value = "{vnfrId}/app/{appId}", method = RequestMethod.DELETE)
-    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @RequestMapping(value = "{appId}", method = RequestMethod.DELETE)
+    @ResponseStatus(HttpStatus.OK)
     public void delete(@PathVariable("vnfrId") String vnfrId, @PathVariable("appId") String appId) throws NotFoundException {
         applicationManagement.delete(vnfrId, appId);
     }
+
+    /**
+     * Lists all the Application for a specific VNFR from the Application repository
+     *
+     * @param vnfrId : ID of VNFR to add the App
+     */
+    @RequestMapping(value = "", method = RequestMethod.GET)
+    @ResponseStatus(HttpStatus.OK)
+    public Set<Application> queryAll(@PathVariable("vnfrId") String vnfrId) throws NotFoundException {
+        return applicationManagement.queryByVnfrId(vnfrId);
+    }
+
+    /**
+     * Returns the Application for a specific VNFR from the Application repository
+     *
+     * @param appId : The application's id to be return
+     * @param vnfrId : ID of VNFR of the App
+     */
+    @RequestMapping(value = "{appId}", method = RequestMethod.GET)
+    @ResponseStatus(HttpStatus.OK)
+    public Application query(@PathVariable("vnfrId") String vnfrId, @PathVariable("appId") String appId) throws NotFoundException {
+        return applicationManagement.query(vnfrId, appId);
+    }
+
 }

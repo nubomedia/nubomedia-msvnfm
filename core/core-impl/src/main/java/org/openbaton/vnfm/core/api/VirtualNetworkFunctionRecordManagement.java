@@ -1,11 +1,16 @@
 package org.openbaton.vnfm.core.api;
 
 
-import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
-import org.openbaton.vnfm.repositories.VirtualNetworkFunctionRecordRepository;
+import org.openbaton.exceptions.NotFoundException;
+import org.openbaton.vnfm.catalogue.ManagedVNFR;
+import org.openbaton.vnfm.repositories.ManagedVNFRRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
+
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 
 /**
  * Created by mpa on 01.10.15.
@@ -15,32 +20,33 @@ import org.springframework.stereotype.Service;
 public class VirtualNetworkFunctionRecordManagement implements org.openbaton.vnfm.core.interfaces.VirtualNetworkFunctionRecordManagement {
 
     @Autowired
-    private VirtualNetworkFunctionRecordRepository virtualNetworkFunctionRecordRepository;
+    private ManagedVNFRRepository managedVNFRRepository;
 
     @Override
-    public VirtualNetworkFunctionRecord add(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
-        // TODO check integrity of VNFD
-        return virtualNetworkFunctionRecordRepository.save(virtualNetworkFunctionRecord);
+    public Set<ManagedVNFR> query() throws NotFoundException {
+        Iterable<ManagedVNFR> managedVNFRs = managedVNFRRepository.findAll();
+        if (!managedVNFRs.iterator().hasNext()) {
+            throw new NotFoundException("Not found any VNFR managed by this VNFM");
+        }
+        return fromIterbaleToSet(managedVNFRs);
     }
 
     @Override
-    public void delete(String id) {
-        virtualNetworkFunctionRecordRepository.delete(id);
+    public Set<ManagedVNFR> query(String vnfrId) throws NotFoundException {
+        Iterable<ManagedVNFR> managedVNFRsIterbale = managedVNFRRepository.findByVnfrId(vnfrId);
+        if (!managedVNFRsIterbale.iterator().hasNext()) {
+            throw new NotFoundException("Not found any VNFR with id: " + vnfrId + " managed by this VNFM");
+        }
+        return fromIterbaleToSet(managedVNFRsIterbale);
     }
 
-    @Override
-    public Iterable<VirtualNetworkFunctionRecord> query() {
-        return virtualNetworkFunctionRecordRepository.findAll();
+    private Set fromIterbaleToSet(Iterable iterable){
+        Set set = new HashSet();
+        Iterator iterator = iterable.iterator();
+        while (iterator.hasNext()) {
+            set.add(iterator.next());
+        }
+        return set;
     }
 
-    @Override
-    public VirtualNetworkFunctionRecord query(String id) {
-        return virtualNetworkFunctionRecordRepository.findOne(id);
-    }
-
-    @Override
-    public VirtualNetworkFunctionRecord update(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, String id) {
-        //TODO Update inner fields
-        return virtualNetworkFunctionRecordRepository.save(virtualNetworkFunctionRecord);
-    }
 }

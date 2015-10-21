@@ -16,13 +16,22 @@
 
 package org.openbaton.vnfm.repositories;
 
+import org.openbaton.exceptions.NotFoundException;
+import org.openbaton.vnfm.catalogue.Application;
 
-import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
-import org.springframework.data.repository.CrudRepository;
+import java.util.Set;
 
 /**
  * Created by lto on 06/05/15.
  */
-public interface VirtualNetworkFunctionRecordRepository extends CrudRepository<VirtualNetworkFunctionRecord, String> {
+public interface ApplicationRepositoryCustom {
+
+    public Iterable findAppByVnfrId(String vnfrId);
+
+    public Iterable<Application> findAppByMediaServerId(String msId);
+
+    public Application findAppByExtAppId(String extAppId);
+
+    public void deleteAppsByVnfrId(String vnfrId) throws NotFoundException;
 
 }

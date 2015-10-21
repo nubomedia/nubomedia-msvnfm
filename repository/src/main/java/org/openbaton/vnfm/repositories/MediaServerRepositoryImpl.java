@@ -16,7 +16,7 @@
 
 package org.openbaton.vnfm.repositories;
 
-
+import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.vnfm.catalogue.MediaServer;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -32,19 +32,24 @@ public class MediaServerRepositoryImpl implements MediaServerRepositoryCustom {
     private MediaServerRepository mediaServerRepository;
 
     @Override
-    public Set<MediaServer> findAllByVNFR(String id) {
+    public Iterable findAllByVnrfId(String vnfrId) {
         Set<MediaServer> entities = new HashSet<MediaServer>();
         Iterable<MediaServer> allEntitites = mediaServerRepository.findAll();
         for (MediaServer mediaServer : allEntitites) {
-            if(mediaServer.getVnfrId().equals(id)) {
+            if(mediaServer.getVnfrId().equals(vnfrId)) {
                 entities.add(mediaServer);
             }
         }
-        return entities;
+        return (Iterable) entities;
     }
 
     @Override
-    public void deleteByVnfrId(String vnfrId) {
-
+    public void deleteByVnfrId(String vnfrId) throws NotFoundException {
+        Iterable<MediaServer> entities = findAllByVnrfId(vnfrId);
+        if (!entities.iterator().hasNext()) {
+            throw new NotFoundException("Not found any MediaServer for VNFR with id: " + vnfrId + "managed by this VNFM");
+        } else {
+            mediaServerRepository.delete(entities);
+        }
     }
 }

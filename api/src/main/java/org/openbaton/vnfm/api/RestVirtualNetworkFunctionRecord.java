@@ -17,6 +17,8 @@
 package org.openbaton.vnfm.api;
 
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
+import org.openbaton.exceptions.NotFoundException;
+import org.openbaton.vnfm.catalogue.ManagedVNFR;
 import org.openbaton.vnfm.core.interfaces.VirtualNetworkFunctionRecordManagement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -24,9 +26,10 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.Set;
 
 @RestController
-@RequestMapping("/api/v1/vnf-records")
+@RequestMapping("/vnfr")
 public class RestVirtualNetworkFunctionRecord {
 
     //	TODO add log prints
@@ -37,63 +40,24 @@ public class RestVirtualNetworkFunctionRecord {
     private VirtualNetworkFunctionRecordManagement vnfrManagement;
 
     /**
-     * Adds a new VNF software Image to the image repository
-     *
-     * @param virtualNetworkFunctionDescriptor : VirtualNetworkFunctionDescriptor to add
-     * @return VirtualNetworkFunctionDescriptor: The VirtualNetworkFunctionDescriptor filled with values from the core
-     */
-    @RequestMapping(method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    @ResponseStatus(HttpStatus.CREATED)
-    public VirtualNetworkFunctionRecord create(@RequestBody @Valid VirtualNetworkFunctionRecord virtualNetworkFunctionDescriptor) {
-        return vnfrManagement.add(virtualNetworkFunctionDescriptor);
-    }
-
-    /**
-     * Removes the VNF software virtualNetworkFunctionDescriptor from the virtualNetworkFunctionDescriptor repository
-     *
-     * @param id : The virtualNetworkFunctionDescriptor's id to be deleted
-     */
-    @RequestMapping(value = "{id}", method = RequestMethod.DELETE)
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable("id") String id) {
-        vnfrManagement.delete(id);
-    }
-
-    /**
      * Returns the list of the VNF software virtualNetworkFunctionDescriptors available
      *
      * @return List<virtualNetworkFunctionDescriptor>: The list of VNF software virtualNetworkFunctionDescriptors available
      */
     @RequestMapping(method = RequestMethod.GET)
-    public Iterable<VirtualNetworkFunctionRecord> findAll() {
+    public Iterable<ManagedVNFR> queryAll() throws NotFoundException {
         return vnfrManagement.query();
     }
 
     /**
      * Returns the VNF software virtualNetworkFunctionRecord selected by id
      *
-     * @param id : The id of the VNF software virtualNetworkFunctionRecord
+     * @param vnfrId : The id of the VNF software virtualNetworkFunctionRecord
      * @return virtualNetworkFunctionRecord: The VNF software virtualNetworkFunctionRecord selected
      */
-    @RequestMapping(value = "{id}", method = RequestMethod.GET)
-    public VirtualNetworkFunctionRecord findById(@PathVariable("id") String id) {
-        VirtualNetworkFunctionRecord virtualNetworkFunctionRecord = vnfrManagement.query(id);
-
-        return virtualNetworkFunctionRecord;
-    }
-
-    /**
-     * Updates the VNF software virtualNetworkFunctionRecord
-     *
-     * @param virtualNetworkFunctionRecord : the VNF software virtualNetworkFunctionRecord to be updated
-     * @param id                           : the id of VNF software virtualNetworkFunctionRecord
-     * @return networkServiceRecord: the VNF software virtualNetworkFunctionRecord updated
-     */
-
-    @RequestMapping(value = "{id}", method = RequestMethod.PUT, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    @ResponseStatus(HttpStatus.ACCEPTED)
-    public VirtualNetworkFunctionRecord update(@RequestBody @Valid VirtualNetworkFunctionRecord virtualNetworkFunctionRecord,
-                                               @PathVariable("id") String id) {
-        return vnfrManagement.update(virtualNetworkFunctionRecord, id);
+    @RequestMapping(value = "{vnfrId}", method = RequestMethod.GET)
+    public Set<ManagedVNFR> queryById(@PathVariable("vnfrId") String vnfrId) throws NotFoundException {
+        Set<ManagedVNFR> managedVNFRs = vnfrManagement.query(vnfrId);
+        return managedVNFRs;
     }
 }

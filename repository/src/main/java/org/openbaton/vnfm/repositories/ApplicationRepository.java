@@ -23,6 +23,6 @@ import org.springframework.data.repository.CrudRepository;
 /**
  * Created by lto on 06/05/15.
  */
-public interface ApplicationRepository extends CrudRepository<Application, String> {
+public interface ApplicationRepository extends CrudRepository<Application, String>, ApplicationRepositoryCustom {
 
 }
