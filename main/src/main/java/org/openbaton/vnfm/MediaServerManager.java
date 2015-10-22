@@ -209,9 +209,9 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                 mediaServer.setVnfcInstanceId(vnfcInstance.getId());
                 //TODO choose the right network
 
-                Iterator<String> iterator = vnfcInstance.getFloatingIps().values().iterator();
-                if (iterator.hasNext())
-                    mediaServer.setIp(iterator.next());
+
+                if (vnfcInstance.getFloatingIps().size() > 0)
+                    mediaServer.setIp(vnfcInstance.getFloatingIps().iterator().next().getIp());
                 else
                     log.error("No FLoating Ips available!");
                 try {
