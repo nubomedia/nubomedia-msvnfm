@@ -2,6 +2,7 @@ package org.openbaton.vnfm;
 
 import org.openbaton.catalogue.mano.common.Event;
 import org.openbaton.catalogue.mano.descriptor.VNFComponent;
+import org.openbaton.catalogue.mano.descriptor.VNFDConnectionPoint;
 import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.openbaton.catalogue.mano.record.Status;
 import org.openbaton.catalogue.mano.record.VNFCInstance;
@@ -17,10 +18,8 @@ import org.openbaton.vnfm.catalogue.ManagedVNFR;
 import org.openbaton.vnfm.catalogue.MediaServer;
 import org.openbaton.vnfm.core.ElasticityManagement;
 import org.openbaton.vnfm.core.LifecycleManagement;
-
-import org.openbaton.vnfm.core.interfaces.MediaServerManagement;
 import org.openbaton.vnfm.core.interfaces.ApplicationManagement;
-import org.openbaton.vnfm.repositories.MediaServerRepository;
+import org.openbaton.vnfm.core.interfaces.MediaServerManagement;
 import org.openbaton.vnfm.repositories.ManagedVNFRRepository;
 import org.openbaton.vnfm.utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,10 +33,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import java.io.IOException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -97,7 +93,12 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                 log.debug("Creating " + vdu.getVnfc().size() + " VMs");
                 String userdata = Utils.getUserdata();
                 for (VNFComponent vnfComponent : vdu.getVnfc()) {
-                    Future<VNFCInstance> allocate = resourceManagement.allocate(vdu, virtualNetworkFunctionRecord, vnfComponent, userdata, vnfComponent.isExposed());
+                    Map<String, String> floatgingIps = new HashMap<>();
+                    for (VNFDConnectionPoint connectionPoint : vnfComponent.getConnection_point()){
+                        if (connectionPoint.getFloatingIp() != null && !connectionPoint.getFloatingIp().equals(""))
+                            floatgingIps.put(connectionPoint.getVirtual_link_reference(),connectionPoint.getFloatingIp());
+                    }
+                    Future<VNFCInstance> allocate = resourceManagement.allocate(vdu, virtualNetworkFunctionRecord, vnfComponent, userdata, floatgingIps);
                     vnfcInstances.add(allocate);
                 }
             }
@@ -206,7 +207,8 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
                 MediaServer mediaServer = new MediaServer();
                 mediaServer.setVnfrId(virtualNetworkFunctionRecord.getId());
                 mediaServer.setVnfcInstanceId(vnfcInstance.getId());
-                mediaServer.setIp(vnfcInstance.getFloatingIps());
+                //TODO choose the right network
+                mediaServer.setIp(vnfcInstance.getFloatingIps().values().iterator().next());
                 try {
                     mediaServerManagement.add(mediaServer);
                 } catch (Exception e) {

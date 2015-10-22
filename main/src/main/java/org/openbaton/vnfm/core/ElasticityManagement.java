@@ -174,7 +174,12 @@ public class ElasticityManagement {
                 if (!found) {
                     try {
                         String userdata = Utils.getUserdata();
-                        Future<VNFCInstance> allocate = resourceManagement.allocate(vdu, vnfr, vnfComponent, userdata, vnfComponent.isExposed());
+                        Map<String, String> floatgingIps = new HashMap<>();
+                        for (VNFDConnectionPoint connectionPoint : vnfComponent.getConnection_point()){
+                            if (connectionPoint.getFloatingIp() != null && !connectionPoint.getFloatingIp().equals(""))
+                                floatgingIps.put(connectionPoint.getVirtual_link_reference(),connectionPoint.getFloatingIp());
+                        }
+                        Future<VNFCInstance> allocate = resourceManagement.allocate(vdu, vnfr, vnfComponent, userdata, floatgingIps);
                         vnfcInstances.add(allocate);
                         continue;
                     } catch (VimException e) {

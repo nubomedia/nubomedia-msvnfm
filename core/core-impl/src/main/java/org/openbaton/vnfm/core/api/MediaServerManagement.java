@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -118,7 +117,7 @@ public class MediaServerManagement implements org.openbaton.vnfm.core.interfaces
 
     @Override
     public MediaServer update(MediaServer mediaServer, String id) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     private Set fromIterbaleToSet(Iterable iterable){
