@@ -1,5 +1,6 @@
 package org.openbaton.vnfm.utils;
 
+import org.openbaton.monitoring.interfaces.MonitoringPlugin;
 import org.openbaton.vim.drivers.interfaces.ClientInterfaces;
 import org.openbaton.monitoring.interfaces.ResourcePerformanceManagement;
 import org.openbaton.vnfm.exceptions.PluginInstallException;
@@ -28,127 +29,6 @@ import java.util.Properties;
 public class Utils {
 
     private final static Logger log = LoggerFactory.getLogger(Utils.class);
-
-    public static ClientInterfaces getVimDriverPlugin(Properties properties) throws Exception {
-        List<String> classes = new ArrayList<>();
-
-        Collections.addAll(classes, properties.get("vim-classes").toString().split(";"));
-
-        for (String clazz : classes)
-            clazz = clazz.trim();
-
-        File folder = new File(String.valueOf(properties.get("vim-plugin-dir")));
-        if (!folder.exists())
-            throw new Exception("vim-drivers plugin folder does not exist");
-        for (File file : folder.listFiles()) {
-            if (file.getName().endsWith(".jar")) {
-                try {
-                    ClassLoader classLoader = getClassLoader(file.getAbsolutePath());
-
-                    for (String clazz : classes) {
-                        log.debug("Loading class: " + clazz);
-                        Class c;
-                        try {
-                            c = classLoader.loadClass(clazz);
-                        } catch (ClassNotFoundException e) {
-                            continue;
-                        }
-
-                        Field f;
-                        try {
-                            f = c.getField("interfaceVersion");
-                        } catch (NoSuchFieldException e) {
-                            throw new PluginInstallException("No valid Plugin found");
-                        }
-                        if (f.get(c).equals(ClientInterfaces.interfaceVersion)) {
-                            log.debug("Correct interface Version");
-                            ClientInterfaces instance = (ClientInterfaces) c.newInstance();
-                            log.debug("instance: " + instance);
-                            log.debug("of type: " + instance);
-                            return instance;
-                        } else
-                            throw new PluginInstallException("The interface Version are different: required: " + ClientInterfaces.interfaceVersion + ", provided: " + f.get(c));
-                    }
-                } catch (MalformedURLException e) {
-                    throw new PluginInstallException(e);
-                } catch (InstantiationException e) {
-                    throw new PluginInstallException(e);
-                } catch (IllegalAccessException e) {
-                    throw new PluginInstallException(e);
-                } catch (SecurityException e) {
-                    throw new PluginInstallException(e);
-                }
-            }
-        }
-        throw new PluginInstallException("Plugin for ClientInterfaces not found");
-    }
-
-    public static ResourcePerformanceManagement getMonitoringPlugin(Properties properties) throws Exception {
-        List<String> classes = new ArrayList<>();
-
-        Collections.addAll(classes, properties.get("monitor-classes").toString().split(";"));
-
-        for (String clazz : classes)
-            clazz = clazz.trim();
-
-
-        File folder = new File(String.valueOf(properties.get("monitor-plugin-dir")));
-        if (!folder.exists())
-            throw new Exception("monitoring plugin folder does not exist");
-        for (File file : folder.listFiles()) {
-            if (file.getName().endsWith(".jar")) {
-                try {
-                    ClassLoader classLoader = getClassLoader(file.getAbsolutePath());
-                    boolean found = false;
-                    for (String clazz : classes) {
-                        log.debug("Loading class: " + clazz + " on path " + file.getAbsolutePath());
-                        Class c;
-
-                        try {
-                            c = classLoader.loadClass(clazz);
-                        } catch (ClassNotFoundException e) {
-                            continue;
-                        }
-                        found = true;
-
-                        Field f;
-                        try {
-                            f = c.getField("interfaceVersion");
-                        } catch (NoSuchFieldException e) {
-                            throw new PluginInstallException("Not a valid plugin");
-                        }
-
-                        if (f.get(c).equals(ResourcePerformanceManagement.interfaceVersion)) {
-                            ResourcePerformanceManagement agent = (ResourcePerformanceManagement) c.newInstance();
-                            log.debug("instance: " + agent);
-                            log.debug("of type: " + agent.getType());
-                            return agent;
-                        } else
-                            throw new PluginInstallException("The interface Version are different: required: " + ClientInterfaces.interfaceVersion + ", provided: " + f.get(c));
-                    }
-                    if (!found)
-                        throw new PluginInstallException("No valid Plugin found");
-                } catch (MalformedURLException e) {
-                    throw new PluginInstallException(e);
-                } catch (InstantiationException e) {
-                    throw new PluginInstallException(e);
-                } catch (IllegalAccessException e) {
-                    throw new PluginInstallException(e);
-                }
-            }
-        }
-        throw new PluginInstallException("Plugin for ResourcePerformanceManagement not found");
-    }
-
-    public static ClassLoader getClassLoader(String path) throws PluginInstallException, MalformedURLException {
-        File jar = new File(path);
-        if (!jar.exists())
-            throw new PluginInstallException(path + " does not exist");
-        ClassLoader parent = ClassUtils.getDefaultClassLoader();
-        path = jar.getAbsolutePath();
-        log.trace("path is: " + path);
-        return new URLClassLoader(new URL[]{new URL("file://" + path)}, parent);
-    }
 
     public static String getUserdata() {
         StringBuilder sb = new StringBuilder();

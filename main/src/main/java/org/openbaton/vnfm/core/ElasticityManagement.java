@@ -70,7 +70,7 @@ public class ElasticityManagement {
     public void initilizeVim() {
         PluginBroker<ResourcePerformanceManagement> pluginBroker = new PluginBroker<>();
         try {
-            this.monitor = pluginBroker.getPlugin("monitor", "dummy", "19345");
+            this.monitor = pluginBroker.getPlugin("monitor", "smart", "19345");
         } catch (RemoteException e) {
             log.error(e.getLocalizedMessage(), e);
         } catch (NotBoundException e) {
@@ -232,17 +232,18 @@ public class ElasticityManagement {
         }
     }
 
-    public synchronized List<Item> getRawMeasurementResults(VirtualNetworkFunctionRecord vnfr, String metric, String period) {
+    public synchronized List<Item> getRawMeasurementResults(VirtualNetworkFunctionRecord vnfr, final String metric, String period) throws RemoteException {
         List<Item> measurementResults = new ArrayList<Item>();
+        List<String> hostnames = new ArrayList<String>();
+        List<String> metrics = new ArrayList<String>();
+        metrics.add(metric);
         log.debug("Getting all measurement results for vnfr " + vnfr.getId() + " on metric " + metric + ".");
         for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
-            for (VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
-                log.debug("Getting measurement result for VNFCInstance " + vdu.getId() + " on metric " + metric + ".");
-                Item measurementResult = monitor.getMeasurementResults(vnfcInstance, metric, period);
-                measurementResults.add(measurementResult);
-                log.debug("Got measurement result for VNFCInstance " + vnfcInstance.getId() + " on metric " + metric + " -> " + measurementResult + ".");
+            for (final VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
+                hostnames.add(vnfcInstance.getHostname());
             }
         }
+        measurementResults.addAll(monitor.getMeasurementResults(hostnames, metrics, period));
         log.debug("Got all measurement results for vnfr " + vnfr.getId() + " on metric " + metric + " -> " + measurementResults + ".");
         return measurementResults;
     }
@@ -379,6 +380,8 @@ class ElasticityTask implements Runnable {
             log.debug("Starting sleeping period (" + autoScalePolicy.getPeriod() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
         } catch (InterruptedException e) {
             log.warn("ElasticityTask was interrupted");
+        } catch (RemoteException e) {
+            log.warn("Problem with the MonitoringPlugin!");
         }
     }
 
