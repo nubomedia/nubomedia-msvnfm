@@ -11,13 +11,13 @@ import org.openbaton.catalogue.nfvo.Action;
 import org.openbaton.catalogue.nfvo.Item;
 import org.openbaton.catalogue.nfvo.messages.Interfaces.NFVMessage;
 import org.openbaton.catalogue.nfvo.messages.OrVnfmGenericMessage;
-import org.openbaton.common.vnfm_sdk.utils.VnfmUtils;
-import org.openbaton.plugin.utils.PluginBroker;
-import org.openbaton.vim.drivers.exceptions.VimDriverException;
 import org.openbaton.common.vnfm_sdk.VnfmHelper;
+import org.openbaton.common.vnfm_sdk.utils.VnfmUtils;
 import org.openbaton.exceptions.VimException;
 import org.openbaton.monitoring.interfaces.ResourcePerformanceManagement;
 import org.openbaton.nfvo.vim_interfaces.resource_management.ResourceManagement;
+import org.openbaton.plugin.utils.PluginBroker;
+import org.openbaton.vim.drivers.exceptions.VimDriverException;
 import org.openbaton.vnfm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,11 +70,11 @@ public class ElasticityManagement {
     public void initilizeVim() {
         PluginBroker<ResourcePerformanceManagement> pluginBroker = new PluginBroker<>();
         try {
-            this.monitor = pluginBroker.getPlugin("monitor", "smart", "19345");
+            this.monitor = pluginBroker.getPlugin("localhost", "monitor", "smart-dummy", "smart", 19345);
         } catch (RemoteException e) {
             log.error(e.getLocalizedMessage(), e);
         } catch (NotBoundException e) {
-            log.warn("Monitoring " + e.getLocalizedMessage() + ". ElasticityManagement will not start.");
+            log.warn("Monitoring " + e.getLocalizedMessage() + ". ElasticityManagement will not start.", e);
         }
         resourceManagement = (ResourceManagement) context.getBean("openstackVIM", "openstack", 19345);
     }
