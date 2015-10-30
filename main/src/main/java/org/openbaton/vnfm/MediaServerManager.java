@@ -8,6 +8,7 @@ import org.openbaton.catalogue.mano.record.Status;
 import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.catalogue.mano.record.VNFRecordDependency;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
+import org.openbaton.catalogue.nfvo.Action;
 import org.openbaton.common.vnfm_sdk.jms.AbstractVnfmSpringJMS;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.exceptions.VimException;
@@ -131,8 +132,9 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     }
 
     @Override
-    public VirtualNetworkFunctionRecord scale(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, VNFCInstance component, Object scripts, VNFRecordDependency dependency) throws Exception {
-        return null;
+    public VirtualNetworkFunctionRecord scale(Action scaleInOrOut, VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, VNFCInstance component, Object scripts, VNFRecordDependency dependency) throws Exception {
+        //TODO implement scale
+        return virtualNetworkFunctionRecord;
     }
 
     @Override
