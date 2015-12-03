@@ -17,6 +17,7 @@ package org.openbaton.catalogue.mano.record;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.openbaton.catalogue.mano.common.AutoScalePolicy;
+import org.openbaton.catalogue.mano.common.faultmanagement.VNFFaultManagementPolicy;
 import org.openbaton.catalogue.mano.descriptor.InternalVirtualLink;
 import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.openbaton.catalogue.nfvo.Configuration;
@@ -155,6 +156,10 @@ public class VirtualNetworkFunctionRecord implements Serializable {
      */
     @ElementCollection(fetch = FetchType.EAGER)
     private Set<String> runtime_policy_info;
+
+    @OneToMany(cascade = CascadeType.ALL,fetch = FetchType.EAGER)
+    private Set<VNFFaultManagementPolicy> fault_management_policy;
+
     private String name;
     private String type;
     private String endpoint;
@@ -408,6 +413,7 @@ public class VirtualNetworkFunctionRecord implements Serializable {
                 ", auto_scale_policy=" + auto_scale_policy +
                 ", connection_point=" + connection_point +
                 ", deployment_flavour_key='" + deployment_flavour_key + '\'' +
+                ", configurations=" + configurations +
                 ", lifecycle_event=" + lifecycle_event +
                 ", lifecycle_event_history=" + lifecycle_event_history +
                 ", localization='" + localization + '\'' +
@@ -425,6 +431,7 @@ public class VirtualNetworkFunctionRecord implements Serializable {
                 ", notification=" + notification +
                 ", audit_log='" + audit_log + '\'' +
                 ", runtime_policy_info=" + runtime_policy_info +
+                ", fault_management_policy=" + fault_management_policy +
                 ", name='" + name + '\'' +
                 ", type='" + type + '\'' +
                 ", endpoint='" + endpoint + '\'' +
@@ -432,7 +439,16 @@ public class VirtualNetworkFunctionRecord implements Serializable {
                 ", task='" + task + '\'' +
                 ", requires=" + requires +
                 ", provides=" + provides +
+                ", cyclicDependency=" + cyclicDependency +
                 '}';
+    }
+
+    public Set<VNFFaultManagementPolicy> getFault_management_policy() {
+        return fault_management_policy;
+    }
+
+    public void setFault_management_policy(Set<VNFFaultManagementPolicy> fault_management_policy) {
+        this.fault_management_policy = fault_management_policy;
     }
 
     public Configuration getRequires() {
