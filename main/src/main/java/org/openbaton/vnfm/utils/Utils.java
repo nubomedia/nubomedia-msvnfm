@@ -2,7 +2,7 @@ package org.openbaton.vnfm.utils;
 
 import org.openbaton.monitoring.interfaces.MonitoringPlugin;
 import org.openbaton.vim.drivers.interfaces.ClientInterfaces;
-import org.openbaton.monitoring.interfaces.ResourcePerformanceManagement;
+import org.openbaton.monitoring.interfaces.VirtualisedResourcesPerformanceManagement;
 import org.openbaton.vnfm.exceptions.PluginInstallException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

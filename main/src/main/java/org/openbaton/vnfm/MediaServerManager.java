@@ -9,7 +9,7 @@ import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.catalogue.mano.record.VNFRecordDependency;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.openbaton.catalogue.nfvo.Action;
-import org.openbaton.common.vnfm_sdk.jms.AbstractVnfmSpringJMS;
+import org.openbaton.common.vnfm_sdk.amqp.AbstractVnfmSpringAmqp;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.exceptions.VimException;
 import org.openbaton.nfvo.vim_interfaces.resource_management.ResourceManagement;
@@ -45,7 +45,7 @@ import java.util.concurrent.Future;
 @EntityScan("org.openbaton.vnfm.catalogue")
 @ComponentScan("org.openbaton.vnfm.api")
 @EnableJpaRepositories("org.openbaton.vnfm")
-public class MediaServerManager extends AbstractVnfmSpringJMS {
+public class MediaServerManager extends AbstractVnfmSpringAmqp {
 
     @Autowired
     private ElasticityManagement elasticityManagement;
@@ -71,7 +71,7 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
      * Vim must be initialized only after the registry is up and plugin registered
      */
     private void initilizeVim() {
-        resourceManagement = (ResourceManagement) context.getBean("openstackVIM", "openstack", 19345);
+        resourceManagement = (ResourceManagement) context.getBean("openstackVIM", "15672");
     }
 
     @Override
@@ -246,11 +246,11 @@ public class MediaServerManager extends AbstractVnfmSpringJMS {
     protected void setup() {
         super.setup();
         try {
-            int registryport = 19345;
-            Registry registry = LocateRegistry.createRegistry(registryport);
-            log.debug("Registry created: ");
-            log.debug(registry.toString() + " has: " + registry.list().length + " entries");
-            PluginStartup.startPluginRecursive("./plugins", true, "localhost", "" + registryport);
+            int amqpPort = 5672;
+//            Registry registry = LocateRegistry.createRegistry(registryport);
+//            log.debug("Registry created: ");
+//            log.debug(registry.toString() + " has: " + registry.list().length + " entries");
+            PluginStartup.startPluginRecursive("./plugins", true, "localhost", "" + amqpPort, 5);
         } catch (IOException e) {
             e.printStackTrace();
         }

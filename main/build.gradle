@@ -1,6 +1,6 @@
 dependencies {
 
-    compile project(':vnfm-sdk-jms')
+    compile project(':vnfm-sdk-amqp')
     compile project(':vim-drivers')
     compile project(':vim-int')
     compile project(':core-int')

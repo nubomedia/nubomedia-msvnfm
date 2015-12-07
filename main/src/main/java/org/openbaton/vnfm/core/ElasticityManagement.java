@@ -14,7 +14,7 @@ import org.openbaton.catalogue.nfvo.messages.OrVnfmGenericMessage;
 import org.openbaton.common.vnfm_sdk.VnfmHelper;
 import org.openbaton.common.vnfm_sdk.utils.VnfmUtils;
 import org.openbaton.exceptions.VimException;
-import org.openbaton.monitoring.interfaces.ResourcePerformanceManagement;
+//import org.openbaton.monitoring.interfaces.ResourcePerformanceManagement;
 import org.openbaton.nfvo.vim_interfaces.resource_management.ResourceManagement;
 import org.openbaton.plugin.utils.PluginBroker;
 import org.openbaton.vim.drivers.exceptions.VimDriverException;
@@ -25,13 +25,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Scope;
-import org.springframework.jms.core.JmsTemplate;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
-import javax.jms.JMSException;
-import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -49,7 +46,7 @@ public class ElasticityManagement {
 
     protected ResourceManagement resourceManagement;
 
-    protected ResourcePerformanceManagement monitor;
+    //protected ResourcePerformanceManagement monitor;
 
     private ThreadPoolTaskScheduler taskScheduler;
 
@@ -68,15 +65,15 @@ public class ElasticityManagement {
      * Vim must be initialized only after the registry is up and plugin registered
      */
     public void initilizeVim() {
-        PluginBroker<ResourcePerformanceManagement> pluginBroker = new PluginBroker<>();
-        try {
-            this.monitor = pluginBroker.getPlugin("localhost", "monitor", "smart-dummy", "smart", 19345);
-        } catch (RemoteException e) {
-            log.error(e.getLocalizedMessage(), e);
-        } catch (NotBoundException e) {
-            log.warn("Monitoring " + e.getLocalizedMessage() + ". ElasticityManagement will not start.", e);
-        }
-        resourceManagement = (ResourceManagement) context.getBean("openstackVIM", "openstack", 19345);
+//        PluginBroker<ResourcePerformanceManagement> pluginBroker = new PluginBroker<>();
+//        try {
+//            this.monitor = pluginBroker.getPlugin("localhost", "monitor", "smart-dummy", "smart", 19345);
+//        } catch (RemoteException e) {
+//            log.error(e.getLocalizedMessage(), e);
+//        } catch (NotBoundException e) {
+//            log.warn("Monitoring " + e.getLocalizedMessage() + ". ElasticityManagement will not start.", e);
+//        }
+//        resourceManagement = (ResourceManagement) context.getBean("openstackVIM", "openstack", 19345);
     }
 
     @PostConstruct
@@ -89,20 +86,20 @@ public class ElasticityManagement {
     }
 
     public void activate(VirtualNetworkFunctionRecord vnfr) {
-        log.debug("Activating Elasticity for vnfr " + vnfr.getId());
-        if (monitor != null) {
-            tasks.put(vnfr.getId(), new HashSet<ScheduledFuture>());
-            for (AutoScalePolicy policy : vnfr.getAuto_scale_policy()) {
-                ElasticityTask elasticityTask = (ElasticityTask) context.getBean("elasticityTask");
-                elasticityTask.init(vnfr, policy);
-                //taskExecutor.execute(elasticityTask);
-                ScheduledFuture scheduledFuture = taskScheduler.scheduleAtFixedRate(elasticityTask, policy.getPeriod() * 1000);
-                tasks.get(vnfr.getId()).add(scheduledFuture);
-            }
-            log.debug("Activated Elasticity for vnfr " + vnfr.getId());
-        } else {
-            log.warn("Cannot activate ElasticityManagement because the MonitoringAgent is not available");
-        }
+//        log.debug("Activating Elasticity for vnfr " + vnfr.getId());
+//        if (monitor != null) {
+//            tasks.put(vnfr.getId(), new HashSet<ScheduledFuture>());
+//            for (AutoScalePolicy policy : vnfr.getAuto_scale_policy()) {
+//                ElasticityTask elasticityTask = (ElasticityTask) context.getBean("elasticityTask");
+//                elasticityTask.init(vnfr, policy);
+//                //taskExecutor.execute(elasticityTask);
+//                ScheduledFuture scheduledFuture = taskScheduler.scheduleAtFixedRate(elasticityTask, policy.getPeriod() * 1000);
+//                tasks.get(vnfr.getId()).add(scheduledFuture);
+//            }
+//            log.debug("Activated Elasticity for vnfr " + vnfr.getId());
+//        } else {
+//            log.warn("Cannot activate ElasticityManagement because the MonitoringAgent is not available");
+//        }
     }
 
     public void deactivate(VirtualNetworkFunctionRecord vnfr) {
@@ -243,7 +240,7 @@ public class ElasticityManagement {
                 hostnames.add(vnfcInstance.getHostname());
             }
         }
-        measurementResults.addAll(monitor.getMeasurementResults(hostnames, metrics, period));
+        //measurementResults.addAll(monitor.getMeasurementResults(hostnames, metrics, period));
         log.debug("Got all measurement results for vnfr " + vnfr.getId() + " on metric " + metric + " -> " + measurementResults + ".");
         return measurementResults;
     }
@@ -335,9 +332,6 @@ class ElasticityTask implements Runnable {
     private ElasticityManagement elasticityManagement;
 
     @Autowired
-    protected JmsTemplate jmsTemplate;
-
-    @Autowired
     private VnfrMonitor monitor;
 
     private String vnfr_id;
@@ -401,10 +395,6 @@ class ElasticityTask implements Runnable {
         NFVMessage response = null;
         try {
             response = vnfmHelper.sendAndReceive(VnfmUtils.getNfvMessage(action, vnfr));
-        } catch (JMSException e) {
-            log.error("" + e.getMessage());
-            vnfr.setStatus(Status.ERROR);
-            return vnfr;
         } catch (Exception e) {
             vnfr.setStatus(Status.ERROR);
             log.error("" + e.getMessage());
