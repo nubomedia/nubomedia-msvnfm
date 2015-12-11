@@ -78,15 +78,17 @@ public class Utils {
     public static String getUserdataFromFS() {
         File folder = new File("/etc/openbaton/scripts/ms-vnfm");
         List<String> lines = new ArrayList<String>();
-        for (File file : folder.listFiles()) {
-            if (file.getAbsolutePath().endsWith(".sh")) {
-                try {
-                    lines.addAll(Files.readAllLines(Paths.get(file.getAbsolutePath()), StandardCharsets.UTF_8));
-                } catch (IOException e) {
-                    log.error(e.getMessage(), e);
+        if (folder.exists() && folder.isDirectory()) {
+            for (File file : folder.listFiles()) {
+                if (file.getAbsolutePath().endsWith(".sh")) {
+                    try {
+                        lines.addAll(Files.readAllLines(Paths.get(file.getAbsolutePath()), StandardCharsets.UTF_8));
+                    } catch (IOException e) {
+                        log.error(e.getMessage(), e);
+                    }
                 }
+                lines.add("\n");
             }
-            lines.add("\n");
         }
         //Create the script
         StringBuilder script = new StringBuilder();
