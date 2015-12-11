@@ -143,7 +143,7 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
     }
 
     @Override
-    public void heal() {
+    public VirtualNetworkFunctionRecord heal(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, VNFCInstance component, String cause) throws Exception{
         throw new UnsupportedOperationException();
     }
 
@@ -250,7 +250,7 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
 //            Registry registry = LocateRegistry.createRegistry(registryport);
 //            log.debug("Registry created: ");
 //            log.debug(registry.toString() + " has: " + registry.list().length + " entries");
-            PluginStartup.startPluginRecursive("./plugins", true, "localhost", "" + amqpPort, 5);
+            PluginStartup.startPluginRecursive("./plugins", true, "localhost", "" + amqpPort, 5, "admin", "openbaton", "15672");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -269,6 +269,6 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
 
     @Override
     protected void checkEmsStarted(String hostname) {
-        throw new UnsupportedOperationException();
+        //throw new UnsupportedOperationException();
     }
 }
