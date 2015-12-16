@@ -9,7 +9,7 @@ import java.util.HashMap;
 
 @Service
 @Scope
-public class VnfrMonitor {
+public class VnfrMonitorVNFM {
 
     private HashMap<String, VirtualNetworkFunctionRecord> virtualNetworkFunctionRecords;
 

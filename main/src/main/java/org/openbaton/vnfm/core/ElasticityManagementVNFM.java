@@ -16,7 +16,6 @@ import org.openbaton.common.vnfm_sdk.utils.VnfmUtils;
 import org.openbaton.exceptions.VimException;
 //import org.openbaton.monitoring.interfaces.ResourcePerformanceManagement;
 import org.openbaton.nfvo.vim_interfaces.resource_management.ResourceManagement;
-import org.openbaton.plugin.utils.PluginBroker;
 import org.openbaton.vim.drivers.exceptions.VimDriverException;
 import org.openbaton.vnfm.utils.Utils;
 import org.slf4j.Logger;
@@ -40,7 +39,7 @@ import java.util.concurrent.ScheduledFuture;
  */
 @Service
 @Scope
-public class ElasticityManagement {
+public class ElasticityManagementVNFM {
 
     protected Logger log = LoggerFactory.getLogger(this.getClass());
 
@@ -59,7 +58,7 @@ public class ElasticityManagement {
     private ConfigurableApplicationContext context;
 
     @Autowired
-    private VnfrMonitor vnfrMonitor;
+    private VnfrMonitorVNFM vnfrMonitorVNFM;
 
     /**
      * Vim must be initialized only after the registry is up and plugin registered
@@ -109,7 +108,7 @@ public class ElasticityManagement {
             for (ScheduledFuture scheduledFuture : vnfrTasks) {
                 scheduledFuture.cancel(false);
             }
-            vnfrMonitor.removeVNFR(vnfr.getId());
+            vnfrMonitorVNFM.removeVNFR(vnfr.getId());
             log.debug("Deactivated Elasticity for vnfr " + vnfr.getId());
         } else {
             log.debug("Not Found any ElasticityTasks for VNFR with id: " + vnfr.getId());
@@ -329,10 +328,10 @@ class ElasticityTask implements Runnable {
     private VnfmHelper vnfmHelper;
 
     @Autowired
-    private ElasticityManagement elasticityManagement;
+    private ElasticityManagementVNFM elasticityManagementVNFM;
 
     @Autowired
-    private VnfrMonitor monitor;
+    private VnfrMonitorVNFM monitor;
 
     private String vnfr_id;
 
@@ -352,15 +351,15 @@ class ElasticityTask implements Runnable {
         log.debug("Check if scaling is needed.");
         try {
             VirtualNetworkFunctionRecord vnfr = monitor.getVNFR(vnfr_id);
-            List<Item> measurementResults = elasticityManagement.getRawMeasurementResults(vnfr, autoScalePolicy.getMetric(), Integer.toString(autoScalePolicy.getPeriod()));
-            double finalResult = elasticityManagement.calculateMeasurementResult(autoScalePolicy, measurementResults);
+            List<Item> measurementResults = elasticityManagementVNFM.getRawMeasurementResults(vnfr, autoScalePolicy.getMetric(), Integer.toString(autoScalePolicy.getPeriod()));
+            double finalResult = elasticityManagementVNFM.calculateMeasurementResult(autoScalePolicy, measurementResults);
             log.debug("Final measurement result on vnfr " + vnfr.getId() + " on metric " + autoScalePolicy.getMetric() + " with statistic " + autoScalePolicy.getStatistic() + " is " + finalResult + " " + measurementResults);
             if (vnfr.getStatus().equals(Status.ACTIVE)) {
-                if (elasticityManagement.triggerAction(autoScalePolicy, finalResult) && elasticityManagement.checkFeasibility(vnfr, autoScalePolicy) && setStatus(Status.SCALING) == true) {
+                if (elasticityManagementVNFM.triggerAction(autoScalePolicy, finalResult) && elasticityManagementVNFM.checkFeasibility(vnfr, autoScalePolicy) && setStatus(Status.SCALING) == true) {
                     log.debug("Executing scaling action of AutoScalePolicy with id " + autoScalePolicy.getId());
-                    elasticityManagement.scaleVNFComponents(vnfr, autoScalePolicy);
+                    elasticityManagementVNFM.scaleVNFComponents(vnfr, autoScalePolicy);
                     vnfr = updateOnNFVO(vnfr, Action.SCALING);
-                    elasticityManagement.scaleVNFCInstances(vnfr);
+                    elasticityManagementVNFM.scaleVNFCInstances(vnfr);
                     log.debug("Starting cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
                     Thread.sleep(autoScalePolicy.getCooldown() * 1000);
                     log.debug("Finished cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());

@@ -44,6 +44,7 @@ repositories {
 
 dependencies {
     compile project(':main')
+
     compile 'org.hibernate:hibernate-core:4.3.10.Final'
 }
 

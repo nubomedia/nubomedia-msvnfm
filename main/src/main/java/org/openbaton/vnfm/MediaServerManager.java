@@ -15,12 +15,14 @@ import org.openbaton.exceptions.VimException;
 import org.openbaton.nfvo.vim_interfaces.resource_management.ResourceManagement;
 import org.openbaton.plugin.utils.PluginStartup;
 import org.openbaton.vim.drivers.exceptions.VimDriverException;
+import org.openbaton.vnfm.catalogue.Application;
 import org.openbaton.vnfm.catalogue.ManagedVNFR;
 import org.openbaton.vnfm.catalogue.MediaServer;
-import org.openbaton.vnfm.core.ElasticityManagement;
+import org.openbaton.vnfm.core.ElasticityManagementVNFM;
 import org.openbaton.vnfm.core.LifecycleManagement;
 import org.openbaton.vnfm.core.interfaces.ApplicationManagement;
 import org.openbaton.vnfm.core.interfaces.MediaServerManagement;
+import org.openbaton.vnfm.repositories.ApplicationRepository;
 import org.openbaton.vnfm.repositories.ManagedVNFRRepository;
 import org.openbaton.vnfm.utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,8 +34,6 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 import java.io.IOException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -48,7 +48,7 @@ import java.util.concurrent.Future;
 public class MediaServerManager extends AbstractVnfmSpringAmqp {
 
     @Autowired
-    private ElasticityManagement elasticityManagement;
+    private ElasticityManagementVNFM elasticityManagementVNFM;
 
     @Autowired
     private ConfigurableApplicationContext context;
@@ -67,11 +67,14 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
     @Autowired
     private ManagedVNFRRepository managedVnfrRepository;
 
+    @Autowired
+    private ApplicationRepository applicationRepository;
+
     /**
      * Vim must be initialized only after the registry is up and plugin registered
      */
     private void initilizeVim() {
-        resourceManagement = (ResourceManagement) context.getBean("openstackVIM", "15672");
+        //resourceManagement = (ResourceManagement) context.getBean("openstackVIM", "15672");
     }
 
     @Override
@@ -167,7 +170,7 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
         log.info("Terminating vnfr with id " + virtualNetworkFunctionRecord.getId());
         Set<Event> events = lifecycleManagement.listEvents(virtualNetworkFunctionRecord);
         if (events.contains(Event.SCALE))
-            elasticityManagement.deactivate(virtualNetworkFunctionRecord);
+            elasticityManagementVNFM.deactivate(virtualNetworkFunctionRecord);
 
         for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
             Set<VNFCInstance> vnfciToRem = new HashSet<>();
@@ -229,7 +232,7 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
         Set<Event> events = lifecycleManagement.listEvents(virtualNetworkFunctionRecord);
         if (virtualNetworkFunctionRecord.getStatus().equals(Status.ACTIVE) && events.contains(Event.SCALE)) {
             log.debug("Processing event SCALE");
-            elasticityManagement.activate(virtualNetworkFunctionRecord);
+            elasticityManagementVNFM.activate(virtualNetworkFunctionRecord);
         }
         return virtualNetworkFunctionRecord;
     }
@@ -245,16 +248,16 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
     @Override
     protected void setup() {
         super.setup();
-        try {
-            int amqpPort = 5672;
-//            Registry registry = LocateRegistry.createRegistry(registryport);
-//            log.debug("Registry created: ");
-//            log.debug(registry.toString() + " has: " + registry.list().length + " entries");
-            PluginStartup.startPluginRecursive("./plugins", true, "localhost", "" + amqpPort, 5, "admin", "openbaton", "15672");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        elasticityManagement.initilizeVim();
+//        try {
+//            int amqpPort = 5672;
+////            Registry registry = LocateRegistry.createRegistry(registryport);
+////            log.debug("Registry created: ");
+////            log.debug(registry.toString() + " has: " + registry.list().length + " entries");
+//            //PluginStartup.startPluginRecursive("./plugins", true, "localhost", "" + amqpPort, 5, "admin", "openbaton", "15672");
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+        elasticityManagementVNFM.initilizeVim();
         this.initilizeVim();
     }
 
