@@ -14,10 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by mpa on 01.10.15.
@@ -54,6 +51,8 @@ public class ApplicationManagement implements org.openbaton.vnfm.core.interfaces
         MediaServer mediaServer = mediaServerManagement.queryBestMediaServerByVnfrId(application.getVnfr_id());
         application.setIp(mediaServer.getIp());
         application.setMediaServerId(mediaServer.getId());
+        application.setCreated(new Date());
+        application.setHeartbeat(new Date());
         mediaServer.setStatus(Status.ACTIVE);
         mediaServer.setUsedPoints(mediaServer.getUsedPoints() + application.getPoints());
         if (application.getIp() == null) {
@@ -93,6 +92,21 @@ public class ApplicationManagement implements org.openbaton.vnfm.core.interfaces
             delete(vnfrId, iterator.next().getId());
         }
         log.debug("Removed all Applications running on VNFR with id: " + vnfrId);
+    }
+
+    @Override
+    public void heartbeat(String vnfrId, String appId) throws NotFoundException {
+        log.debug("Received Heartbeat for Application " + appId + " running on VNFR with id: " + vnfrId);
+        Application application = applicationRepository.findOne(appId);
+        if (application == null) {
+            throw new NotFoundException("Not found Application with id: " + appId + " running on VNFR with id: " + vnfrId);
+        }
+        if (!application.getVnfr_id().equals(vnfrId)) {
+            log.warn("Found Application with id: " + appId + " but this Application does not belongs to the VNFR with id: " + vnfrId);
+            throw new NotFoundException("Not found Application with id: " + appId + " running on VNFR with id: " + vnfrId);
+        }
+        application.setHeartbeat(new Date());
+        applicationRepository.save(application);
     }
 
     @Override

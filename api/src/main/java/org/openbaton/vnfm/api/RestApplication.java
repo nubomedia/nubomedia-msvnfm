@@ -88,4 +88,16 @@ public class RestApplication {
         return applicationManagement.query(vnfrId, appId);
     }
 
+    /**
+     * Returns the Application for a specific VNFR from the Application repository
+     *
+     * @param appId : The application's id to be return
+     * @param vnfrId : ID of VNFR of the App
+     */
+    @RequestMapping(value = "{appId}/heartbeat", method = RequestMethod.PUT)
+    @ResponseStatus(HttpStatus.OK)
+    public void heartbeat(@PathVariable("vnfrId") String vnfrId, @PathVariable("appId") String appId) throws NotFoundException {
+        applicationManagement.heartbeat(vnfrId, appId);
+    }
+
 }
