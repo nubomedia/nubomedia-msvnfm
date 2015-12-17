@@ -56,6 +56,8 @@ project(':utils').projectDir = file('openbaton-libs/utils')
 //autoscaling
 include 'as-core'
 include 'as-catalogue'
+include 'as-utils'
 
 project(':as-core').projectDir = file('autoscaling/core')
 project(':as-catalogue').projectDir = file('autoscaling/catalogue')
+project(':as-utils').projectDir = file('autoscaling/utils')
