@@ -87,10 +87,10 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
          * Allocation of Resources
          *  the grant operation is already done before this method
          */
-        log.debug("Processing allocation of Recourses for vnfr: " + virtualNetworkFunctionRecord);
-        List<Future<VNFCInstance>> vnfcInstances = new ArrayList<>();
+        log.debug("Processing allocation of Recources for vnfr: " + virtualNetworkFunctionRecord);
         try {
             for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
+                List<Future<VNFCInstance>> vnfcInstancesFuturePerVDU = new ArrayList<>();
                 log.debug("Creating " + vdu.getVnfc().size() + " VMs");
                 String userdata = Utils.getUserdata();
                 for (VNFComponent vnfComponent : vdu.getVnfc()) {
@@ -100,9 +100,24 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
                             floatgingIps.put(connectionPoint.getVirtual_link_reference(),connectionPoint.getFloatingIp());
                     }
                     Future<VNFCInstance> allocate = resourceManagement.allocate(vdu, virtualNetworkFunctionRecord, vnfComponent, userdata, floatgingIps);
-                    vnfcInstances.add(allocate);
+                    vnfcInstancesFuturePerVDU.add(allocate);
+                }
+                //Print ids of deployed VNFCInstances
+                for (Future<VNFCInstance> vnfcInstanceFuture : vnfcInstancesFuturePerVDU) {
+                    try {
+                        VNFCInstance vnfcInstance = vnfcInstanceFuture.get();
+                        vdu.getVnfc_instance().add(vnfcInstance);
+                        log.debug("Created VNFCInstance with id: " + vnfcInstance);
+                    } catch (InterruptedException e) {
+                        log.error(e.getMessage(), e);
+                        throw new RuntimeException(e.getMessage(), e);
+                    } catch (ExecutionException e) {
+                        log.error(e.getMessage(), e);
+                        throw new RuntimeException(e.getMessage(), e);
+                    }
                 }
             }
+
         } catch (VimDriverException e) {
             log.error(e.getMessage(), e);
             throw new RuntimeException(e.getMessage(), e);
@@ -110,18 +125,7 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
             log.error(e.getMessage(), e);
             throw new RuntimeException(e.getMessage(), e);
         }
-        //Print ids of deployed VDUs
-        for (Future<VNFCInstance> vnfcInstance : vnfcInstances) {
-            try {
-                log.debug("Created VNFCInstance with id: " + vnfcInstance.get());
-            } catch (InterruptedException e) {
-                log.error(e.getMessage(), e);
-                throw new RuntimeException(e.getMessage(), e);
-            } catch (ExecutionException e) {
-                log.error(e.getMessage(), e);
-                throw new RuntimeException(e.getMessage(), e);
-            }
-        }
+
         log.trace("I've finished initialization of vnfr " + virtualNetworkFunctionRecord.getName() + " in facts there are only " + virtualNetworkFunctionRecord.getLifecycle_event().size() + " events");
         return virtualNetworkFunctionRecord;
     }
@@ -212,10 +216,16 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
                 //TODO choose the right network
 
 
-                if (vnfcInstance.getFloatingIps().size() > 0)
+                if (vnfcInstance.getFloatingIps().size() > 0) {
                     mediaServer.setIp(vnfcInstance.getFloatingIps().iterator().next().getIp());
-                else
-                    log.error("No FLoating Ips available!");
+                } else {
+                    log.warn("No FLoating Ip available! Using private ip...");
+                    if (vnfcInstance.getIps().size() > 0) {
+                        mediaServer.setIp(vnfcInstance.getIps().iterator().next().getIp());
+                    } else {
+                        log.warn("Even not private IP is available!");
+                    }
+                }
                 try {
                     mediaServerManagement.add(mediaServer);
                 } catch (Exception e) {
@@ -245,15 +255,16 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
     @Override
     protected void setup() {
         super.setup();
-        try {
-            int amqpPort = 5672;
+//        try {
+//            int amqpPort = 5672;
 //            Registry registry = LocateRegistry.createRegistry(registryport);
 //            log.debug("Registry created: ");
 //            log.debug(registry.toString() + " has: " + registry.list().length + " entries");
-            PluginStartup.startPluginRecursive("./plugins", true, "localhost", "" + amqpPort, 5, "admin", "openbaton", "15672");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//            PluginStartup.startPluginRecursive("./plugins", true, "localhost", "" + amqpPort, 5, "admin", "openbaton", "15672");
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+        Utils.isNfvoStarted(properties.getProperty("nfvo_ip"), properties.getProperty("nfvo_port"));
         elasticityManagement.initilizeVim();
         this.initilizeVim();
     }
