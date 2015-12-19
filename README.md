@@ -25,10 +25,10 @@ This [repository][bootstrap] contains the bootstrap script to install and start 
 In order to install and start the ms-vnfm you can run the following command:
 
 ```bash
-curl -fsSkL https://gitlab.tubit.tu-berlin.de/NUBOMEDIA/bootstrap | bash
+curl -fsSkL https://gitlab.tubit.tu-berlin.de/NUBOMEDIA/bootstrap/raw/master/bootstrap | bash
 ```
 
-Afterwards the source code of the ms-vnfm is located in /opt/nubomedia/ms-vnfm.
+Afterwards the source code of the ms-vnfm is located in `/opt/nubomedia/ms-vnfm`.
 
 **Note** It is expected that the NFVO is already installed and started. Otherwise the ms-vnfm will wait for 600s to register to the NFVO. Once this time is passed you need to start the ms-vnfm manually when the NFVO is up and running.
 
