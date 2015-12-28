@@ -6,6 +6,9 @@ import org.openbaton.monitoring.interfaces.VirtualisedResourcesPerformanceManage
 import org.openbaton.vnfm.exceptions.PluginInstallException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.MutablePropertySources;
+import org.springframework.core.env.PropertiesPropertySource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.util.ClassUtils;
@@ -13,6 +16,7 @@ import org.springframework.util.ClassUtils;
 import java.io.*;
 import java.lang.reflect.Field;
 import java.net.MalformedURLException;
+import java.net.Socket;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
@@ -29,6 +33,37 @@ import java.util.Properties;
 public class Utils {
 
     private final static Logger log = LoggerFactory.getLogger(Utils.class);
+
+    public static boolean isNfvoStarted(String ip, String port) {
+        int i = 0;
+        log.info("Waiting until NFVO is available...");
+        while (!Utils.available(ip, port)) {
+            i++;
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            if (i > 600) {
+                return false;
+            }
+
+        }
+        return true;
+    }
+
+    public static boolean available(String ip, String port) {
+        try {
+            Socket s = new Socket(ip, Integer.parseInt(port));
+            log.info("NFVO is listening on port " + port + " at " + ip);
+            s.close();
+            return true;
+        } catch (IOException ex) {
+            // The remote host is not listening on this port
+            log.warn("NFVO is not reachable on port " + port + " at " + ip);
+            return false;
+        }
+    }
 
     public static String getUserdata() {
         StringBuilder sb = new StringBuilder();
@@ -96,6 +131,26 @@ public class Utils {
             script.append(line).append("\n");
         }
         return script.toString();
+    }
+
+    public static void loadExternalProperties(Properties properties) {
+        if (properties.getProperty("external-properties-file") != null) {
+            File externalPropertiesFile = new File(properties.getProperty("external-properties-file"));
+            if (externalPropertiesFile.exists()) {
+                log.debug("Loading properties from external-properties-file: " + properties.getProperty("external-properties-file"));
+                InputStream is = null;
+                try {
+                    is = new FileInputStream(externalPropertiesFile);
+                    properties.load(is);
+                } catch (FileNotFoundException e) {
+                    log.error(e.getMessage(), e);
+                } catch (IOException e) {
+                    log.error(e.getMessage(), e);
+                }
+            } else {
+                log.debug("external-properties-file: " + properties.getProperty("external-properties-file") + " doesn't exist");
+            }
+        }
     }
 
 }
