@@ -17,7 +17,7 @@ import org.openbaton.plugin.utils.PluginStartup;
 import org.openbaton.vim.drivers.exceptions.VimDriverException;
 import org.openbaton.vnfm.catalogue.ManagedVNFR;
 import org.openbaton.vnfm.catalogue.MediaServer;
-import org.openbaton.vnfm.core.ElasticityManagement;
+//import org.openbaton.vnfm.core.ElasticityManagement;
 import org.openbaton.vnfm.core.LifecycleManagement;
 import org.openbaton.vnfm.core.interfaces.ApplicationManagement;
 import org.openbaton.vnfm.core.interfaces.MediaServerManagement;
@@ -47,8 +47,8 @@ import java.util.concurrent.Future;
 @EnableJpaRepositories("org.openbaton.vnfm")
 public class MediaServerManager extends AbstractVnfmSpringAmqp {
 
-    @Autowired
-    private ElasticityManagement elasticityManagement;
+//    @Autowired
+//    private ElasticityManagement elasticityManagement;
 
     @Autowired
     private ConfigurableApplicationContext context;
@@ -171,7 +171,7 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
         log.info("Terminating vnfr with id " + virtualNetworkFunctionRecord.getId());
         Set<Event> events = lifecycleManagement.listEvents(virtualNetworkFunctionRecord);
         if (events.contains(Event.SCALE))
-            elasticityManagement.deactivate(virtualNetworkFunctionRecord);
+            //elasticityManagement.deactivate(virtualNetworkFunctionRecord);
 
         for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
             Set<VNFCInstance> vnfciToRem = new HashSet<>();
@@ -239,7 +239,7 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
         Set<Event> events = lifecycleManagement.listEvents(virtualNetworkFunctionRecord);
         if (virtualNetworkFunctionRecord.getStatus().equals(Status.ACTIVE) && events.contains(Event.SCALE)) {
             log.debug("Processing event SCALE");
-            elasticityManagement.activate(virtualNetworkFunctionRecord);
+            //elasticityManagement.activate(virtualNetworkFunctionRecord);
         }
         return virtualNetworkFunctionRecord;
     }
@@ -266,7 +266,7 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
 //        }
         Utils.loadExternalProperties(properties);
         Utils.isNfvoStarted(properties.getProperty("nfvo_ip"), properties.getProperty("nfvo_port"));
-        elasticityManagement.initilizeVim();
+        //elasticityManagement.initilizeVim();
         this.initilizeVim();
     }
 
