@@ -27,6 +27,8 @@ public class DecisionTask implements Runnable {
 
     private Properties properties;
 
+    private String nsr_id;
+
     private String vnfr_id;
 
     private AutoScalePolicy autoScalePolicy;
@@ -36,17 +38,17 @@ public class DecisionTask implements Runnable {
     @Autowired
     private DecisionManagement decisionManagement;
 
-    public DecisionTask(String vnfr_id, AutoScalePolicy autoScalePolicy, Properties properties) {
+    public DecisionTask(String nsr_id, String vnfr_id, AutoScalePolicy autoScalePolicy, Properties properties) {
         this.properties = properties;
+        this.nsr_id = nsr_id;
         this.vnfr_id = vnfr_id;
         this.autoScalePolicy = autoScalePolicy;
-        this.name = "DetectionTask#" + vnfr_id;
-        log.debug("DetectionTask: Fetching the monitor");
+        this.name = "DecisionTask#" + nsr_id + ":" + vnfr_id;
     }
 
 
     @Override
     public void run() {
-        decisionManagement.sendToExecutor(vnfr_id, autoScalePolicy.getActions());
+        decisionManagement.sendToExecutor(nsr_id, vnfr_id, autoScalePolicy.getActions());
     }
 }
