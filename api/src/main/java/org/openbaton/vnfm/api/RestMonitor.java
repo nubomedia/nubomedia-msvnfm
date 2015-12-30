@@ -32,7 +32,7 @@ import javax.print.attribute.standard.Media;
 import java.util.*;
 
 @RestController
-@RequestMapping("/monitor/vnfr/{vnfrId}")
+@RequestMapping("/monitor/{hostname}")
 public class RestMonitor {
 
     //	TODO add log prints
@@ -52,7 +52,7 @@ public class RestMonitor {
      */
     @RequestMapping(value = "CONSUMED_CAPACITY", method = RequestMethod.GET)
     @ResponseStatus(HttpStatus.OK)
-    public String create(@PathVariable("vnfrId") String vnfrId) throws NotFoundException {
+    public String create(@PathVariable("hostname") String vnfrId) throws NotFoundException {
 //        Iterable<Application> applications = applicationManagement.queryByVnfrId(vnfrId);
 //        int consumed_capacity = 0;
 //        for (Application application : applications) {
@@ -79,7 +79,7 @@ public class RestMonitor {
      */
     @RequestMapping(value = "HEARTBEAT_ELAPSED", method = RequestMethod.GET)
     @ResponseStatus(HttpStatus.OK)
-    public Map<String, String> delete(@PathVariable("vnfrId") String vnfrId) throws NotFoundException {
+    public Map<String, String> delete(@PathVariable("hostname") String vnfrId) throws NotFoundException {
         Iterable<Application> applications = applicationManagement.queryByVnfrId(vnfrId);
         Map<String, String> elapsedHeartbeats = new HashMap<String, String>();
         for (Application application : applications) {
