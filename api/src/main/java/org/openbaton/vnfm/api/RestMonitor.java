@@ -45,32 +45,45 @@ public class RestMonitor {
     private MediaServerManagement mediaServerManagement;
 
     /**
-     * Returns the consumed capacity of a VNFR
+     * Returns the consumed capacity of the requested MediaServer
      *
-     * @param vnfrId : ID of VNFR
-     * @return consumed_capacity: Capacity consumed by Applications
+     * @param hostName : hostName of the MediaServer
+     * @return consumed_capacity: Consumed Capacity of the MediaServer
      */
     @RequestMapping(value = "CONSUMED_CAPACITY", method = RequestMethod.GET)
     @ResponseStatus(HttpStatus.OK)
-    public String create(@PathVariable("hostname") String vnfrId) throws NotFoundException {
-//        Iterable<Application> applications = applicationManagement.queryByVnfrId(vnfrId);
-//        int consumed_capacity = 0;
-//        for (Application application : applications) {
-//            consumed_capacity += application.getPoints();
-//        }
-        Iterable<MediaServer> mediaServers = mediaServerManagement.queryByVnrfId(vnfrId);
-        int sum_consumed_capacity = 0;
-        int number_of_mediaServers = 0;
-        double consumed_capacity = 0;
-        for (MediaServer mediaServer : mediaServers) {
-            number_of_mediaServers += 1;
-            sum_consumed_capacity += mediaServer.getUsedPoints();
-        }
-        if (sum_consumed_capacity != 0 && number_of_mediaServers != 0) {
-            consumed_capacity = sum_consumed_capacity / number_of_mediaServers;
-        }
-        return Double.toString(consumed_capacity);
+    public String create(@PathVariable("hostname") String hostName) throws NotFoundException {
+        MediaServer mediaServer = mediaServerManagement.queryByHostName(hostName);
+        return Double.toString(mediaServer.getUsedPoints());
     }
+
+//    /**
+//     * Returns the consumed capacity of a VNFR
+//     *
+//     * @param vnfrId : ID of VNFR
+//     * @return consumed_capacity: Capacity consumed by Applications
+//     */
+//    @RequestMapping(value = "CONSUMED_CAPACITY", method = RequestMethod.GET)
+//    @ResponseStatus(HttpStatus.OK)
+//    public String create(@PathVariable("hostname") String vnfrId) throws NotFoundException {
+////        Iterable<Application> applications = applicationManagement.queryByVnfrId(vnfrId);
+////        int consumed_capacity = 0;
+////        for (Application application : applications) {
+////            consumed_capacity += application.getPoints();
+////        }
+//        Iterable<MediaServer> mediaServers = mediaServerManagement.queryByVnrfId(vnfrId);
+//        int sum_consumed_capacity = 0;
+//        int number_of_mediaServers = 0;
+//        double consumed_capacity = 0;
+//        for (MediaServer mediaServer : mediaServers) {
+//            number_of_mediaServers += 1;
+//            sum_consumed_capacity += mediaServer.getUsedPoints();
+//        }
+//        if (sum_consumed_capacity != 0 && number_of_mediaServers != 0) {
+//            consumed_capacity = sum_consumed_capacity / number_of_mediaServers;
+//        }
+//        return Double.toString(consumed_capacity);
+//    }
 
     /**
      * Returns the elapsed heartbeat time of each Application running on a specific VNFR

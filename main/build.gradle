@@ -1,3 +1,10 @@
+repositories {
+    mavenCentral()
+    maven {
+        url "http://get.openbaton.org:8081/nexus/content/groups/public"
+    }
+}
+
 dependencies {
 
     compile project(':vnfm-sdk-amqp')
@@ -8,6 +15,8 @@ dependencies {
     compile project(':repository')
     compile project(':vnfm-catalogue')
     compile project(':api')
+
+    compile project(':as-core')
 
     runtime project(':vim-impl')
     runtime project(':core-impl')

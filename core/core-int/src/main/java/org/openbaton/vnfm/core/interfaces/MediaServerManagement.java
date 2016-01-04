@@ -22,6 +22,8 @@ public interface MediaServerManagement {
 
     Set<MediaServer> queryByVnrfId(String vnfr_id);
 
+    MediaServer queryByHostName(String hostName);
+
     MediaServer queryBestMediaServerByVnfrId(String vnfr_id) throws NotFoundException;
 
     MediaServer update(MediaServer mediaServer, String id);

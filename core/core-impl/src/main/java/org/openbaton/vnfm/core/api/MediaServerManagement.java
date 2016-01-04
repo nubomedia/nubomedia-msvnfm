@@ -93,6 +93,11 @@ public class MediaServerManagement implements org.openbaton.vnfm.core.interfaces
     }
 
     @Override
+    public MediaServer queryByHostName(String hostName) {
+        return mediaServerRepository.findByHostName(hostName);
+    }
+
+    @Override
     public MediaServer queryBestMediaServerByVnfrId(String vnfr_id) throws NotFoundException {
         MediaServer bestMediaServer = null;
         Set<MediaServer> mediaServers = queryByVnrfId(vnfr_id);

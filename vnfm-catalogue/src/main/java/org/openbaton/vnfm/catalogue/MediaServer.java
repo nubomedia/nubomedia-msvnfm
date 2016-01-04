@@ -24,6 +24,8 @@ public class MediaServer implements Serializable {
 
     private String vnfcInstanceId;
 
+    private String hostName;
+
     private String ip;
 
     private int usedPoints;
@@ -92,14 +94,24 @@ public class MediaServer implements Serializable {
         this.vnfcInstanceId = vnfcInstanceId;
     }
 
+    public String getHostName() {
+        return hostName;
+    }
+
+    public void setHostName(String hostName) {
+        this.hostName = hostName;
+    }
+
     @Override
     public String toString() {
-        return "Resource{" +
+        return "MediaServer{" +
                 "id='" + id + '\'' +
                 ", hb_version=" + hb_version +
                 ", vnfrId='" + vnfrId + '\'' +
+                ", vnfcInstanceId='" + vnfcInstanceId + '\'' +
+                ", hostName='" + hostName + '\'' +
                 ", ip='" + ip + '\'' +
-                ", usedPoints='" + usedPoints + '\'' +
+                ", usedPoints=" + usedPoints +
                 ", status=" + status +
                 '}';
     }

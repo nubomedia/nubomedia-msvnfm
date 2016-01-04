@@ -1,5 +1,6 @@
 package org.openbaton.vnfm;
 
+import org.openbaton.autoscaling.core.management.ElasticityManagement;
 import org.openbaton.catalogue.mano.common.Event;
 import org.openbaton.catalogue.mano.descriptor.VNFComponent;
 import org.openbaton.catalogue.mano.descriptor.VNFDConnectionPoint;
@@ -43,12 +44,12 @@ import java.util.concurrent.Future;
  */
 @SpringBootApplication
 @EntityScan("org.openbaton.vnfm.catalogue")
-@ComponentScan("org.openbaton.vnfm.api")
+@ComponentScan({"org.openbaton.vnfm.api", "org.openbaton.autoscaling.api", "org.openbaton.autoscaling"})
 @EnableJpaRepositories("org.openbaton.vnfm")
 public class MediaServerManager extends AbstractVnfmSpringAmqp {
 
-//    @Autowired
-//    private ElasticityManagement elasticityManagement;
+    @Autowired
+    private ElasticityManagement elasticityManagement;
 
     @Autowired
     private ConfigurableApplicationContext context;
@@ -206,13 +207,14 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
     }
 
     @Override
-    public VirtualNetworkFunctionRecord start(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
+    public VirtualNetworkFunctionRecord start(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) throws VimException, NotFoundException, VimDriverException {
         log.debug("Initializing Nubomedia MediaServer:");
         for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
             for (VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
                 MediaServer mediaServer = new MediaServer();
                 mediaServer.setVnfrId(virtualNetworkFunctionRecord.getId());
                 mediaServer.setVnfcInstanceId(vnfcInstance.getId());
+                mediaServer.setHostName(vnfcInstance.getHostname());
                 //TODO choose the right network
 
 
@@ -241,6 +243,7 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
             log.debug("Processing event SCALE");
             //elasticityManagement.activate(virtualNetworkFunctionRecord);
         }
+        elasticityManagement.activate(virtualNetworkFunctionRecord.getParent_ns_id());
         return virtualNetworkFunctionRecord;
     }
 
