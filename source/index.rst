@@ -6,9 +6,9 @@
 Welcome to Elastic Media Manager's documentation!
 =================================================
 
-This `VNF Manager`, called `ms-vnfm`, is implemented in java using the [spring.io] framework.
+This `VNF Manager`, called `ms-vnfm`, is implemented in java using the [spring.io]_ framework.
 
-For using this VNFM you have to install the NFVO and start it. How to do this can be found [here][nfvo_install].
+For using this VNFM you have to install the NFVO and start it. How to do this can be found [nfvo_install]_.
 
 The VNFM uses the RabbitMQ for communicating with the NFVO. Therefore it is a prerequisites to have RabbitMQ up and running.
 This is done automatically by executing the bootstrap script of the NFVO.
@@ -20,7 +20,7 @@ Both options are described below.
 
 *Install and start it automatically*
 
-This [repository][bootstrap] contains the bootstrap script to install and start the ms-vnfm automatically.
+This repository [bootstrap]_ contains the bootstrap script to install and start the ms-vnfm automatically.
 
 In order to install and start the ms-vnfm you can run the following command:
 
@@ -31,8 +31,6 @@ curl -fsSkL https://gitlab.tubit.tu-berlin.de/NUBOMEDIA/bootstrap/raw/master/boo
 Afterwards the source code of the ms-vnfm is located in `/opt/nubomedia/ms-vnfm`.
 
 **Note** It is expected that the NFVO is already installed and started. Otherwise the ms-vnfm will wait for 600s to register to the NFVO. Once this time is passed you need to start the ms-vnfm manually when the NFVO is up and running.
-
-In case the ms-vnfm is already installed you can start the ms-vnfm manually by using the provided script as described [here](#start-the-ms-vnfm-manually)
 
 *Install the ms-vnfm manually*
 
