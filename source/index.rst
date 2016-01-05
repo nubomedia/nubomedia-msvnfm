@@ -78,19 +78,17 @@ After changing any configuration, you need to recompile the code.
 
 The log file is located in `/var/log/nubomedia/ms-vnfm.log`.
 
+.. [bootstrap] https://github.com/tub-nubomedia/bootstrap
+.. [nfvo_install] http://openbaton.github.io/documentation/nfvo-installation/
+.. [spring.io] https://spring.io/
 
 .. toctree::
    :maxdepth: 2
 
 
-Indices and tables
-==================
+.. Indices and tables
+   * :ref:`genindex`
+   * :ref:`modindex`
+   * :ref:`search`
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
 
-.. [bootstrap] https://gitlab.tubit.tu-berlin.de/NUBOMEDIA/bootstrap
-.. [nfvo_install] http://openbaton.github.io/documentation/nfvo-installation/
-.. [spring.io] https://spring.io/
-.. [NFV_MANO] http://www.etsi.org/deliver/etsi_gs/NFV-MAN/001_099/001/01.01.01_60/gs_nfv-man001v010101p.pdf
