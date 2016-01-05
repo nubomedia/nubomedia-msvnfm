@@ -6,6 +6,8 @@
 Welcome to Elastic Media Manager's documentation!
 =================================================
 
+This project is part of NUBOMEDIA prject: [nubomedia.eu]_
+
 This `VNF Manager`, called `ms-vnfm`, is implemented in java using the [spring.io]_ framework.
 
 For using this VNFM you have to install the NFVO and start it. How to do this can be found [nfvo_install]_.
@@ -81,7 +83,7 @@ The log file is located in `/var/log/nubomedia/ms-vnfm.log`.
 .. [bootstrap] https://github.com/tub-nubomedia/bootstrap
 .. [nfvo_install] http://openbaton.github.io/documentation/nfvo-installation/
 .. [spring.io] https://spring.io/
-
+.. [nubomedia.eu] http://www.nubomedia.eu/
 .. toctree::
    :maxdepth: 2
 
