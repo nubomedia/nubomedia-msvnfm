@@ -58,8 +58,10 @@ include 'as-core'
 include 'as-catalogue'
 include 'as-utils'
 include 'as-api'
+include 'sdk'
 
 project(':as-core').projectDir = file('autoscaling/core')
 project(':as-catalogue').projectDir = file('autoscaling/catalogue')
 project(':as-utils').projectDir = file('autoscaling/utils')
 project(':as-api').projectDir = file('autoscaling/api')
+project(':sdk').projectDir = file('autoscaling/sdk/sdk')
