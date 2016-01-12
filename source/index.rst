@@ -27,7 +27,7 @@ This repository [bootstrap]_ contains the bootstrap script to install and start 
 In order to install and start the ms-vnfm you can run the following command:
 
 ```bash
-curl -fsSkL https://gitlab.tubit.tu-berlin.de/NUBOMEDIA/bootstrap/raw/master/bootstrap | bash
+curl -fsSkL https://github.com/tub-nubomedia/bootstrap/raw/master/bootstrap | bash
 ```
 
 Afterwards the source code of the ms-vnfm is located in `/opt/nubomedia/ms-vnfm`.
@@ -39,7 +39,7 @@ Afterwards the source code of the ms-vnfm is located in `/opt/nubomedia/ms-vnfm`
 1. Download the source code by using git:
 
 ```bash
-git clone https://gitlab.tubit.tu-berlin.de/NUBOMEDIA/ms-vnfm.git
+git clone https://github.com/tub-nubomedia/ms-vnfm.git
 ```
 
 This command will clone the git repository to the folder `ms-vnfm`
