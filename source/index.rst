@@ -16,7 +16,7 @@ The VNFM uses the RabbitMQ for communicating with the NFVO. Therefore it is a pr
 This is done automatically by executing the bootstrap script of the NFVO.
 
 install the latest MS-VNFM version from the source code
-------------------------------------------------------
+-------------------------------------------------------
 
 You can install and start the ms-vnfm either automatically by downloading and executing the bootstrap or manually.
 Both options are described below.
@@ -37,7 +37,7 @@ Afterwards the source code of the ms-vnfm is located in `/opt/nubomedia/ms-vnfm`
 **Note** It is expected that the NFVO is already installed and started. Otherwise the ms-vnfm will wait for 600s to register to the NFVO. Once this time is passed you need to start the ms-vnfm manually when the NFVO is up and running.
 
 Install the ms-vnfm manually
----------------------------
+----------------------------
 
 1. Download the source code by using git:
 
@@ -86,11 +86,11 @@ Logging
 
 The log file is located in `/var/log/nubomedia/ms-vnfm.log`.
 
-.. _LICENSE: ../LICENSE
 
 LICENSE
-^^^^^^^^
-See the :ref:`LICENSE`
+-------
+
+See the `LICENSE. <../../LICENSE>`_
 
 .. [bootstrap] https://github.com/tub-nubomedia/bootstrap
 .. [nfvo_install] http://openbaton.github.io/documentation/nfvo-installation/
