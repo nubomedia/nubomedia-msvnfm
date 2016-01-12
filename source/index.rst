@@ -90,15 +90,15 @@ The log file is located in `/var/log/nubomedia/ms-vnfm.log`.
 LICENSE
 -------
 
-See the `LICENSE. <../../LICENSE>`_
+See the `LICENSE. <../LICENSE>`_
 
 .. [bootstrap] https://github.com/tub-nubomedia/bootstrap
 .. [nfvo_install] http://openbaton.github.io/documentation/nfvo-installation/
 .. [spring.io] https://spring.io/
 .. [nubomedia.eu] http://www.nubomedia.eu/
+
 .. toctree::
    :maxdepth: 2
-
 
 .. Indices and tables
    * :ref:`genindex`
