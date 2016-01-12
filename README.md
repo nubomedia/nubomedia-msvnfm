@@ -82,7 +82,12 @@ After changing any configuration, you need to recompile the code.
 
 The log file is located in `/var/log/nubomedia/ms-vnfm.log`.
 
+## LICENSE
+
+See [LICENSE][LICENSE]
+
 [bootstrap]:https://github.com/tub-nubomedia/bootstrap
 [nfvo install]:http://openbaton.github.io/documentation/nfvo-installation/
 [spring.io]:https://spring.io/
 [NFV MANO]:http://www.etsi.org/deliver/etsi_gs/NFV-MAN/001_099/001/01.01.01_60/gs_nfv-man001v010101p.pdf
+[LICENSE]:./LICENSE
