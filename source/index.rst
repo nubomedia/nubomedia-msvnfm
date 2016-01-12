@@ -90,7 +90,7 @@ The log file is located in `/var/log/nubomedia/ms-vnfm.log`.
 LICENSE
 -------
 
-See the `LICENSE. <../LICENSE>`_
+See the `LICENSE. <https://raw.githubusercontent.com/tub-nubomedia/ms-vnfm/master/LICENSE>`_
 
 .. [bootstrap] https://github.com/tub-nubomedia/bootstrap
 .. [nfvo_install] http://openbaton.github.io/documentation/nfvo-installation/
