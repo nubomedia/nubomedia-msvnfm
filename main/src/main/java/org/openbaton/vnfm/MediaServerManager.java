@@ -171,8 +171,12 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
     public VirtualNetworkFunctionRecord terminate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
         log.info("Terminating vnfr with id " + virtualNetworkFunctionRecord.getId());
         Set<Event> events = lifecycleManagement.listEvents(virtualNetworkFunctionRecord);
-        if (events.contains(Event.SCALE))
-            //elasticityManagement.deactivate(virtualNetworkFunctionRecord);
+        //if (events.contains(Event.SCALE))
+        try {
+            elasticityManagement.deactivate(virtualNetworkFunctionRecord.getId());
+        } catch (NotFoundException e) {
+            log.warn(e.getMessage(), e);
+        }
 
         for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
             Set<VNFCInstance> vnfciToRem = new HashSet<>();
