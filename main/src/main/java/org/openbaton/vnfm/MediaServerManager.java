@@ -272,7 +272,7 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
 //            e.printStackTrace();
 //        }
         Utils.loadExternalProperties(properties);
-        Utils.isNfvoStarted(properties.getProperty("nfvo_ip"), properties.getProperty("nfvo_port"));
+        Utils.isNfvoStarted(properties.getProperty("nfvo.ip"), properties.getProperty("nfvo.port"));
         //elasticityManagement.initilizeVim();
         this.initilizeVim();
     }
