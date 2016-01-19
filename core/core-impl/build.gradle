@@ -11,7 +11,7 @@ dependencies {
     compile project(':core-int')
     compile project(':repository')
 
-    compile project(':as-core')
+    //compile project(':as-core')
 
     //compile 'org.openbaton:sdk:0.6'
 

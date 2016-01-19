@@ -212,32 +212,14 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
 
     @Override
     public VirtualNetworkFunctionRecord start(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) throws VimException, NotFoundException, VimDriverException {
-        log.debug("Initializing Nubomedia MediaServer:");
+        log.debug("Initializing Nubomedia MediaServers:");
         for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
             for (VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
-                MediaServer mediaServer = new MediaServer();
-                mediaServer.setVnfrId(virtualNetworkFunctionRecord.getId());
-                mediaServer.setVnfcInstanceId(vnfcInstance.getId());
-                mediaServer.setHostName(vnfcInstance.getHostname());
-                //TODO choose the right network
-
-
-                if (vnfcInstance.getFloatingIps().size() > 0) {
-                    mediaServer.setIp(vnfcInstance.getFloatingIps().iterator().next().getIp());
-                } else {
-                    log.warn("No FLoating Ip available! Using private ip...");
-                    if (vnfcInstance.getIps().size() > 0) {
-                        mediaServer.setIp(vnfcInstance.getIps().iterator().next().getIp());
-                    } else {
-                        log.warn("Even not private IP is available!");
-                    }
-                }
                 try {
-                    mediaServerManagement.add(mediaServer);
+                    mediaServerManagement.add(virtualNetworkFunctionRecord.getId(), vnfcInstance);
                 } catch (Exception e) {
-                    log.error(e.getMessage());
+                    log.warn(e.getMessage(), e);
                 }
-                log.debug("Created Nubomedia MediaServer: " + mediaServer);
             }
         }
         //TODO where to set it to active?

@@ -33,4 +33,6 @@ public interface MediaServerRepositoryCustom {
 
     MediaServer findByHostName(String hostName);
 
+    MediaServer findByHostName(String vnfrId, String hostName);
+
 }

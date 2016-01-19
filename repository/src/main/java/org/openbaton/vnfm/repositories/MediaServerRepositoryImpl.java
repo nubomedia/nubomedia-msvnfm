@@ -63,4 +63,16 @@ public class MediaServerRepositoryImpl implements MediaServerRepositoryCustom {
         }
         return null;
     }
+
+    @Override
+    public MediaServer findByHostName(String vnfrId, String hostName) {
+        Iterable<MediaServer> allEntitites = mediaServerRepository.findAll();
+        for (MediaServer mediaServer : allEntitites) {
+            if(mediaServer.getHostName().equals(hostName) && mediaServer.getVnfrId().equals(vnfrId)) {
+                return mediaServer;
+            }
+        }
+        return null;
+    }
+
 }

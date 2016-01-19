@@ -1,5 +1,6 @@
 package org.openbaton.vnfm.core.interfaces;
 
+import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.vnfm.catalogue.MediaServer;
 
@@ -12,7 +13,11 @@ import java.util.Set;
 public interface MediaServerManagement {
     MediaServer add(MediaServer mediaServer) throws Exception;
 
+    MediaServer add(String vnfrId, VNFCInstance vnfcInstance) throws Exception;
+
     void delete(String mediaServerId) throws NotFoundException;
+
+    void delete(String vnfrId, String hostname) throws NotFoundException;
 
     void deleteByVnfrId(String vnfrId) throws NotFoundException;
 

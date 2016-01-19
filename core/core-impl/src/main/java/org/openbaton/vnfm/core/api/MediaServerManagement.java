@@ -1,5 +1,6 @@
 package org.openbaton.vnfm.core.api;
 
+import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.vnfm.catalogue.Application;
 import org.openbaton.vnfm.catalogue.MediaServer;
@@ -44,6 +45,48 @@ public class MediaServerManagement implements org.openbaton.vnfm.core.interfaces
             log.warn("Not defined IP of newly created MediaServer");
         mediaServerRepository.save(mediaServer);
         return mediaServer;
+    }
+
+    @Override
+    public MediaServer add(String vnfrId, VNFCInstance vnfcInstance) {
+        MediaServer mediaServer = new MediaServer();
+        mediaServer.setVnfrId(vnfrId);
+        mediaServer.setVnfcInstanceId(vnfcInstance.getId());
+        mediaServer.setHostName(vnfcInstance.getHostname());
+        //TODO choose the right network
+        if (vnfcInstance.getFloatingIps().size() > 0) {
+            mediaServer.setIp(vnfcInstance.getFloatingIps().iterator().next().getIp());
+        } else {
+            log.warn("No FLoating Ip available! Using private ip...");
+            if (vnfcInstance.getIps().size() > 0) {
+                mediaServer.setIp(vnfcInstance.getIps().iterator().next().getIp());
+            } else {
+                log.warn("Even not private IP is available!");
+            }
+        }
+        try {
+            mediaServer = add(mediaServer);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+        }
+        log.debug("Created Nubomedia MediaServer: " + mediaServer);
+        return mediaServer;
+    }
+
+    @Override
+    public void delete(String vnfrId, String hostname) throws NotFoundException {
+        log.debug("Removing MediaServer with hostname: " + hostname);
+        MediaServer mediaServer = mediaServerRepository.findByHostName(vnfrId, hostname);
+        if (mediaServer == null) {
+            throw new NotFoundException("Not found MediaServer with hostname: " + hostname + " on VNFR with id: " + vnfrId);
+        }
+        Iterable<Application> appsIterable = applicationRepository.findAppByMediaServerId(mediaServer.getId());
+        if (appsIterable.iterator().hasNext()) {
+            log.error("Cannot delete MediaServer with hostname: " + hostname + " since there are still running Applications: " + fromIterbaleToSet(appsIterable));
+        } else {
+            mediaServerRepository.delete(mediaServer);
+            log.debug("Removed MediaServer with hostname: " + hostname);
+        }
     }
 
     @Override
