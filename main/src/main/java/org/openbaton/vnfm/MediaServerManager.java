@@ -89,7 +89,6 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
          *  the grant operation is already done before this method
          */
         log.debug("Processing allocation of Recources for vnfr: " + virtualNetworkFunctionRecord);
-        try {
             for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
                 List<Future<VNFCInstance>> vnfcInstancesFuturePerVDU = new ArrayList<>();
                 log.debug("Creating " + vdu.getVnfc().size() + " VMs");
@@ -100,7 +99,18 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
                         if (connectionPoint.getFloatingIp() != null && !connectionPoint.getFloatingIp().equals(""))
                             floatgingIps.put(connectionPoint.getVirtual_link_reference(),connectionPoint.getFloatingIp());
                     }
-                    Future<VNFCInstance> allocate = resourceManagement.allocate(vdu, virtualNetworkFunctionRecord, vnfComponent, userdata, floatgingIps);
+                    Future<VNFCInstance> allocate = null;
+                    try {
+                        allocate = resourceManagement.allocate(vdu, virtualNetworkFunctionRecord, vnfComponent, userdata, floatgingIps);
+                    } catch (VimException e) {
+                        log.error(e.getMessage());
+                        if (log.isDebugEnabled())
+                            log.error(e.getMessage(), e);
+                    } catch (VimDriverException e) {
+                        log.error(e.getMessage());
+                        if (log.isDebugEnabled())
+                            log.error(e.getMessage(), e);
+                    }
                     vnfcInstancesFuturePerVDU.add(allocate);
                 }
                 //Print ids of deployed VNFCInstances
@@ -110,23 +120,18 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
                         vdu.getVnfc_instance().add(vnfcInstance);
                         log.debug("Created VNFCInstance with id: " + vnfcInstance);
                     } catch (InterruptedException e) {
-                        log.error(e.getMessage(), e);
-                        throw new RuntimeException(e.getMessage(), e);
+                        log.error(e.getMessage());
+                        if (log.isDebugEnabled())
+                            log.error(e.getMessage(), e);
+                        //throw new RuntimeException(e.getMessage(), e);
                     } catch (ExecutionException e) {
-                        log.error(e.getMessage(), e);
-                        throw new RuntimeException(e.getMessage(), e);
+                        log.error(e.getMessage());
+                        if (log.isDebugEnabled())
+                            log.error(e.getMessage(), e);
+                        //throw new RuntimeException(e.getMessage(), e);
                     }
                 }
             }
-
-        } catch (VimDriverException e) {
-            log.error(e.getMessage(), e);
-            throw new RuntimeException(e.getMessage(), e);
-        } catch (VimException e) {
-            log.error(e.getMessage(), e);
-            throw new RuntimeException(e.getMessage(), e);
-        }
-
         log.trace("I've finished initialization of vnfr " + virtualNetworkFunctionRecord.getName() + " in facts there are only " + virtualNetworkFunctionRecord.getLifecycle_event().size() + " events");
         return virtualNetworkFunctionRecord;
     }
@@ -173,9 +178,15 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
         Set<Event> events = lifecycleManagement.listEvents(virtualNetworkFunctionRecord);
         //if (events.contains(Event.SCALE))
         try {
-            elasticityManagement.deactivate(virtualNetworkFunctionRecord.getId());
+            elasticityManagement.deactivate(virtualNetworkFunctionRecord.getParent_ns_id(), virtualNetworkFunctionRecord.getId());
         } catch (NotFoundException e) {
-            log.warn(e.getMessage(), e);
+            log.warn(e.getMessage());
+            if (log.isDebugEnabled())
+                log.error(e.getMessage(), e);
+        } catch (VimException e) {
+            log.warn(e.getMessage());
+            if (log.isDebugEnabled())
+                log.error(e.getMessage(), e);
         }
 
         for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
@@ -224,12 +235,7 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
         }
         //TODO where to set it to active?
         virtualNetworkFunctionRecord.setStatus(Status.ACTIVE);
-        Set<Event> events = lifecycleManagement.listEvents(virtualNetworkFunctionRecord);
-        if (virtualNetworkFunctionRecord.getStatus().equals(Status.ACTIVE) && events.contains(Event.SCALE)) {
-            log.debug("Processing event SCALE");
-            //elasticityManagement.activate(virtualNetworkFunctionRecord);
-        }
-        elasticityManagement.activate(virtualNetworkFunctionRecord.getParent_ns_id());
+        elasticityManagement.activate(virtualNetworkFunctionRecord.getParent_ns_id(), virtualNetworkFunctionRecord.getId());
         return virtualNetworkFunctionRecord;
     }
 
