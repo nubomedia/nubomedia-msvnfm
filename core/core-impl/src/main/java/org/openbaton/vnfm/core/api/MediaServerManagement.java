@@ -38,7 +38,7 @@ public class MediaServerManagement implements org.openbaton.vnfm.core.interfaces
         if (mediaServer.getStatus() == null)
             mediaServer.setStatus(Status.IDLE);
         if (mediaServer.getVnfcInstanceId() == null)
-            log.error("Not defined VNFCInstnaceId of newly created MediaServer");
+            log.error("Not defined VNFCInstanceId of newly created MediaServer");
         if (mediaServer.getVnfrId() == null)
             log.error("Not defined VnfrId of newly created MediaServer");
         if (mediaServer.getIp() == null)
@@ -82,11 +82,12 @@ public class MediaServerManagement implements org.openbaton.vnfm.core.interfaces
         }
         Iterable<Application> appsIterable = applicationRepository.findAppByMediaServerId(mediaServer.getId());
         if (appsIterable.iterator().hasNext()) {
-            log.error("Cannot delete MediaServer with hostname: " + hostname + " since there are still running Applications: " + fromIterbaleToSet(appsIterable));
-        } else {
-            mediaServerRepository.delete(mediaServer);
-            log.debug("Removed MediaServer with hostname: " + hostname);
+            log.warn("Removing MediaServer with hostname: " + hostname + " but there are still running Applications: " + fromIterbaleToSet(appsIterable));
+            applicationRepository.delete(appsIterable);
         }
+        mediaServerRepository.delete(mediaServer);
+        log.debug("Removed MediaServer with hostname: " + hostname);
+
     }
 
     @Override
@@ -98,7 +99,8 @@ public class MediaServerManagement implements org.openbaton.vnfm.core.interfaces
         }
         Iterable<Application> appsIterable = applicationRepository.findAppByMediaServerId(mediaServerId);
         if (appsIterable.iterator().hasNext()) {
-            log.error("Cannot delete MediaServer with id: " + mediaServerId + " since there are still running Applications: " + fromIterbaleToSet(appsIterable));
+            log.warn("Removing MediaServer with id: " + mediaServerId + " but there are still running Applications: " + fromIterbaleToSet(appsIterable));
+            applicationRepository.delete(appsIterable);
         } else {
             mediaServerRepository.delete(mediaServer);
             log.debug("Removed MediaServer with id: " + mediaServerId);
@@ -110,14 +112,14 @@ public class MediaServerManagement implements org.openbaton.vnfm.core.interfaces
         log.debug("Removing all MediaServers running on VNFR with id: " + vnfrId);
         Iterable<MediaServer> mediaServersIterable = mediaServerRepository.findAllByVnrfId(vnfrId);
         if (!mediaServersIterable.iterator().hasNext()) {
-            log.error("Not found any MediaServer for VNFR with id: " + vnfrId);
+            log.warn("Not found any MediaServer for VNFR with id: " + vnfrId);
             return;
         }
         Iterator<MediaServer> iterator = mediaServersIterable.iterator();
         while(iterator.hasNext()) {
             delete(iterator.next().getId());
         }
-        log.debug("Removed all MediaServers running on VNFR with id: " + vnfrId);
+        log.info("Removed all MediaServers running on VNFR with id: " + vnfrId);
     }
 
     @Override
@@ -154,11 +156,11 @@ public class MediaServerManagement implements org.openbaton.vnfm.core.interfaces
                     bestMediaServer = mediaServer;
                 }
             } else {
-                log.warn("Not found FloatingIp for MediaServer (VNFCInstance) with id: " + mediaServer.getVnfcInstanceId());
+                log.warn("Not found any IP for MediaServer (VNFCInstance) with id: " + mediaServer.getVnfcInstanceId());
             }
         }
         if (bestMediaServer == null) {
-            throw new NotFoundException("Not found any MediaServer for VNFR with id: " + vnfr_id + ". At least there is no one with a FloatingIp");
+            throw new NotFoundException("Not found any MediaServer for VNFR with id: " + vnfr_id + ". At least there is no one with an IP assigned");
         }
         return bestMediaServer;
     }

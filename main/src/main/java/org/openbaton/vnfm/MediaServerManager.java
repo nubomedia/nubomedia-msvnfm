@@ -10,11 +10,14 @@ import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.catalogue.mano.record.VNFRecordDependency;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.openbaton.catalogue.nfvo.Action;
+import org.openbaton.catalogue.nfvo.VimInstance;
 import org.openbaton.common.vnfm_sdk.amqp.AbstractVnfmSpringAmqp;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.exceptions.VimException;
 import org.openbaton.nfvo.vim_interfaces.resource_management.ResourceManagement;
 import org.openbaton.plugin.utils.PluginStartup;
+import org.openbaton.sdk.NFVORequestor;
+import org.openbaton.sdk.api.exception.SDKException;
 import org.openbaton.vim.drivers.exceptions.VimDriverException;
 import org.openbaton.vnfm.catalogue.ManagedVNFR;
 import org.openbaton.vnfm.catalogue.MediaServer;
@@ -68,10 +71,13 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
     @Autowired
     private ManagedVNFRRepository managedVnfrRepository;
 
+    private NFVORequestor nfvoRequestor;
+
     /**
      * Vim must be initialized only after the registry is up and plugin registered
      */
-    private void initilizeVim() {
+    private void initilize() {
+        this.nfvoRequestor = new NFVORequestor(properties.getProperty("nfvo.username"), properties.getProperty("nfvo.password"), properties.getProperty("nfvo.ip"), properties.getProperty("nfvo.port"), "1");
         resourceManagement = (ResourceManagement) context.getBean("openstackVIM", "15672");
     }
 
@@ -90,6 +96,19 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
          */
         log.debug("Processing allocation of Recources for vnfr: " + virtualNetworkFunctionRecord);
             for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
+                VimInstance vimInstance = null;
+                try {
+                    List<VimInstance> vimInstances = nfvoRequestor.getVimInstanceAgent().findAll();
+                    for (VimInstance vimInstanceTMP : vimInstances) {
+                        if (vdu.getVimInstanceName().equals(vimInstanceTMP.getName())) {
+                            vimInstance = vimInstanceTMP;
+                        }
+                    }
+                } catch (SDKException e) {
+                    log.error(e.getMessage(), e);
+                } catch (ClassNotFoundException e) {
+                    log.error(e.getMessage(), e);
+                }
                 List<Future<VNFCInstance>> vnfcInstancesFuturePerVDU = new ArrayList<>();
                 log.debug("Creating " + vdu.getVnfc().size() + " VMs");
                 String userdata = Utils.getUserdata();
@@ -177,18 +196,7 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
         log.info("Terminating vnfr with id " + virtualNetworkFunctionRecord.getId());
         Set<Event> events = lifecycleManagement.listEvents(virtualNetworkFunctionRecord);
         //if (events.contains(Event.SCALE))
-        try {
-            elasticityManagement.deactivate(virtualNetworkFunctionRecord.getParent_ns_id(), virtualNetworkFunctionRecord.getId());
-        } catch (NotFoundException e) {
-            log.warn(e.getMessage());
-            if (log.isDebugEnabled())
-                log.error(e.getMessage(), e);
-        } catch (VimException e) {
-            log.warn(e.getMessage());
-            if (log.isDebugEnabled())
-                log.error(e.getMessage(), e);
-        }
-
+        elasticityManagement.deactivate(virtualNetworkFunctionRecord.getParent_ns_id(), virtualNetworkFunctionRecord.getId());
         for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
             Set<VNFCInstance> vnfciToRem = new HashSet<>();
             for (VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
@@ -262,7 +270,7 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
         Utils.loadExternalProperties(properties);
         Utils.isNfvoStarted(properties.getProperty("nfvo.ip"), properties.getProperty("nfvo.port"));
         //elasticityManagement.initilizeVim();
-        this.initilizeVim();
+        this.initilize();
     }
 
     public static void main(String[] args) {

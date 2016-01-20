@@ -56,7 +56,7 @@ public class ApplicationManagement implements org.openbaton.vnfm.core.interfaces
         mediaServer.setStatus(Status.ACTIVE);
         mediaServer.setUsedPoints(mediaServer.getUsedPoints() + application.getPoints());
         if (application.getIp() == null) {
-            throw new NotFoundException("Not found FloatingIp for any MediaServer on VNFR with id: " + application.getVnfr_id());
+            throw new NotFoundException("Not found IP for any MediaServer on VNFR with id: " + application.getVnfr_id());
         }
         application = applicationRepository.save(application);
         log.info("Registered new Application: " + application);
@@ -76,7 +76,7 @@ public class ApplicationManagement implements org.openbaton.vnfm.core.interfaces
             mediaServer.setStatus(Status.IDLE);
         }
         applicationRepository.delete(application);
-        log.debug("Removed Application with id: " + appId + " running on VNFR with id: " + vnfrId);
+        log.info("Removed Application with id: " + appId + " running on VNFR with id: " + vnfrId);
     }
 
     @Override
@@ -91,7 +91,7 @@ public class ApplicationManagement implements org.openbaton.vnfm.core.interfaces
         while (iterator.hasNext()) {
             delete(vnfrId, iterator.next().getId());
         }
-        log.debug("Removed all Applications running on VNFR with id: " + vnfrId);
+        log.info("Removed all Applications running on VNFR with id: " + vnfrId);
     }
 
     @Override
