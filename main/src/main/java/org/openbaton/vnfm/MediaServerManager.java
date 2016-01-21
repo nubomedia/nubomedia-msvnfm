@@ -116,7 +116,7 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
                     Map<String, String> floatgingIps = new HashMap<>();
                     for (VNFDConnectionPoint connectionPoint : vnfComponent.getConnection_point()){
                         if (connectionPoint.getFloatingIp() != null && !connectionPoint.getFloatingIp().equals(""))
-                            floatgingIps.put(connectionPoint.getVirtual_link_reference(),connectionPoint.getFloatingIp());
+                            floatgingIps.put(connectionPoint.getVirtual_link_reference(), connectionPoint.getFloatingIp());
                     }
                     Future<VNFCInstance> allocate = null;
                     try {
