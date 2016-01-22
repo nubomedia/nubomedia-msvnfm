@@ -130,7 +130,7 @@ public class ElasticityManagementVNFM {
 //                        vnfComponent_new.getConnection_point().add(vnfdConnectionPoint_new);
 //                    }
 //                    vdu.getVnfc().add(vnfComponent_new);
-//                    log.debug("SCALING: Added new Component to VDU " + vdu.getId());
+//                    log.debug("SCALE: Added new Component to VDU " + vdu.getId());
 //                    return;
 //                } else {
 //                    continue;
@@ -142,7 +142,7 @@ public class ElasticityManagementVNFM {
 //                if (vdu.getVnfc().size() > 1 && vdu.getVnfc().iterator().hasNext()) {
 //                    VNFComponent vnfComponent_remove = vdu.getVnfc().iterator().next();
 //                    vdu.getVnfc().remove(vnfComponent_remove);
-//                    log.debug("SCALING: Removed Component " + vnfComponent_remove.getId() + " from VDU " + vdu.getId());
+//                    log.debug("SCALE: Removed Component " + vnfComponent_remove.getId() + " from VDU " + vdu.getId());
 //                    return;
 //                } else {
 //                    continue;
@@ -355,10 +355,10 @@ class ElasticityTask implements Runnable {
 //            double finalResult = elasticityManagementVNFM.calculateMeasurementResult(autoScalePolicy, measurementResults);
 //            log.debug("Final measurement result on vnfr " + vnfr.getId() + " on metric " + autoScalePolicy.getMetric() + " with statistic " + autoScalePolicy.getStatistic() + " is " + finalResult + " " + measurementResults);
 //            if (vnfr.getStatus().equals(Status.ACTIVE)) {
-//                if (elasticityManagementVNFM.triggerAction(autoScalePolicy, finalResult) && elasticityManagementVNFM.checkFeasibility(vnfr, autoScalePolicy) && setStatus(Status.SCALING) == true) {
+//                if (elasticityManagementVNFM.triggerAction(autoScalePolicy, finalResult) && elasticityManagementVNFM.checkFeasibility(vnfr, autoScalePolicy) && setStatus(Status.SCALE) == true) {
 //                    log.debug("Executing scaling action of AutoScalePolicy with id " + autoScalePolicy.getId());
 //                    elasticityManagementVNFM.scaleVNFComponents(vnfr, autoScalePolicy);
-//                    vnfr = updateOnNFVO(vnfr, Action.SCALING);
+//                    vnfr = updateOnNFVO(vnfr, Action.SCALE);
 //                    elasticityManagementVNFM.scaleVNFCInstances(vnfr);
 //                    log.debug("Starting cooldown period (" + autoScalePolicy.getCooldown() + "s) for AutoScalePolicy with id: " + autoScalePolicy.getId());
 //                    Thread.sleep(autoScalePolicy.getCooldown() * 1000);
