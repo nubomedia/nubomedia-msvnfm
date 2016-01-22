@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+set -e
+#
+# This script allows you to install ms-vnfm. To execute it:
+#
+# 'curl -fsSkL https://gitlab.tubit.tu-berlin.de/NUBOMEDIA/bootstrap/raw/master/bootstrap | bash'
+
+
+export DEBIAN_FRONTEND=noninteractive
+_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+_ms_vnfm_base_repo="https://gitlab.tubit.tu-berlin.de/NUBOMEDIA/ms-vnfm.git"
+#_tag="develop"
+_tag="tags/0.15"
+
+_base=/opt
+_nubomedia_base="${_base}/nubomedia"
+_ms_vnfm="${_nubomedia_base}/ms-vnfm"
+_log_folder=/var/log/nubomedia
+
+_user="$(id -un 2>/dev/null || true)"
+
+function checkBinary {
+  echo -n " * Checking for '$1'..."
+  if command -v $1 >/dev/null 2>&1; then
+     echo "OK"
+     return 0
+   else
+     echo >&2 "FAILED."
+     return 1
+   fi
+}
+
+_ex='sh -c'
+if [ "$_user" != 'root' ]; then
+    if checkBinary sudo; then
+        _ex='sudo -E sh -c'
+    elif checkBinary su; then
+        _ex='su -c'
+    fi
+fi
+
+function createNubomediaBase {
+    echo "Creating the Nubomedia base folder"
+    # removing it if exists
+    $_ex 'rm -rf '$_nubomedia_base
+    $_ex 'mkdir -p '$_ms_vnfm
+    $_ex 'chown -R '"$_user $_nubomedia_base"
+ 
+    # create log folder and give perission
+    $_ex 'rm -rf '$_log_folder
+    $_ex 'mkdir -p '$_log_folder
+    $_ex 'chown -R '"$_user $_log_folder"
+}
+
+function checkoutMSVNFM {
+    echo "Getting MS-VNFM..."
+    createNubomediaBase
+    git clone --recursive "${_ms_vnfm_base_repo}" "${_ms_vnfm}"
+    pushd "${_ms_vnfm}"
+    git checkout ${_tag}
+    popd
+}
+
+function compileMSVNFM {
+    echo "compiling the MS-VNFM"
+    pushd "${_ms_vnfm}"
+    ./ms-vnfm.sh compile
+    if [ $? -ne 0 ]; then
+        echo "ERROR: The compilation of the NFVO failed"
+        exit 1
+    fi
+    popd
+}
+
+function startMSVNFM {
+    echo "starting the MS-VNFM"
+    pushd ${_ms_vnfm}
+    ./ms-vnfm.sh start
+    popd
+}
+
+function deployMSVNFM {
+    compileMSVNFM
+    startMSVNFM
+}
+
+function bootstrap {
+    # checkout OpenBaton
+    checkoutMSVNFM
+    # deploy and compile MS-VNFM
+    deployMSVNFM
+    echo "MS-VNFM is up and running now. Check screen -r nubomedia..."
+
+}
+
+bootstrap
