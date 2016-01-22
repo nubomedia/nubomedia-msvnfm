@@ -1,6 +1,13 @@
 package org.openbaton.vnfm.utils;
 
+import org.openbaton.catalogue.mano.common.Event;
+import org.openbaton.catalogue.mano.common.LifecycleEvent;
+import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
+import org.openbaton.catalogue.nfvo.VimInstance;
+import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.monitoring.interfaces.MonitoringPlugin;
+import org.openbaton.sdk.NFVORequestor;
+import org.openbaton.sdk.api.exception.SDKException;
 import org.openbaton.vim.drivers.interfaces.ClientInterfaces;
 import org.openbaton.monitoring.interfaces.VirtualisedResourcesPerformanceManagement;
 import org.openbaton.vnfm.exceptions.PluginInstallException;
@@ -22,10 +29,7 @@ import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * Created by mpa on 29.07.15.
@@ -153,4 +157,63 @@ public class Utils {
         }
     }
 
+    public static VimInstance getVimInstance(String name, List<VimInstance> vimInstances) throws NotFoundException {
+        for (VimInstance vimInstance : vimInstances) {
+            if (vimInstance.getName().equals(name)) {
+                return vimInstance;
+            }
+        }
+        throw new NotFoundException("VimInstance with name: " + name + " was not found in the provided list of VimInstances.");
+    }
+
+    public static VimInstance getVimInstance(String name, NFVORequestor nfvoRequestor) throws NotFoundException {
+        List<VimInstance> vimInstances = new ArrayList<>();
+        try {
+            vimInstances = nfvoRequestor.getVimInstanceAgent().findAll();
+        } catch (SDKException e) {
+            log.error(e.getMessage(), e);
+        } catch (ClassNotFoundException e) {
+            log.error(e.getMessage(), e);
+        }
+        for (VimInstance vimInstance : vimInstances) {
+            if (vimInstance.getName().equals(name)) {
+                return vimInstance;
+            }
+        }
+        throw new NotFoundException("VimInstance with name: " + name + " was not found in the provided list of VimInstances.");
+    }
+
+    public Set<Event> listEvents(VirtualNetworkFunctionRecord vnfr) {
+        Set<Event> events = new HashSet<Event>();
+        for (LifecycleEvent event : vnfr.getLifecycle_event()) {
+            events.add(event.getEvent());
+        }
+        return events;
+    }
+
+    public void removeEvent(VirtualNetworkFunctionRecord vnfr, Event event) throws javassist.NotFoundException {
+        LifecycleEvent lifecycleEvent = null;
+        if (vnfr.getLifecycle_event_history() == null)
+            vnfr.setLifecycle_event_history(new HashSet<LifecycleEvent>());
+        for (LifecycleEvent tmpLifecycleEvent : vnfr.getLifecycle_event()) {
+            if (event.equals(tmpLifecycleEvent.getEvent())) {
+                lifecycleEvent = tmpLifecycleEvent;
+                vnfr.getLifecycle_event_history().add(lifecycleEvent);
+                break;
+            }
+        }
+        if (lifecycleEvent == null) {
+            throw new javassist.NotFoundException("Not found LifecycleEvent with event " + event);
+        }
+    }
+
+    public Set<Event> listHistoryEvents(VirtualNetworkFunctionRecord vnfr) {
+        Set<Event> events = new HashSet<Event>();
+        if (vnfr.getLifecycle_event_history() != null) {
+            for (LifecycleEvent event : vnfr.getLifecycle_event_history()) {
+                events.add(event.getEvent());
+            }
+        }
+        return events;
+    }
 }

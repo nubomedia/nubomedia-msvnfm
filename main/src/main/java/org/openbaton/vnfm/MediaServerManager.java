@@ -1,7 +1,6 @@
 package org.openbaton.vnfm;
 
 import org.openbaton.autoscaling.core.management.ElasticityManagement;
-import org.openbaton.catalogue.mano.common.Event;
 import org.openbaton.catalogue.mano.descriptor.VNFComponent;
 import org.openbaton.catalogue.mano.descriptor.VNFDConnectionPoint;
 import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
@@ -13,16 +12,12 @@ import org.openbaton.catalogue.nfvo.Action;
 import org.openbaton.catalogue.nfvo.VimInstance;
 import org.openbaton.common.vnfm_sdk.amqp.AbstractVnfmSpringAmqp;
 import org.openbaton.exceptions.NotFoundException;
+import org.openbaton.exceptions.VimDriverException;
 import org.openbaton.exceptions.VimException;
 import org.openbaton.nfvo.vim_interfaces.resource_management.ResourceManagement;
 import org.openbaton.plugin.utils.PluginStartup;
 import org.openbaton.sdk.NFVORequestor;
-import org.openbaton.sdk.api.exception.SDKException;
-import org.openbaton.vim.drivers.exceptions.VimDriverException;
 import org.openbaton.vnfm.catalogue.ManagedVNFR;
-import org.openbaton.vnfm.catalogue.MediaServer;
-//import org.openbaton.vnfm.core.ElasticityManagement;
-import org.openbaton.vnfm.core.LifecycleManagement;
 import org.openbaton.vnfm.core.interfaces.ApplicationManagement;
 import org.openbaton.vnfm.core.interfaces.MediaServerManagement;
 import org.openbaton.vnfm.repositories.ManagedVNFRRepository;
@@ -60,9 +55,6 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
     private ResourceManagement resourceManagement;
 
     @Autowired
-    private LifecycleManagement lifecycleManagement;
-
-    @Autowired
     private ApplicationManagement applicationManagement;
 
     @Autowired
@@ -82,7 +74,7 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
     }
 
     @Override
-    public VirtualNetworkFunctionRecord instantiate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, Object object) {
+    public VirtualNetworkFunctionRecord instantiate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, Object object, List<VimInstance> vimInstances) {
         ManagedVNFR managedVNFR = new ManagedVNFR();
         managedVNFR.setNsrId(virtualNetworkFunctionRecord.getParent_ns_id());
         managedVNFR.setVnfrId(virtualNetworkFunctionRecord.getId());
@@ -98,15 +90,8 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
             for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
                 VimInstance vimInstance = null;
                 try {
-                    List<VimInstance> vimInstances = nfvoRequestor.getVimInstanceAgent().findAll();
-                    for (VimInstance vimInstanceTMP : vimInstances) {
-                        if (vdu.getVimInstanceName().equals(vimInstanceTMP.getName())) {
-                            vimInstance = vimInstanceTMP;
-                        }
-                    }
-                } catch (SDKException e) {
-                    log.error(e.getMessage(), e);
-                } catch (ClassNotFoundException e) {
+                    vimInstance = Utils.getVimInstance(vdu.getVimInstanceName(), vimInstances);
+                } catch (NotFoundException e) {
                     log.error(e.getMessage(), e);
                 }
                 List<Future<VNFCInstance>> vnfcInstancesFuturePerVDU = new ArrayList<>();
@@ -120,7 +105,7 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
                     }
                     Future<VNFCInstance> allocate = null;
                     try {
-                        allocate = resourceManagement.allocate(vdu, virtualNetworkFunctionRecord, vnfComponent, userdata, floatgingIps);
+                        allocate = resourceManagement.allocate(vimInstance, vdu, virtualNetworkFunctionRecord, vnfComponent, userdata, floatgingIps);
                     } catch (VimException e) {
                         log.error(e.getMessage());
                         if (log.isDebugEnabled())
@@ -194,15 +179,21 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
     @Override
     public VirtualNetworkFunctionRecord terminate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
         log.info("Terminating vnfr with id " + virtualNetworkFunctionRecord.getId());
-        Set<Event> events = lifecycleManagement.listEvents(virtualNetworkFunctionRecord);
+        //Set<Event> events = lifecycleManagement.listEvents(virtualNetworkFunctionRecord);
         //if (events.contains(Event.SCALE))
         elasticityManagement.deactivate(virtualNetworkFunctionRecord.getParent_ns_id(), virtualNetworkFunctionRecord.getId());
         for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
             Set<VNFCInstance> vnfciToRem = new HashSet<>();
+            VimInstance vimInstance = null;
+            try {
+                vimInstance = Utils.getVimInstance(vdu.getVimInstanceName(), nfvoRequestor);
+            } catch (NotFoundException e) {
+                log.error(e.getMessage(), e);
+            }
             for (VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
                 log.debug("Releasing resources for vdu with id " + vdu.getId());
                 try {
-                    resourceManagement.release(vnfcInstance, vdu.getVimInstance());
+                    resourceManagement.release(vnfcInstance, vimInstance);
                     log.debug("Removed VNFCinstance: " + vnfcInstance);
                 } catch (VimException e) {
                     log.error(e.getMessage(), e);
@@ -230,7 +221,7 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
     }
 
     @Override
-    public VirtualNetworkFunctionRecord start(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) throws VimException, NotFoundException, VimDriverException {
+    public VirtualNetworkFunctionRecord start(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
         log.debug("Initializing Nubomedia MediaServers:");
         for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
             for (VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
@@ -243,7 +234,19 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
         }
         //TODO where to set it to active?
         virtualNetworkFunctionRecord.setStatus(Status.ACTIVE);
-        elasticityManagement.activate(virtualNetworkFunctionRecord.getParent_ns_id(), virtualNetworkFunctionRecord.getId());
+        try {
+            elasticityManagement.activate(virtualNetworkFunctionRecord.getParent_ns_id(), virtualNetworkFunctionRecord.getId());
+        } catch (NotFoundException e) {
+            log.warn(e.getMessage());
+            if (log.isDebugEnabled()) {
+                log.error(e.getMessage(), e);
+            }
+        } catch (VimException e) {
+            log.warn(e.getMessage());
+            if (log.isDebugEnabled()) {
+                log.error(e.getMessage(), e);
+            }
+        }
         return virtualNetworkFunctionRecord;
     }
 
