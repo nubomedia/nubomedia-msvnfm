@@ -30,7 +30,7 @@ project.ext {
     /**
      * gradle Related Vars
      */
-    mainClass = 'org.openbaton.vnfm.MediaServerManager'
+    mainClass = 'org.openbaton.vnfm.Application'
     //------------------------------------------------//
 }
 apply from: 'openbaton-libs/gradle/gradle/application.java.gradle'
