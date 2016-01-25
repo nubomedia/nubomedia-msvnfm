@@ -41,6 +41,7 @@ include 'monitoring'
 include 'exception'
 include 'plugin'
 include 'utils'
+include 'configuration'
 
 project(':catalogue').projectDir = file('openbaton-libs/catalogue')
 project(':vnfm-sdk-amqp').projectDir = file('openbaton-libs/vnfm-sdk-amqp')

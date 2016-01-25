@@ -16,6 +16,8 @@ public class AutoScalingProperties {
 
     private TerminationRule terminationRule;
 
+    private Monitor monitor;
+
     public Pool getPool() {
         return pool;
     }
@@ -30,6 +32,14 @@ public class AutoScalingProperties {
 
     public void setTerminationRule(TerminationRule terminationRule) {
         this.terminationRule = terminationRule;
+    }
+
+    public Monitor getMonitor() {
+        return monitor;
+    }
+
+    public void setMonitor(Monitor monitor) {
+        this.monitor = monitor;
     }
 
     public static class Pool {
@@ -73,9 +83,20 @@ public class AutoScalingProperties {
         public void setPrepare(boolean prepare) {
             this.prepare = prepare;
         }
+
+        @Override
+        public String toString() {
+            return "Pool{" +
+                    "activate=" + activate +
+                    ", size=" + size +
+                    ", period=" + period +
+                    ", prepare=" + prepare +
+                    '}';
+        }
     }
 
     public static class TerminationRule {
+
         private boolean activate;
 
         private String metric;
@@ -105,6 +126,43 @@ public class AutoScalingProperties {
         public void setValue(String value) {
             this.value = value;
         }
+
+        @Override
+        public String toString() {
+            return "TerminationRule{" +
+                    "activate=" + activate +
+                    ", metric='" + metric + '\'' +
+                    ", value='" + value + '\'' +
+                    '}';
+        }
     }
 
+    public static class Monitor {
+
+        private String url;
+
+        public String getUrl() {
+            return url;
+        }
+
+        public void setUrl(String url) {
+            this.url = url;
+        }
+
+        @Override
+        public String toString() {
+            return "Monitor{" +
+                    "url='" + url + '\'' +
+                    '}';
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "AutoScalingProperties{" +
+                "pool=" + pool +
+                ", terminationRule=" + terminationRule +
+                ", monitor=" + monitor +
+                '}';
+    }
 }

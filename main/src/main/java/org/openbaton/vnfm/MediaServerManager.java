@@ -18,11 +18,13 @@ import org.openbaton.nfvo.vim_interfaces.resource_management.ResourceManagement;
 import org.openbaton.plugin.utils.PluginStartup;
 import org.openbaton.sdk.NFVORequestor;
 import org.openbaton.vnfm.catalogue.ManagedVNFR;
+import org.openbaton.vnfm.configuration.NfvoProperties;
 import org.openbaton.vnfm.core.interfaces.ApplicationManagement;
 import org.openbaton.vnfm.core.interfaces.MediaServerManagement;
 import org.openbaton.vnfm.repositories.ManagedVNFRRepository;
 import org.openbaton.vnfm.utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.orm.jpa.EntityScan;
@@ -65,11 +67,14 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
 
     private NFVORequestor nfvoRequestor;
 
+    @Autowired
+    private NfvoProperties nfvoProperties;
+
     /**
      * Vim must be initialized only after the registry is up and plugin registered
      */
     private void initilize() {
-        this.nfvoRequestor = new NFVORequestor(properties.getProperty("nfvo.username"), properties.getProperty("nfvo.password"), properties.getProperty("nfvo.ip"), properties.getProperty("nfvo.port"), "1");
+        this.nfvoRequestor = new NFVORequestor(nfvoProperties.getUsername(), nfvoProperties.getPassword(), nfvoProperties.getIp(), nfvoProperties.getPort(), "1");
         resourceManagement = (ResourceManagement) context.getBean("openstackVIM", "15672");
     }
 
@@ -270,8 +275,8 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
 //        } catch (IOException e) {
 //            e.printStackTrace();
 //        }
-        Utils.loadExternalProperties(properties);
-        Utils.isNfvoStarted(properties.getProperty("nfvo.ip"), properties.getProperty("nfvo.port"));
+        //Utils.loadExternalProperties(properties);
+        //Utils.isNfvoStarted(properties.getProperty("nfvo.ip"), properties.getProperty("nfvo.port"));
         //elasticityManagement.initilizeVim();
         this.initilize();
     }

@@ -12,23 +12,30 @@ import org.springframework.stereotype.Service;
 @PropertySource("classpath:app.properties")
 public class ApplicationProperties {
 
-    private HeartBeat heartBeat;
+    private Heartbeat heartbeat;
 
-    public HeartBeat getHeartBeat() {
-        return heartBeat;
+    public Heartbeat getHeartbeat() {
+        return heartbeat;
     }
 
-    public void setHeartBeat(HeartBeat heartBeat) {
-        this.heartBeat = heartBeat;
+    public void setHeartbeat(Heartbeat heartBeat) {
+        this.heartbeat = heartBeat;
     }
 
-    public static class HeartBeat {
+    @Override
+    public String toString() {
+        return "ApplicationProperties{" +
+                "heartbeat=" + heartbeat +
+                '}';
+    }
+
+    public static class Heartbeat {
 
         private String activate;
 
         private String period;
 
-        private Retries retries;
+        private Retry retry;
 
         public String getActivate() {
             return activate;
@@ -46,15 +53,24 @@ public class ApplicationProperties {
             this.period = period;
         }
 
-        public Retries getRetries() {
-            return retries;
+        public Retry getRetry() {
+            return retry;
         }
 
-        public void setRetries(Retries retries) {
-            this.retries = retries;
+        public void setRetry(Retry retry) {
+            this.retry = retry;
         }
 
-        public static class Retries {
+        @Override
+        public String toString() {
+            return "Heartbeat{" +
+                    "activate='" + activate + '\'' +
+                    ", period='" + period + '\'' +
+                    ", retry=" + retry +
+                    '}';
+        }
+
+        public static class Retry {
 
             private String max;
 
@@ -74,6 +90,14 @@ public class ApplicationProperties {
 
             public void setTimeout(String timeout) {
                 this.timeout = timeout;
+            }
+
+            @Override
+            public String toString() {
+                return "Retries{" +
+                        "max='" + max + '\'' +
+                        ", timeout='" + timeout + '\'' +
+                        '}';
             }
         }
     }

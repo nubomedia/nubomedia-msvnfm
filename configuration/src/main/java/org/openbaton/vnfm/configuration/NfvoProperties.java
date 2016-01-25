@@ -8,9 +8,9 @@ import org.springframework.stereotype.Service;
  * Created by mpa on 25.01.16.
  */
 @Service
-@ConfigurationProperties(prefix="mediaserver")
-@PropertySource("classpath:mediaserver.properties")
-public class MediaServerProperties {
+@ConfigurationProperties(prefix="nfvo")
+@PropertySource("classpath:nfvo.properties")
+public class NfvoProperties {
 
     private String ip;
     private String port;
@@ -47,5 +47,15 @@ public class MediaServerProperties {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    @Override
+    public String toString() {
+        return "NfvoProperties{" +
+                "ip='" + ip + '\'' +
+                ", port='" + port + '\'' +
+                ", username='" + username + '\'' +
+                ", password='" + password + '\'' +
+                '}';
     }
 }
