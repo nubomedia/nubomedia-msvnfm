@@ -71,6 +71,8 @@ function compileMSVNFM {
         exit 1
     fi
     popd
+    $_ex 'rm -rf "/etc/nubomedia"; mkdir "/etc/nubomedia"'
+    $_ex 'cp '"${_ms_vnfm}/etc/msvnfm.properties /etc/nubomedia/msvnfm.properties"
 }
 
 function startMSVNFM {
@@ -85,9 +87,104 @@ function deployMSVNFM {
     startMSVNFM
 }
 
+function promptSetProperties {
+  export brokerIp
+  read -p "Enter the rabbitmq broker ip [localhost]: " brokerIp
+  if [[ $brokerIp != "" ]]; then
+     $_ex 'sed -i "s/vnfm.rabbitmq.brokerIp=localhost/vnfm.rabbitmq.brokerIp = $brokerIp/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export nfvoIp
+  read -p "Enter the Orchestrator ip [localhost]: " nfvoIp
+  if [[ $nfvoIp != "" ]]; then
+     $_ex 'sed -i "s/nfvo.ip=localhost/nfvo.ip=$nfvoIp/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export nfvoPort
+    read -p "Enter the Orchestrator ip [8080]: " nfvoPort
+    if [[ $nfvoIp != "" ]]; then
+     $_ex 'sed -i "s/nfvo.port=8080/nfvo.port=$nfvoIp/g" /etc/nubomedia/msvnfm.properties'
+    fi
+
+  export nfvoUsername
+  read -p "Enter the Orchestrator username [admin]: " nfvoUsername
+  if [[ $nfvoUsername != "" ]]; then
+     $_ex 'sed -i "s/nfvo.username=admin/nfvo.username=$nfvoUsername/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export nfvoPassword
+  read -p "Enter the Orchestrator password [openbaton]: " nfvoPassword
+  if [[ $nfvoPassword != "" ]]; then
+     $_ex 'sed -i "s/nfvo.password=openbaton/nfvo.password=$nfvoPassword/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export mediaServerCapacityMax
+  read -p "Enter MediaServer maximal Capacity [100]: " mediaServerCapacityMax
+  if [[ $mediaServerCapacityMax != "" ]]; then
+     $_ex 'sed -i "s/mediaserver.capacity.max=100/mediaserver.capacity.max=$mediaServerCapacityMax/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export mediaServerMonitorURL
+  read -p "Enter MediaServer Monitoring URL [localhost]: " mediaServerMonitorURL
+  if [[ $mediaServerMonitorURL != "" ]]; then
+     $_ex 'sed -i "s/mediaserver.monitor.url=localhost/mediaserver.monitor.url=$mediaServerMonitorURL/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export mediaServerTurnServerURL
+  read -p "Enter MediaServer STUN-Server URL [localhost]: " mediaServerTurnServerURL
+  if [[ $mediaServerTurnServerURL != "" ]]; then
+     $_ex 'sed -i "s/mediaserver.turn-server.url=localhost/mediaserver.turn-server.url=$mediaServerTurnServerURL/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export applicationHeartbeatActivate
+  read -p "Enable Application Heartbeat mechanism [true]: " applicationHeartbeatActivate
+  if [[ $applicationHeartbeatActivate != "" ]]; then
+     $_ex 'sed -i "s/application.heartbeat.activate=true/application.heartbeat.activate=$applicationHeartbeatActivate/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export applicationHeartbeatPeriod
+  read -p "Enter Application Heartbeat Period [30]: " applicationHeartbeatPeriod
+  if [[ $applicationHeartbeatPeriod != "" ]]; then
+     $_ex 'sed -i "s/application.heartbeat.period=30/application.heartbeat.period=$applicationHeartbeatPeriod/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export applicationHeartbeatRetryMax
+  read -p "Enter Application Heartbeat max retries [3]: " applicationHeartbeatRetryMax
+  if [[ $applicationHeartbeatRetryMax != "" ]]; then
+     $_ex 'sed -i "s/application.heartbeat.retry.max=3/application.heartbeat.retry.max=$applicationHeartbeatRetryMax/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export applicationHeartbeatRetryTimeout
+  read -p "Enter Application Heartbeat max timeout [90]: " applicationHeartbeatRetryTimeout
+  if [[ $applicationHeartbeatRetryTimeout != "" ]]; then
+     $_ex 'sed -i "s/application.heartbeat.retry.timeout=90/application.heartbeat.retry.timeout=$applicationHeartbeatRetryTimeout/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export autoscalingTerminationRuleActivate
+  read -p "Enable AutoScaling TerminationRule [true]: " autoscalingTerminationRuleActivate
+  if [[ $autoscalingTerminationRuleActivate != "" ]]; then
+     $_ex 'sed -i "s/autoscaling.termination-rule.activate=true/autoscaling.termination-rule.activate=$autoscalingTerminationRuleActivate/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export autoscalingPoolActivate
+  read -p "Enable AutoScaling p [true]: " autoscalingPoolActivate
+  if [[ $autoscalingPoolActivate != "" ]]; then
+     $_ex 'sed -i "s/autoscaling.pool.activate=true/autoscaling.pool.activate=$autoscalingPoolActivate/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export autoscalingPoolSize
+  read -p "Enter AutoScaling Pool Size [2]: " autoscalingPoolSize
+  if [[ $autoscalingPoolSize != "" ]]; then
+     $_ex 'sed -i "s/autoscaling.pool.size=2/autoscaling.pool.size=$autoscalingPoolSize/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+}
+
 function bootstrap {
     # checkout OpenBaton
     checkoutMSVNFM
+    # prompting properties
+    promptSetProperties
     # deploy and compile MS-VNFM
     deployMSVNFM
     echo "MS-VNFM is up and running now. Check screen -r nubomedia..."
