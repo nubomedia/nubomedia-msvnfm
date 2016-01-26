@@ -48,6 +48,8 @@ public class Application implements Serializable{
 
     private Date heartbeat;
 
+    private int missedHeartbeats;
+
     @PrePersist
     public void ensureId(){
         id = IdGenerator.createUUID();
@@ -117,6 +119,14 @@ public class Application implements Serializable{
         this.heartbeat = heartbeat;
     }
 
+    public int getMissedHeartbeats() {
+        return missedHeartbeats;
+    }
+
+    public void setMissedHeartbeats(int missedHeartbeats) {
+        this.missedHeartbeats = missedHeartbeats;
+    }
+
     @Override
     public String toString() {
         return "Application{" +
@@ -129,6 +139,7 @@ public class Application implements Serializable{
                 ", extAppId='" + extAppId + '\'' +
                 ", created=" + created +
                 ", heartbeat=" + heartbeat +
+                ", missedHeartbeats=" + missedHeartbeats +
                 '}';
     }
 }

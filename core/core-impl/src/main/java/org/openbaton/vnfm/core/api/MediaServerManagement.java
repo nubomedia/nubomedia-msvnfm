@@ -167,7 +167,7 @@ public class MediaServerManagement implements org.openbaton.vnfm.core.interfaces
 
     @Override
     public MediaServer update(MediaServer mediaServer, String id) {
-        throw new UnsupportedOperationException();
+        return mediaServerRepository.save(mediaServer);
     }
 
     private Set fromIterbaleToSet(Iterable iterable){

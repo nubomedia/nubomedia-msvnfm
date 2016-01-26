@@ -18,6 +18,7 @@ import org.openbaton.nfvo.vim_interfaces.resource_management.ResourceManagement;
 import org.openbaton.plugin.utils.PluginStartup;
 import org.openbaton.sdk.NFVORequestor;
 import org.openbaton.vnfm.catalogue.ManagedVNFR;
+import org.openbaton.vnfm.configuration.ApplicationProperties;
 import org.openbaton.vnfm.configuration.NfvoProperties;
 import org.openbaton.vnfm.core.interfaces.ApplicationManagement;
 import org.openbaton.vnfm.core.interfaces.MediaServerManagement;
@@ -69,6 +70,9 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
 
     @Autowired
     private NfvoProperties nfvoProperties;
+
+    @Autowired
+    private ApplicationProperties applicationProperties;
 
     /**
      * Vim must be initialized only after the registry is up and plugin registered
@@ -279,6 +283,9 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
         //Utils.isNfvoStarted(properties.getProperty("nfvo.ip"), properties.getProperty("nfvo.port"));
         //elasticityManagement.initilizeVim();
         this.initilize();
+        if (applicationProperties.getHeartbeat().isActivate()) {
+            applicationManagement.startHeartbeatCheck();
+        }
     }
 
     public static void main(String[] args) {

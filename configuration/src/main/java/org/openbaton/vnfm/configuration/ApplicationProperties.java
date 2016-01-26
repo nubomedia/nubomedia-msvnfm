@@ -31,25 +31,25 @@ public class ApplicationProperties {
 
     public static class Heartbeat {
 
-        private String activate;
+        private boolean activate;
 
-        private String period;
+        private int period;
 
         private Retry retry;
 
-        public String getActivate() {
+        public boolean isActivate() {
             return activate;
         }
 
-        public void setActivate(String activate) {
+        public void setActivate(boolean activate) {
             this.activate = activate;
         }
 
-        public String getPeriod() {
+        public int getPeriod() {
             return period;
         }
 
-        public void setPeriod(String period) {
+        public void setPeriod(int period) {
             this.period = period;
         }
 
@@ -72,23 +72,23 @@ public class ApplicationProperties {
 
         public static class Retry {
 
-            private String max;
+            private int max;
 
-            private String timeout;
+            private int timeout;
 
-            public String getMax() {
+            public int getMax() {
                 return max;
             }
 
-            public void setMax(String max) {
+            public void setMax(int max) {
                 this.max = max;
             }
 
-            public String getTimeout() {
+            public int getTimeout() {
                 return timeout;
             }
 
-            public void setTimeout(String timeout) {
+            public void setTimeout(int timeout) {
                 this.timeout = timeout;
             }
 

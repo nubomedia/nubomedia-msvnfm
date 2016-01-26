@@ -4,6 +4,8 @@ import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.vnfm.catalogue.Application;
 import org.openbaton.vnfm.catalogue.Status;
 import org.openbaton.vnfm.catalogue.MediaServer;
+import org.openbaton.vnfm.configuration.ApplicationProperties;
+import org.openbaton.vnfm.configuration.MediaServerProperties;
 import org.openbaton.vnfm.core.interfaces.*;
 import org.openbaton.vnfm.core.interfaces.MediaServerManagement;
 import org.openbaton.vnfm.core.interfaces.VirtualNetworkFunctionRecordManagement;
@@ -11,10 +13,14 @@ import org.openbaton.vnfm.repositories.ApplicationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Configurable;
 import org.springframework.context.annotation.Scope;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.util.*;
+import java.util.concurrent.ScheduledFuture;
 
 /**
  * Created by mpa on 01.10.15.
@@ -33,6 +39,22 @@ public class ApplicationManagement implements org.openbaton.vnfm.core.interfaces
 
     @Autowired
     private VirtualNetworkFunctionRecordManagement vnfrManagement;
+
+    private ThreadPoolTaskScheduler taskScheduler;
+
+    private ScheduledFuture heartbeatTaskScheduled;
+
+    @Autowired
+    private ApplicationProperties applicationProperties;
+
+    @PostConstruct
+    public void init() {
+        this.taskScheduler = new ThreadPoolTaskScheduler();
+        this.taskScheduler.setPoolSize(10);
+        this.taskScheduler.setWaitForTasksToCompleteOnShutdown(true);
+        this.taskScheduler.setRemoveOnCancelPolicy(true);
+        this.taskScheduler.initialize();
+    }
 
     @Override
     public Application add(Application application) throws NotFoundException {
@@ -75,6 +97,7 @@ public class ApplicationManagement implements org.openbaton.vnfm.core.interfaces
         if (mediaServer.getUsedPoints() == 0) {
             mediaServer.setStatus(Status.IDLE);
         }
+        mediaServerManagement.update(mediaServer, mediaServer.getId());
         applicationRepository.delete(application);
         log.info("Removed Application with id: " + appId + " running on VNFR with id: " + vnfrId);
     }
@@ -155,5 +178,74 @@ public class ApplicationManagement implements org.openbaton.vnfm.core.interfaces
             set.add(iterator.next());
         }
         return set;
+    }
+
+    public void startHeartbeatCheck() {
+        log.debug("Starting HeartbeatTask...");
+        if (heartbeatTaskScheduled == null) {
+            HeartbeatTask heartbeatTask = new HeartbeatTask(this, applicationProperties);
+            heartbeatTaskScheduled = taskScheduler.scheduleAtFixedRate(heartbeatTask, applicationProperties.getHeartbeat().getPeriod() * 1000);
+            log.debug("Started HeartbeatTask...");
+        } else {
+            log.warn("HeartbeatTask was already started. Not start it again");
+        }
+    }
+
+    public void stopHeartbeatCheck() {
+        log.debug("Stopping HeartbeatTask...");
+        if (heartbeatTaskScheduled != null) {
+            heartbeatTaskScheduled.cancel(true);
+            log.debug("Stoopped HeartbeatTask...");
+        } else {
+            log.warn("HeartbeatTask was not running. Cannot stop it");
+        }
+    }
+}
+
+class HeartbeatTask implements Runnable {
+
+    protected Logger log = LoggerFactory.getLogger(this.getClass());
+
+    private ApplicationManagement applicationManagement;
+
+    private ApplicationProperties applicationProperties;
+
+    public HeartbeatTask(ApplicationManagement applicationManagement, ApplicationProperties applicationProperties) {
+        this.applicationManagement = applicationManagement;
+        this.applicationProperties = applicationProperties;
+    }
+
+    @Override
+    public void run() {
+        log.debug("Checking Heartbeats of Applications");
+        Set<Application> applicationToRemove = new HashSet<>();
+        for (Application application : applicationManagement.query()) {
+            log.debug("Checking Heartbeat of Application: " + application);
+            if (System.currentTimeMillis() - application.getHeartbeat().getTime() < applicationProperties.getHeartbeat().getPeriod() * 1000) {
+                log.debug("Last Heartbeat received in time at " + application.getHeartbeat().getTime());
+                application.setMissedHeartbeats(0);
+            } else {
+                log.debug("Heartbeat missed in the last interval");
+                application.setMissedHeartbeats(application.getMissedHeartbeats() + 1);
+                log.debug("Increased missed Heartbeats by one. Counter: " + application.getMissedHeartbeats());
+            }
+            applicationManagement.update(application, application.getId());
+
+            if (application.getMissedHeartbeats() >= applicationProperties.getHeartbeat().getRetry().getMax()) {
+                log.warn("Reached maximum number of missed Heartbeats. Remove Application.");
+                try {
+                    applicationManagement.delete(application.getVnfr_id(), application.getId());
+                } catch (NotFoundException e) {
+                    log.warn(e.getMessage());
+                }
+            } else if (System.currentTimeMillis() - application.getHeartbeat().getTime() > applicationProperties.getHeartbeat().getRetry().getTimeout() * 1000) {
+                log.warn("Reached timeout of Heartbeat. Remove Application.");
+                try {
+                    applicationManagement.delete(application.getVnfr_id(), application.getId());
+                } catch (NotFoundException e) {
+                    log.warn(e.getMessage());
+                }
+            }
+        }
     }
 }
