@@ -102,8 +102,8 @@ function promptSetProperties {
 
   export nfvoPort
     read -p "Enter the Orchestrator ip [8080]: " nfvoPort
-    if [[ $nfvoIp != "" ]]; then
-     $_ex 'sed -i "s/nfvo.port=8080/nfvo.port=$nfvoIp/g" /etc/nubomedia/msvnfm.properties'
+    if [[ $nfvoPort != "" ]]; then
+     $_ex 'sed -i "s/nfvo.port=8080/nfvo.port=$nfvoPort/g" /etc/nubomedia/msvnfm.properties'
     fi
 
   export nfvoUsername
