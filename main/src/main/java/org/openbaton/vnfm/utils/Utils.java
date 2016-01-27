@@ -30,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * Created by mpa on 29.07.15.
@@ -69,11 +70,13 @@ public class Utils {
         }
     }
 
-    public static String getUserdata() {
+    public static String getUserdata(Map<String, String> variables) {
         StringBuilder sb = new StringBuilder();
         sb.append(getUserdataFromJar());
         sb.append(getUserdataFromFS());
-        return sb.toString();
+        String userdataRaw = sb.toString();
+        String userdata = replaceVariables(userdataRaw, variables);
+        return userdata;
     }
 
     public static String getUserdataFromJar() {
@@ -215,5 +218,19 @@ public class Utils {
             }
         }
         return events;
+    }
+
+    public static String replaceVariables(String userdataRaw, Map<String, String> variables) {
+        String userdata = userdataRaw;
+        for (String variable : variables.keySet()) {
+            //if (!variables.get(variable).equals("")) {
+                log.debug("Replace " + variable + " with value " + variables.get(variable));
+                userdata = userdata.replaceAll(Pattern.quote(variable), variables.get(variable));
+                log.debug("Replaced userdata: " + userdata);
+            //} else {
+            //    log.warn("Variable " + variable + " is not defined. So not replace it");
+            //}
+        }
+        return userdata;
     }
 }
