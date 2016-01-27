@@ -10,8 +10,8 @@ export DEBIAN_FRONTEND=noninteractive
 _dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 _ms_vnfm_base_repo="https://gitlab.tubit.tu-berlin.de/NUBOMEDIA/ms-vnfm.git"
-#_tag="develop"
-_tag="tags/0.15"
+_tag="develop"
+#_tag="tags/0.15"
 
 _base=/opt
 _nubomedia_base="${_base}/nubomedia"
@@ -60,6 +60,8 @@ function checkoutMSVNFM {
     pushd "${_ms_vnfm}"
     git checkout ${_tag}
     popd
+    $_ex 'rm -rf "/etc/nubomedia"; mkdir "/etc/nubomedia"'
+    $_ex 'cp '"${_ms_vnfm}/etc/msvnfm.properties /etc/nubomedia/msvnfm.properties"
 }
 
 function compileMSVNFM {
@@ -71,8 +73,6 @@ function compileMSVNFM {
         exit 1
     fi
     popd
-    $_ex 'rm -rf "/etc/nubomedia"; mkdir "/etc/nubomedia"'
-    $_ex 'cp '"${_ms_vnfm}/etc/msvnfm.properties /etc/nubomedia/msvnfm.properties"
 }
 
 function startMSVNFM {
