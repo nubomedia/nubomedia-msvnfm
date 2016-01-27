@@ -86,6 +86,10 @@ The log file is located in `/var/log/nubomedia/ms-vnfm.log`.
 
 See [LICENSE][LICENSE]
 
+#### Development
+
+Do you want to contribute? Great! [Write us](mailto:nubomedia@av.tu-berlin.de)!.
+
 [bootstrap]:https://github.com/tub-nubomedia/bootstrap
 [nfvo install]:http://openbaton.github.io/documentation/nfvo-installation/
 [spring.io]:https://spring.io/
