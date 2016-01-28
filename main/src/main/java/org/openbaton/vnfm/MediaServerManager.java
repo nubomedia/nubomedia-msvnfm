@@ -20,6 +20,7 @@ import org.openbaton.nfvo.vim_interfaces.resource_management.ResourceManagement;
 import org.openbaton.plugin.utils.PluginStartup;
 import org.openbaton.plugin.utils.RabbitPluginBroker;
 import org.openbaton.sdk.NFVORequestor;
+import org.openbaton.sdk.api.exception.SDKException;
 import org.openbaton.vim.drivers.VimDriverCaller;
 import org.openbaton.vnfm.catalogue.ManagedVNFR;
 import org.openbaton.vnfm.configuration.*;
@@ -228,6 +229,11 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp {
             managedVnfrRepository.deleteByVnfrId(virtualNetworkFunctionRecord.getId());
         } catch (NotFoundException e) {
             log.warn(e.getMessage());
+        }
+        try {
+            virtualNetworkFunctionRecord = nfvoRequestor.getNetworkServiceRecordAgent().getVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord.getParent_ns_id(), virtualNetworkFunctionRecord.getId());
+        } catch (SDKException e) {
+            log.error(e.getMessage(), e);
         }
         return virtualNetworkFunctionRecord;
     }
