@@ -15,6 +15,7 @@
 
 package org.openbaton.vnfm.catalogue;
 
+import org.openbaton.catalogue.nfvo.Action;
 import org.openbaton.catalogue.util.IdGenerator;
 
 import javax.persistence.Entity;
@@ -36,6 +37,8 @@ public class ManagedVNFR implements Serializable{
     private String vnfrId;
 
     private String nsrId;
+
+    private Action task;
 
     @PrePersist
     public void ensureId(){
@@ -66,13 +69,22 @@ public class ManagedVNFR implements Serializable{
         this.nsrId = nsrId;
     }
 
+    public Action getTask() {
+        return task;
+    }
+
+    public void setTask(Action task) {
+        this.task = task;
+    }
+
     @Override
     public String toString() {
-        return "VNFR{" +
+        return "ManagedVNFR{" +
                 "id='" + id + '\'' +
                 ", hb_version=" + hb_version +
                 ", vnfrId='" + vnfrId + '\'' +
                 ", nsrId='" + nsrId + '\'' +
+                ", task='" + task + '\'' +
                 '}';
     }
 }
