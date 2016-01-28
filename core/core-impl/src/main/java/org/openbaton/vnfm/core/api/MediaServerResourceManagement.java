@@ -98,24 +98,14 @@ public class MediaServerResourceManagement {
 
         log.debug("Using SecurityGroups: " + vimInstance.getSecurityGroups());
 
-        log.debug("Preparing userdata");
-        Map<String, String> variables = new HashMap<>();
-        variables.put("$HOSTNAME", hostname);
-        variables.put("$MONITORING_URL", mediaServerProperties.getMonitor().getUrl());
-        for (ConfigurationParameter configurationParameter : vnfr.getConfigurations().getConfigurationParameters()) {
-            log.debug(configurationParameter.toString());
-        }
-        variables.put("$TURN_SERVER_URL", mediaServerProperties.getTurnServer().getUrl());
-        variables.put("$TURN_SERVER_USERNAME", mediaServerProperties.getTurnServer().getUsername());
-        variables.put("$TURN_SERVER_PASSWORD", mediaServerProperties.getTurnServer().getPassword());
-        String userdata = Utils.replaceVariables(userdataRaw, variables);
-        log.debug("userdata: " + userdata);
         Map<String, String> floatingIps = new HashMap<>();
         for (VNFDConnectionPoint connectionPoint : vnfComponent.getConnection_point()) {
             if (connectionPoint.getFloatingIp() != null && !connectionPoint.getFloatingIp().equals("")) {
                 floatingIps.put(connectionPoint.getVirtual_link_reference(), connectionPoint.getFloatingIp());
             }
         }
+
+        String userdata = getUserdata(hostname, vnfr);
 
         log.debug("Launching VM with params: " + hostname + " - " + image + " - " + flavorExtId + " - " + vimInstance.getKeyPair() + " - " + networks + " - " + vimInstance.getSecurityGroups());
         Server server;
@@ -149,6 +139,15 @@ public class MediaServerResourceManagement {
             server = vimDriverException.getServer();
             if (server != null) {
                 vnfcInstance = getVnfcInstanceFromServer(vimInstance, vnfComponent, hostname, server, vdu, floatingIps, vnfr);
+                if (vnfcInstance != null) {
+                    try {
+                        client.deleteServerByIdAndWait(vimInstance, vnfcInstance.getVc_id());
+                    } catch (RemoteException e1) {
+                        log.error(e1.getMessage(), e);
+                    } catch (VimDriverException e1) {
+                        log.error(e1.getMessage(), e);
+                    }
+                }
             }
             throw new VimException("Not launched VM with hostname " + hostname + " successfully on VimInstance " + vimInstance.getName() + ". Caused by: " + e.getMessage(), e, vnfcInstance);
         } catch (RemoteException e) {
@@ -264,7 +263,30 @@ public class MediaServerResourceManagement {
         throw new VimException("No Images are available on VimInstnace " + vimInstance.getName());
     }
 
-
+    private String getUserdata(String hostname, VirtualNetworkFunctionRecord vnfr) {
+        log.debug("Preparing userdata");
+        Map<String, String> variables = new HashMap<>();
+        variables.put("$HOSTNAME", hostname);
+        variables.put("$MONITORING_URL", mediaServerProperties.getMonitor().getUrl());
+        variables.put("$TURN_SERVER_URL", mediaServerProperties.getTurnServer().getUrl());
+        variables.put("$TURN_SERVER_USERNAME", mediaServerProperties.getTurnServer().getUsername());
+        variables.put("$TURN_SERVER_PASSWORD", mediaServerProperties.getTurnServer().getPassword());
+        for (ConfigurationParameter configurationParameter : vnfr.getConfigurations().getConfigurationParameters()) {
+            log.debug(configurationParameter.toString());
+            if (configurationParameter.getConfKey().equals("mediaserver-turn-server.url")) {
+                variables.put("$TURN_SERVER_URL", configurationParameter.getValue());
+            }
+            if (configurationParameter.getConfKey().equals("mediaserver-turn-server.username")) {
+                variables.put("$TURN_SERVER_USERNAME", configurationParameter.getValue());
+            }
+            if (configurationParameter.getConfKey().equals("mediaserver-turn-server.password")) {
+                variables.put("$TURN_SERVER_PASSWORD", configurationParameter.getValue());
+            }
+        }
+        String userdata = Utils.replaceVariables(userdataRaw, variables);
+        log.debug("userdata: " + userdata);
+        return userdata;
+    }
 
 
 
