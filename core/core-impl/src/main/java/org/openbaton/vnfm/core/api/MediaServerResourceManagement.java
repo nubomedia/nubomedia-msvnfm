@@ -109,7 +109,7 @@ public class MediaServerResourceManagement {
         variables.put("$TURN_SERVER_USERNAME", mediaServerProperties.getTurnServer().getUsername());
         variables.put("$TURN_SERVER_PASSWORD", mediaServerProperties.getTurnServer().getPassword());
         String userdata = Utils.replaceVariables(userdataRaw, variables);
-
+        log.debug("userdata: " + userdata);
         Map<String, String> floatingIps = new HashMap<>();
         for (VNFDConnectionPoint connectionPoint : vnfComponent.getConnection_point()) {
             if (connectionPoint.getFloatingIp() != null && !connectionPoint.getFloatingIp().equals("")) {
