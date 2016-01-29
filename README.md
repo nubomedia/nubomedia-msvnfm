@@ -8,7 +8,7 @@ This project is part of NUBOMEDIA project: [nubomedia](https://www.nubomedia.eu 
 
 ## Getting Started
 
-This `VNF Manager`, called `ms-vnfm`, is implemented in java using the [spring.io] framework.
+This `VNF Manager`, called `ms-vnfm` also known as `emm`, is implemented in java using the [spring.io] framework.
 
 For using this VNFM you have to install the NFVO and start it. How to do this can be found [here][nfvo install].
 
