@@ -222,11 +222,11 @@ function promptSetProperties {
 
 function bootstrap {
     # checkout OpenBaton
-    #checkoutMSVNFM
+    checkoutMSVNFM
     # prompting properties
     promptSetProperties
     # deploy and compile MS-VNFM
-    #deployMSVNFM
+    deployMSVNFM
     echo "MS-VNFM is up and running now. Check screen -r nubomedia..."
 
 }
