@@ -64,13 +64,13 @@ public class MediaServerProperties {
 
     public static class Capacity {
 
-        private String max;
+        private int max;
 
-        public String getMax() {
+        public int getMax() {
             return max;
         }
 
-        public void setMax(String max) {
+        public void setMax(int max) {
             this.max = max;
         }
 
@@ -104,20 +104,31 @@ public class MediaServerProperties {
 
     public static class StunServer {
 
-        private String url;
+        private String address;
 
-        public String getUrl() {
-            return url;
+        private String port;
+
+        public String getAddress() {
+            return address;
         }
 
-        public void setUrl(String url) {
-            this.url = url;
+        public void setAddress(String address) {
+            this.address = address;
+        }
+
+        public String getPort() {
+            return port;
+        }
+
+        public void setPort(String port) {
+            this.port = port;
         }
 
         @Override
         public String toString() {
             return "StunServer{" +
-                    "url='" + url + '\'' +
+                    "address='" + address + '\'' +
+                    ", port='" + port + '\'' +
                     '}';
         }
     }
