@@ -153,7 +153,7 @@ The following list gives an overview of available configuration parameters and i
 
 ## Logging
 
-The log file is located in `/var/log/nubomedia/ms-vnfm.log`.
+The log file is located in `/var/log/nubomedia/ms-vnfm.log` by default. The path can be changed in `/etc/nubomedia/msvnfm.properties` adapting the property `logging.file=` to your needs.
 
 ## LICENSE
 
