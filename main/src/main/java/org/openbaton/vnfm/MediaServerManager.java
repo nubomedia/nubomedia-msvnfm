@@ -286,18 +286,23 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
         }
         //TODO where to set it to active?
         virtualNetworkFunctionRecord.setStatus(Status.ACTIVE);
-        try {
-            elasticityManagement.activate(virtualNetworkFunctionRecord.getParent_ns_id(), virtualNetworkFunctionRecord.getId());
-        } catch (NotFoundException e) {
-            log.warn(e.getMessage());
-            if (log.isDebugEnabled()) {
-                log.error(e.getMessage(), e);
+        if (virtualNetworkFunctionRecord.getAuto_scale_policy().size() > 0) {
+            log.debug("Activating Elasticity for VNFR with id: " + virtualNetworkFunctionRecord.getId());
+            try {
+                elasticityManagement.activate(virtualNetworkFunctionRecord.getParent_ns_id(), virtualNetworkFunctionRecord.getId());
+            } catch (NotFoundException e) {
+                log.warn(e.getMessage());
+                if (log.isDebugEnabled()) {
+                    log.error(e.getMessage(), e);
+                }
+            } catch (VimException e) {
+                log.warn(e.getMessage());
+                if (log.isDebugEnabled()) {
+                    log.error(e.getMessage(), e);
+                }
             }
-        } catch (VimException e) {
-            log.warn(e.getMessage());
-            if (log.isDebugEnabled()) {
-                log.error(e.getMessage(), e);
-            }
+        } else {
+            log.debug("Do not activate Elasticity because there are no AutoScalePolicies defined.");
         }
         managedVnfr = managedVnfrRepository.findByVnfrId(virtualNetworkFunctionRecord.getId()).iterator().next();
         managedVnfr.setTask(Action.SCALING);
