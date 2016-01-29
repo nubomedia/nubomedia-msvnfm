@@ -5,6 +5,7 @@ import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.vnfm.catalogue.Application;
 import org.openbaton.vnfm.catalogue.MediaServer;
 import org.openbaton.vnfm.catalogue.Status;
+import org.openbaton.vnfm.configuration.MediaServerProperties;
 import org.openbaton.vnfm.repositories.ApplicationRepository;
 import org.openbaton.vnfm.repositories.MediaServerRepository;
 import org.slf4j.Logger;
@@ -32,6 +33,8 @@ public class MediaServerManagement implements org.openbaton.vnfm.core.interfaces
     @Autowired
     private MediaServerRepository mediaServerRepository;
 
+    @Autowired
+    private MediaServerProperties mediaServerProperties;
 
     @Override
     public MediaServer add(MediaServer mediaServer) {
@@ -143,16 +146,25 @@ public class MediaServerManagement implements org.openbaton.vnfm.core.interfaces
     }
 
     @Override
-    public MediaServer queryBestMediaServerByVnfrId(String vnfr_id) throws NotFoundException {
+    public MediaServer queryBestMediaServerByVnfrId(String vnfr_id, int points) throws NotFoundException {
         MediaServer bestMediaServer = null;
         Set<MediaServer> mediaServers = queryByVnrfId(vnfr_id);
         if (mediaServers.size() == 0) {
             throw new NotFoundException("Not found any MediaServer of VNFR with id: " + vnfr_id);
         }
+        log.trace("Searching the best MediaServer for VNFR with id: " + vnfr_id + " that requires " + points + " points");
         for (MediaServer mediaServer : mediaServers) {
+            log.trace("Checking MediaServer -> " + mediaServer);
             if (mediaServer.getIp() != null) {
-                if (bestMediaServer == null) bestMediaServer = mediaServer;
-                if (mediaServer.getUsedPoints() < bestMediaServer.getUsedPoints()) {
+                if (bestMediaServer == null) {
+                    if (mediaServer.getUsedPoints() + points <= mediaServerProperties.getCapacity().getMax()) {
+                        log.trace("This is the first MediaServer found so far that has enough capacity left");
+                        bestMediaServer = mediaServer;
+                    } else {
+                        log.trace("This MediaServer has not enough capacity left");
+                    }
+                } else if (mediaServer.getUsedPoints() < bestMediaServer.getUsedPoints()) {
+                    log.trace("This is the best MediaServer so far");
                     bestMediaServer = mediaServer;
                 }
             } else {
@@ -160,7 +172,7 @@ public class MediaServerManagement implements org.openbaton.vnfm.core.interfaces
             }
         }
         if (bestMediaServer == null) {
-            throw new NotFoundException("Not found any MediaServer for VNFR with id: " + vnfr_id + ". At least there is no one with an IP assigned");
+            throw new NotFoundException("Not found any MediaServer for VNFR with id: " + vnfr_id + ". At least there is no one with an IP assigned and enough capacity. Please try again later.");
         }
         return bestMediaServer;
     }
