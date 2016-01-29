@@ -104,9 +104,19 @@ public class MediaServerProperties {
 
     public static class StunServer {
 
+        private boolean activate;
+
         private String address;
 
         private String port;
+
+        public boolean isActivate() {
+            return activate;
+        }
+
+        public void setActivate(boolean activate) {
+            this.activate = activate;
+        }
 
         public String getAddress() {
             return address;
@@ -127,7 +137,8 @@ public class MediaServerProperties {
         @Override
         public String toString() {
             return "StunServer{" +
-                    "address='" + address + '\'' +
+                    "activate=" + activate +
+                    ", address='" + address + '\'' +
                     ", port='" + port + '\'' +
                     '}';
         }
@@ -135,11 +146,21 @@ public class MediaServerProperties {
 
     public static class TurnServer {
 
+        private boolean activate;
+
         private String url;
 
         private String username;
 
         private String password;
+
+        public boolean isActivate() {
+            return activate;
+        }
+
+        public void setActivate(boolean activate) {
+            this.activate = activate;
+        }
 
         public String getUrl() {
             return url;
@@ -168,7 +189,8 @@ public class MediaServerProperties {
         @Override
         public String toString() {
             return "TurnServer{" +
-                    "url='" + url + '\'' +
+                    "activate=" + activate +
+                    ", url='" + url + '\'' +
                     ", username='" + username + '\'' +
                     ", password='" + password + '\'' +
                     '}';
