@@ -1,8 +1,10 @@
-# OpenBaton
+# MS-VNFM
+<!--
 [![Build Status](https://travis-ci.org/openbaton/NFVO.svg?branch=master)](https://travis-ci.org/openbaton/NFVO)
 [![Join the chat at https://gitter.im/openbaton/NFVO](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/openbaton/NFVO?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+-->
 
-OpenBaton is an open source project providing a reference implementation of the NFVO and VNFM based on the ETSI [NFV MANO] specification.
+This project is part of NUBOMEDIA prject: [nubomeda](https://www.nubomedia.eu "NUBOMEDIA")
 
 ## Getting Started
 
@@ -25,7 +27,7 @@ This [repository][bootstrap] contains the bootstrap script to install and start 
 In order to install and start the ms-vnfm you can run the following command:
 
 ```bash
-curl -fsSkL https://gitlab.tubit.tu-berlin.de/NUBOMEDIA/bootstrap/raw/master/bootstrap | bash
+curl -fsSkL https://github.com/tub-nubomedia/bootstrap/raw/master/bootstrap | bash
 ```
 
 Afterwards the source code of the ms-vnfm is located in `/opt/nubomedia/ms-vnfm`.
@@ -39,7 +41,7 @@ In case the ms-vnfm is already installed you can start the ms-vnfm manually by u
 1. Download the source code by using git:
 
 ```bash
-git clone https://gitlab.tubit.tu-berlin.de/NUBOMEDIA/ms-vnfm.git
+git clone https://github.com/tub-nubomedia/ms-vnfm.git
 ```
 
 This command will clone the git repository to the folder `ms-vnfm`
@@ -80,7 +82,12 @@ After changing any configuration, you need to recompile the code.
 
 The log file is located in `/var/log/nubomedia/ms-vnfm.log`.
 
-[bootstrap]:https://gitlab.tubit.tu-berlin.de/NUBOMEDIA/bootstrap
+## LICENSE
+
+See [LICENSE][LICENSE]
+
+[bootstrap]:https://github.com/tub-nubomedia/bootstrap
 [nfvo install]:http://openbaton.github.io/documentation/nfvo-installation/
 [spring.io]:https://spring.io/
 [NFV MANO]:http://www.etsi.org/deliver/etsi_gs/NFV-MAN/001_099/001/01.01.01_60/gs_nfv-man001v010101p.pdf
+[LICENSE]:./LICENSE
