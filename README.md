@@ -146,10 +146,10 @@ The following list gives an overview of available configuration parameters and i
             * application.heartbeat.retry.max: This defines the maximum number of reties before removing the Application.
             * application.heartbeat.retry.timeout: If this timeout (in s) is passed without receiving any Heartbeat for a specific Application, it will be removed.
 * nfvo.*: This configures NFVO-related properties.
-        * nfvo.ip: This property defines the IP of the NFVO.
-        * nfvo.port: This property defines the port of the NFVO.
-        * nfvo.username: This property defines the username used for authentication to the NFVO.
-        * nfvo.password: This property defines the password user for authentication against the NFVO.
+    * nfvo.ip: This property defines the IP of the NFVO.
+    * nfvo.port: This property defines the port of the NFVO.
+    * nfvo.username: This property defines the username used for authentication to the NFVO.
+    * nfvo.password: This property defines the password user for authentication against the NFVO.
 
 ## Logging
 
