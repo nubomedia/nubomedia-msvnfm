@@ -29,7 +29,7 @@ public interface MediaServerManagement {
 
     MediaServer queryByHostName(String hostName);
 
-    MediaServer queryBestMediaServerByVnfrId(String vnfr_id) throws NotFoundException;
+    MediaServer queryBestMediaServerByVnfrId(String vnfr_id, int points) throws NotFoundException;
 
     MediaServer update(MediaServer mediaServer, String id);
 }

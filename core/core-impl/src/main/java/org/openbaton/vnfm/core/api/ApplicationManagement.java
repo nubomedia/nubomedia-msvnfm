@@ -70,7 +70,7 @@ public class ApplicationManagement implements org.openbaton.vnfm.core.interfaces
                 return existingApplication;
             }
         }
-        MediaServer mediaServer = mediaServerManagement.queryBestMediaServerByVnfrId(application.getVnfr_id());
+        MediaServer mediaServer = mediaServerManagement.queryBestMediaServerByVnfrId(application.getVnfr_id(), application.getPoints());
         application.setIp(mediaServer.getIp());
         application.setMediaServerId(mediaServer.getId());
         application.setCreated(new Date());
