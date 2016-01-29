@@ -140,7 +140,6 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
                     if (log.isDebugEnabled())
                         log.error(e.getMessage(), e);
                 }
-
             }
             //Print ids of deployed VNFCInstances
             for (Future<VNFCInstance> vnfcInstanceFuture : vnfcInstancesFuturePerVDU) {
@@ -208,7 +207,15 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
     @Override
     public VirtualNetworkFunctionRecord terminate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
         log.info("Terminating vnfr with id " + virtualNetworkFunctionRecord.getId());
-        ManagedVNFR managedVnfr = managedVnfrRepository.findByVnfrId(virtualNetworkFunctionRecord.getId()).iterator().next();
+        ManagedVNFR managedVnfr = null;
+        Iterable<ManagedVNFR> managedVnfrs = managedVnfrRepository.findByVnfrId(virtualNetworkFunctionRecord.getId());
+        if (managedVnfrs.iterator().hasNext()) {
+            managedVnfr = managedVnfrs.iterator().next();
+        } else {
+            managedVnfr = new ManagedVNFR();
+            managedVnfr.setNsrId(virtualNetworkFunctionRecord.getParent_ns_id());
+            managedVnfr.setVnfrId(virtualNetworkFunctionRecord.getId());
+        }
         managedVnfr.setTask(Action.RELEASE_RESOURCES);
         managedVnfrRepository.save(managedVnfr);
         //Set<Event> events = lifecycleManagement.listEvents(virtualNetworkFunctionRecord);
@@ -249,9 +256,11 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
         } catch (NotFoundException e) {
             log.warn(e.getMessage());
         }
-        managedVnfr = managedVnfrRepository.findByVnfrId(virtualNetworkFunctionRecord.getId()).iterator().next();
-        managedVnfr.setTask(Action.RELEASE_RESOURCES_FINISH);
-        managedVnfrRepository.save(managedVnfr);
+        try {
+            managedVnfrRepository.deleteByVnfrId(virtualNetworkFunctionRecord.getId());
+        } catch (NotFoundException e) {
+            log.warn("ManagedVNFR were not existing and therefore not deletable");
+        }
         return virtualNetworkFunctionRecord;
     }
 
@@ -390,13 +399,6 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
         //test();
     }
 
-    @PreDestroy
-    private void destroy() {
-        for (ManagedVNFR managedVNFR : managedVnfrRepository.findAll()) {
-            elasticityManagement.deactivate(managedVNFR.getNsrId(), managedVNFR.getVnfrId());
-        }
-        destroyPlugins();
-    }
 
     private void test() {
         VimDriverCaller client = null;
@@ -459,6 +461,13 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
 
     @Override
     public void onApplicationEvent(ContextClosedEvent event) {
-        destroy();
+        for (ManagedVNFR managedVNFR : managedVnfrRepository.findAll()) {
+            elasticityManagement.deactivate(managedVNFR.getNsrId(), managedVNFR.getVnfrId());
+        }
+        try {
+            Thread.sleep(2500);
+        } catch (InterruptedException e) {
+            log.error(e.getMessage(), e);
+        }
     }
 }
