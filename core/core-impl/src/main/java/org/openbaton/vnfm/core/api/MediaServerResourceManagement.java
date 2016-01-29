@@ -176,7 +176,7 @@ public class MediaServerResourceManagement {
             }
             throw new VimException("Not removed VM with ExtId " + vnfcInstance.getVc_id() + " successfully from VimInstance " + vimInstance.getName() + ". Caused by: " + e.getMessage(), e);
         }
-        return new AsyncResult<>(null);
+        return new AsyncResult<Void>(null);
     }
 
     private VNFCInstance getVnfcInstanceFromServer(VimInstance vimInstance, VNFComponent vnfComponent, String hostname, Server server, VirtualDeploymentUnit vdu, Map<String, String> floatingIps, VirtualNetworkFunctionRecord vnfr) {
@@ -273,13 +273,13 @@ public class MediaServerResourceManagement {
         variables.put("$TURN_SERVER_PASSWORD", mediaServerProperties.getTurnServer().getPassword());
         for (ConfigurationParameter configurationParameter : vnfr.getConfigurations().getConfigurationParameters()) {
             log.debug(configurationParameter.toString());
-            if (configurationParameter.getConfKey().equals("mediaserver-turn-server.url")) {
+            if (configurationParameter.getConfKey().equals("mediaserver.turn-server.url")) {
                 variables.put("$TURN_SERVER_URL", configurationParameter.getValue());
             }
-            if (configurationParameter.getConfKey().equals("mediaserver-turn-server.username")) {
+            if (configurationParameter.getConfKey().equals("mediaserver.turn-server.username")) {
                 variables.put("$TURN_SERVER_USERNAME", configurationParameter.getValue());
             }
-            if (configurationParameter.getConfKey().equals("mediaserver-turn-server.password")) {
+            if (configurationParameter.getConfKey().equals("mediaserver.turn-server.password")) {
                 variables.put("$TURN_SERVER_PASSWORD", configurationParameter.getValue());
             }
         }
