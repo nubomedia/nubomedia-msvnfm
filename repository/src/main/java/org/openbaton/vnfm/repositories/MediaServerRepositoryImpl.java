@@ -52,4 +52,27 @@ public class MediaServerRepositoryImpl implements MediaServerRepositoryCustom {
             mediaServerRepository.delete(entities);
         }
     }
+
+    @Override
+    public MediaServer findByHostName(String hostName) {
+        Iterable<MediaServer> allEntitites = mediaServerRepository.findAll();
+        for (MediaServer mediaServer : allEntitites) {
+            if(mediaServer.getHostName().equals(hostName)) {
+                return mediaServer;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public MediaServer findByHostName(String vnfrId, String hostName) {
+        Iterable<MediaServer> allEntitites = mediaServerRepository.findAll();
+        for (MediaServer mediaServer : allEntitites) {
+            if(mediaServer.getHostName().equals(hostName) && mediaServer.getVnfrId().equals(vnfrId)) {
+                return mediaServer;
+            }
+        }
+        return null;
+    }
+
 }

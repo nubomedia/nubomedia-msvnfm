@@ -26,7 +26,7 @@ import java.util.Set;
  */
 public interface ManagedVNFRRepositoryCustom {
 
-    public Iterable findByVnfrId(String vnfrId);
+    public Iterable<ManagedVNFR> findByVnfrId(String vnfrId);
 
     public void deleteByVnfrId(String vnfrId) throws NotFoundException;
 }

@@ -1,0 +1,234 @@
+#!/usr/bin/env bash
+set -e
+#
+# This script allows you to install ms-vnfm. To execute it:
+#
+# 'curl -fsSkL https://gitlab.tubit.tu-berlin.de/NUBOMEDIA/bootstrap/raw/master/bootstrap | bash'
+
+
+export DEBIAN_FRONTEND=noninteractive
+_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+_ms_vnfm_base_repo="https://github.com/tub-nubomedia/ms-vnfm.git"
+_tag="develop"
+#_tag="tags/0.15"
+
+_base=/opt
+_nubomedia_base="${_base}/nubomedia"
+_ms_vnfm="${_nubomedia_base}/ms-vnfm"
+_log_folder=/var/log/nubomedia
+
+_user="$(id -un 2>/dev/null || true)"
+
+function checkBinary {
+  echo -n " * Checking for '$1'..."
+  if command -v $1 >/dev/null 2>&1; then
+     echo "OK"
+     return 0
+   else
+     echo >&2 "FAILED."
+     return 1
+   fi
+}
+
+_ex='sh -c'
+if [ "$_user" != 'root' ]; then
+    if checkBinary sudo; then
+        _ex='sudo -E sh -c'
+    elif checkBinary su; then
+        _ex='su -c'
+    fi
+fi
+
+function createNubomediaBase {
+    echo "Creating the Nubomedia base folder"
+    # removing it if exists
+    $_ex 'rm -rf '$_nubomedia_base
+    $_ex 'mkdir -p '$_ms_vnfm
+    $_ex 'chown -R '"$_user $_nubomedia_base"
+ 
+    # create log folder and give perission
+    $_ex 'rm -rf '$_log_folder
+    $_ex 'mkdir -p '$_log_folder
+    $_ex 'chown -R '"$_user $_log_folder"
+}
+
+function checkoutMSVNFM {
+    echo "Getting MS-VNFM..."
+    createNubomediaBase
+    git clone --recursive "${_ms_vnfm_base_repo}" "${_ms_vnfm}"
+    pushd "${_ms_vnfm}"
+    git checkout ${_tag}
+    popd
+    $_ex 'rm -rf "/etc/nubomedia"; mkdir "/etc/nubomedia"'
+    $_ex 'cp '"${_ms_vnfm}/etc/msvnfm.properties /etc/nubomedia/msvnfm.properties"
+}
+
+function compileMSVNFM {
+    echo "compiling the MS-VNFM"
+    pushd "${_ms_vnfm}"
+    ./ms-vnfm.sh compile
+    if [ $? -ne 0 ]; then
+        echo "ERROR: The compilation of the NFVO failed"
+        exit 1
+    fi
+    popd
+}
+
+function startMSVNFM {
+    echo "starting the MS-VNFM"
+    pushd ${_ms_vnfm}
+    ./ms-vnfm.sh start
+    popd
+}
+
+function deployMSVNFM {
+    compileMSVNFM
+    startMSVNFM
+}
+
+function promptSetProperties {
+  export brokerIp
+  read -p "Enter the rabbitmq broker ip [localhost]: " brokerIp
+  if [[ $brokerIp != "" ]]; then
+     $_ex 'sed -i "s/vnfm.rabbitmq.brokerIp=localhost/vnfm.rabbitmq.brokerIp = $brokerIp/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export nfvoIp
+  read -p "Enter the Orchestrator ip [localhost]: " nfvoIp
+  if [[ $nfvoIp != "" ]]; then
+     $_ex 'sed -i "s/nfvo.ip=localhost/nfvo.ip=$nfvoIp/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export nfvoPort
+    read -p "Enter the Orchestrator ip [8080]: " nfvoPort
+    if [[ $nfvoPort != "" ]]; then
+     $_ex 'sed -i "s/nfvo.port=8080/nfvo.port=$nfvoPort/g" /etc/nubomedia/msvnfm.properties'
+    fi
+
+  export nfvoUsername
+  read -p "Enter the username to authenticate to the NFVO []: " nfvoUsername
+  if [[ $nfvoUsername != "" ]]; then
+     $_ex 'sed -i "s/nfvo.username=/nfvo.username=$nfvoUsername/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export nfvoPassword
+  read -p "Enter the password to authenticate against the NFVO []: " nfvoPassword
+  if [[ $nfvoPassword != "" ]]; then
+     $_ex 'sed -i "s/nfvo.password=/nfvo.password=$nfvoPassword/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export mediaServerCapacityMax
+  read -p "Enter MediaServer maximal Capacity [100]: " mediaServerCapacityMax
+  if [[ $mediaServerCapacityMax != "" ]]; then
+     $_ex 'sed -i "s/mediaserver.capacity.max=100/mediaserver.capacity.max=$mediaServerCapacityMax/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export mediaServerMonitorURL
+  read -p "Enter MediaServer Monitoring URL [localhost]: " mediaServerMonitorURL
+  if [[ $mediaServerMonitorURL != "" ]]; then
+     $_ex 'sed -i "s/mediaserver.monitor.url=localhost/mediaserver.monitor.url=$mediaServerMonitorURL/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export mediaServerTurnServerActivate
+  read -p "Activate usage of TURN-Server by default [false]: " mediaServerTurnServerActivate
+  if [[ $mediaServerTurnServerActivate != "" ]]; then
+     $_ex 'sed -i "s/mediaserver.turn-server.activate=false/mediaserver.turn-server.activate=$mediaServerTurnServerActivate/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export mediaServerTurnServerURL
+  read -p "Enter MediaServer TURN-Server URL [localhost:3487]: " mediaServerTurnServerURL
+  if [[ $mediaServerTurnServerURL != "" ]]; then
+     $_ex 'sed -i "s/mediaserver.turn-server.url=localhost:3487/mediaserver.turn-server.url=$mediaServerTurnServerURL/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export mediaServerTurnServerUsername
+  read -p "Enter username used to authenticate to the TURN-Server [username]: " mediaServerTurnServerUsername
+  if [[ $mediaServerTurnServerUsername != "" ]]; then
+     $_ex 'sed -i "s/mediaserver.turn-server.username=username/mediaserver.turn-server.username=$mediaServerTurnServerUsername/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export mediaServerTurnServerPassword
+  read -p "Enter password used to authenticate against the TURNfa-Server [password]: " mediaServerTurnServerPassword
+  if [[ $mediaServerTurnServerPassword != "" ]]; then
+     $_ex 'sed -i "s/mediaserver.turn-server.password=password/mediaserver.turn-server.password=$mediaServerTurnServerPassword/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export mediaServerStunServerActivate
+  read -p "Activate usage of STUN-Server by default [false]: " mediaServerStunServerActivate
+  if [[ $mediaServerStunServerActivate != "" ]]; then
+     $_ex 'sed -i "s/mediaserver.stun-server.activate=false/mediaserver.stun-server.activate=$mediaServerStunServerActivate/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export mediaServerStunServerAddress
+  read -p "Enter MediaServer STUN-Server IP [localhost]: " mediaServerStunServerAddress
+  if [[ $mediaServerStunServerAddress != "" ]]; then
+     $_ex 'sed -i "s/mediaserver.stun-server.address=localhost/mediaserver.stun-server.address=$mediaServerStunServerAddress/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export mediaServerStunServerPort
+  read -p "Enter MediaServer STUN-Server port [3478]: " mediaServerStunServerPort
+  if [[ $mediaServerStunServerPort != "" ]]; then
+     $_ex 'sed -i "s/mediaserver.stun-server.port=3478/mediaserver.stun-server.port=$mediaServerStunServerPort/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export applicationHeartbeatActivate
+  read -p "Enable Application Heartbeat mechanism [true]: " applicationHeartbeatActivate
+  if [[ $applicationHeartbeatActivate != "" ]]; then
+     $_ex 'sed -i "s/application.heartbeat.activate=true/application.heartbeat.activate=$applicationHeartbeatActivate/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  if [[ $applicationHeartbeatActivate == "true" ]] || [[ $applicationHeartbeatActivate == "" ]]; then
+      export applicationHeartbeatPeriod
+      read -p "Enter Application Heartbeat Period [30]: " applicationHeartbeatPeriod
+      if [[ $applicationHeartbeatPeriod != "" ]]; then
+         $_ex 'sed -i "s/application.heartbeat.period=30/application.heartbeat.period=$applicationHeartbeatPeriod/g" /etc/nubomedia/msvnfm.properties'
+      fi
+
+      export applicationHeartbeatRetryMax
+      read -p "Enter Application Heartbeat max retries [3]: " applicationHeartbeatRetryMax
+      if [[ $applicationHeartbeatRetryMax != "" ]]; then
+         $_ex 'sed -i "s/application.heartbeat.retry.max=3/application.heartbeat.retry.max=$applicationHeartbeatRetryMax/g" /etc/nubomedia/msvnfm.properties'
+      fi
+
+      export applicationHeartbeatRetryTimeout
+      read -p "Enter Application Heartbeat max timeout [90]: " applicationHeartbeatRetryTimeout
+      if [[ $applicationHeartbeatRetryTimeout != "" ]]; then
+         $_ex 'sed -i "s/application.heartbeat.retry.timeout=90/application.heartbeat.retry.timeout=$applicationHeartbeatRetryTimeout/g" /etc/nubomedia/msvnfm.properties'
+      fi
+  fi
+
+  export autoscalingTerminationRuleActivate
+  read -p "Enable AutoScaling TerminationRule [false]: " autoscalingTerminationRuleActivate
+  if [[ $autoscalingTerminationRuleActivate != "" ]]; then
+     $_ex 'sed -i "s/autoscaling.termination-rule.activate=false/autoscaling.termination-rule.activate=$autoscalingTerminationRuleActivate/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  export autoscalingPoolActivate
+  read -p "Activate AutoScaling pool mechanism [true]: " autoscalingPoolActivate
+  if [[ $autoscalingPoolActivate != "" ]]; then
+     $_ex 'sed -i "s/autoscaling.pool.activate=true/autoscaling.pool.activate=$autoscalingPoolActivate/g" /etc/nubomedia/msvnfm.properties'
+  fi
+
+  if [[ $autoscalingPoolActivate == "true" ]] || [[ $autoscalingPoolActivate == "" ]]; then
+     export autoscalingPoolSize
+     read -p "Enter AutoScaling Pool Size [2]: " autoscalingPoolSize
+     if [[ $autoscalingPoolSize != "" ]]; then
+        $_ex 'sed -i "s/autoscaling.pool.size=2/autoscaling.pool.size=$autoscalingPoolSize/g" /etc/nubomedia/msvnfm.properties'
+     fi
+  fi
+
+}
+
+function bootstrap {
+    # checkout OpenBaton
+    #checkoutMSVNFM
+    # prompting properties
+    promptSetProperties
+    # deploy and compile MS-VNFM
+    #deployMSVNFM
+    echo "MS-VNFM is up and running now. Check screen -r nubomedia..."
+
+}
+
+bootstrap

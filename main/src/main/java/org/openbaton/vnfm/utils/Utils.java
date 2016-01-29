@@ -1,6 +1,13 @@
 package org.openbaton.vnfm.utils;
 
+import org.openbaton.catalogue.mano.common.Event;
+import org.openbaton.catalogue.mano.common.LifecycleEvent;
+import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
+import org.openbaton.catalogue.nfvo.VimInstance;
+import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.monitoring.interfaces.MonitoringPlugin;
+import org.openbaton.sdk.NFVORequestor;
+import org.openbaton.sdk.api.exception.SDKException;
 import org.openbaton.vim.drivers.interfaces.ClientInterfaces;
 import org.openbaton.monitoring.interfaces.VirtualisedResourcesPerformanceManagement;
 import org.openbaton.vnfm.exceptions.PluginInstallException;
@@ -22,10 +29,8 @@ import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * Created by mpa on 29.07.15.
@@ -35,41 +40,43 @@ public class Utils {
     private final static Logger log = LoggerFactory.getLogger(Utils.class);
 
     public static boolean isNfvoStarted(String ip, String port) {
-        int i = 0;
-        log.info("Waiting until NFVO is available...");
+        int i = 600;
+        log.info("Testing if NFVO is available...");
         while (!Utils.available(ip, port)) {
-            i++;
+            log.warn("NFVO is not available at " + ip + ":" + port + ". Waiting for " + i + "s before terminating the VNFM");
+            i--;
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            if (i > 600) {
+            if (i <= 0) {
                 return false;
             }
 
         }
+        log.info("NFVO is listening at " + ip + ":" + port);
         return true;
     }
 
     public static boolean available(String ip, String port) {
         try {
             Socket s = new Socket(ip, Integer.parseInt(port));
-            log.info("NFVO is listening on port " + port + " at " + ip);
             s.close();
             return true;
         } catch (IOException ex) {
             // The remote host is not listening on this port
-            log.warn("NFVO is not reachable on port " + port + " at " + ip);
             return false;
         }
     }
 
-    public static String getUserdata() {
+    public static String getUserdata(Map<String, String> variables) {
         StringBuilder sb = new StringBuilder();
         sb.append(getUserdataFromJar());
         sb.append(getUserdataFromFS());
-        return sb.toString();
+        String userdataRaw = sb.toString();
+        String userdata = replaceVariables(userdataRaw, variables);
+        return userdata;
     }
 
     public static String getUserdataFromJar() {
@@ -153,4 +160,77 @@ public class Utils {
         }
     }
 
+    public static VimInstance getVimInstance(String name, List<VimInstance> vimInstances) throws NotFoundException {
+        for (VimInstance vimInstance : vimInstances) {
+            if (vimInstance.getName().equals(name)) {
+                return vimInstance;
+            }
+        }
+        throw new NotFoundException("VimInstance with name: " + name + " was not found in the provided list of VimInstances.");
+    }
+
+    public static VimInstance getVimInstance(String name, NFVORequestor nfvoRequestor) throws NotFoundException {
+        List<VimInstance> vimInstances = new ArrayList<>();
+        try {
+            vimInstances = nfvoRequestor.getVimInstanceAgent().findAll();
+        } catch (SDKException e) {
+            log.error(e.getMessage(), e);
+        } catch (ClassNotFoundException e) {
+            log.error(e.getMessage(), e);
+        }
+        for (VimInstance vimInstance : vimInstances) {
+            if (vimInstance.getName().equals(name)) {
+                return vimInstance;
+            }
+        }
+        throw new NotFoundException("VimInstance with name: " + name + " was not found in the provided list of VimInstances.");
+    }
+
+    public Set<Event> listEvents(VirtualNetworkFunctionRecord vnfr) {
+        Set<Event> events = new HashSet<Event>();
+        for (LifecycleEvent event : vnfr.getLifecycle_event()) {
+            events.add(event.getEvent());
+        }
+        return events;
+    }
+
+    public void removeEvent(VirtualNetworkFunctionRecord vnfr, Event event) throws javassist.NotFoundException {
+        LifecycleEvent lifecycleEvent = null;
+        if (vnfr.getLifecycle_event_history() == null)
+            vnfr.setLifecycle_event_history(new HashSet<LifecycleEvent>());
+        for (LifecycleEvent tmpLifecycleEvent : vnfr.getLifecycle_event()) {
+            if (event.equals(tmpLifecycleEvent.getEvent())) {
+                lifecycleEvent = tmpLifecycleEvent;
+                vnfr.getLifecycle_event_history().add(lifecycleEvent);
+                break;
+            }
+        }
+        if (lifecycleEvent == null) {
+            throw new javassist.NotFoundException("Not found LifecycleEvent with event " + event);
+        }
+    }
+
+    public Set<Event> listHistoryEvents(VirtualNetworkFunctionRecord vnfr) {
+        Set<Event> events = new HashSet<Event>();
+        if (vnfr.getLifecycle_event_history() != null) {
+            for (LifecycleEvent event : vnfr.getLifecycle_event_history()) {
+                events.add(event.getEvent());
+            }
+        }
+        return events;
+    }
+
+    public static String replaceVariables(String userdataRaw, Map<String, String> variables) {
+        String userdata = userdataRaw;
+        for (String variable : variables.keySet()) {
+            //if (!variables.get(variable).equals("")) {
+                log.debug("Replace " + variable + " with value " + variables.get(variable));
+                userdata = userdata.replaceAll(Pattern.quote(variable), variables.get(variable));
+                log.debug("Replaced userdata: " + userdata);
+            //} else {
+            //    log.warn("Variable " + variable + " is not defined. So not replace it");
+            //}
+        }
+        return userdata;
+    }
 }

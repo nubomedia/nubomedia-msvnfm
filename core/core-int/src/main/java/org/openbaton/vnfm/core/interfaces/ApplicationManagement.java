@@ -26,4 +26,10 @@ public interface ApplicationManagement {
     Application update(Application application, String id);
 
     void deleteByVnfrId(String vnfrId) throws NotFoundException;
+
+    void heartbeat(String vnfrId, String appId) throws NotFoundException;
+
+    void startHeartbeatCheck();
+
+    void stopHeartbeatCheck();
 }

@@ -21,7 +21,7 @@ import org.openbaton.catalogue.nfvo.*;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.exceptions.PluginException;
 import org.openbaton.plugin.utils.PluginCaller;
-import org.openbaton.vim.drivers.exceptions.VimDriverException;
+import org.openbaton.exceptions.VimDriverException;
 import org.openbaton.vim.drivers.interfaces.VimDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,16 +47,24 @@ public class VimDriverCaller extends VimDriver {
 
     Logger log = LoggerFactory.getLogger(this.getClass());
 
-    public VimDriverCaller(String type, String managementPort) throws IOException, TimeoutException, NotFoundException {
-        pluginCaller = new PluginCaller("vim-drivers." + type, "localhost", "admin", "openbaton", 5672, Integer.parseInt(managementPort));
+    public VimDriverCaller(String type) throws IOException, TimeoutException, NotFoundException {
+        pluginCaller = new PluginCaller("vim-drivers." + type, "localhost", "admin", "openbaton", 5672, 15672);
+    }
+
+    public VimDriverCaller(String name, String type) throws IOException, TimeoutException, NotFoundException {
+        pluginCaller = new PluginCaller("vim-drivers." + type + "." + name, "localhost", "admin", "openbaton", 5672, 15672);
     }
 
     public VimDriverCaller(String name, String type, String managementPort) throws IOException, TimeoutException, NotFoundException {
         pluginCaller = new PluginCaller("vim-drivers." + type + "." + name, "localhost", "admin", "openbaton", 5672, Integer.parseInt(managementPort));
     }
 
-    public VimDriverCaller(String brokerIp, int port, String type, String managementPort) throws IOException, TimeoutException, NotFoundException {
-        pluginCaller = new PluginCaller("vim-drivers." + type, brokerIp, "admin", "openbaton", port, Integer.parseInt(managementPort));
+    public VimDriverCaller(String brokerIp, String username, String password, int port, String type, String managementPort) throws IOException, TimeoutException, NotFoundException {
+        pluginCaller = new PluginCaller("vim-drivers." + type, brokerIp, username, password, port, Integer.parseInt(managementPort));
+    }
+
+    public VimDriverCaller(String brokerIp, String username, String password, int port, String type, String name, String managementPort) throws IOException, TimeoutException, NotFoundException {
+        pluginCaller = new PluginCaller("vim-drivers." + type + "." + name, brokerIp, username, password, port, Integer.parseInt(managementPort));
     }
 
     public VimDriverCaller(String brokerIp, String username, String password, String type, String managementPort) throws IOException, TimeoutException, NotFoundException {
@@ -188,7 +196,7 @@ public class VimDriverCaller extends VimDriver {
         } catch (InterruptedException e) {
             throw new VimDriverException(e.getMessage());
         } catch (PluginException e) {
-            throw new VimDriverException(e.getMessage());
+            throw new VimDriverException(e.getMessage(),e.getCause());
         }
         return (Server) res;
     }
@@ -212,7 +220,7 @@ public class VimDriverCaller extends VimDriver {
         } catch (InterruptedException e) {
             throw new VimDriverException(e.getMessage());
         } catch (PluginException e) {
-            throw new VimDriverException(e.getMessage());
+            throw new VimDriverException(e.getMessage(), e.getCause());
         }
         return (Server) res;
     }

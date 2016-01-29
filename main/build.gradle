@@ -1,13 +1,23 @@
+repositories {
+    mavenCentral()
+    maven {
+        url "http://get.openbaton.org:8081/nexus/content/groups/public"
+    }
+}
+
 dependencies {
 
     compile project(':vnfm-sdk-amqp')
     compile project(':vim-drivers')
     compile project(':vim-int')
     compile project(':core-int')
-    compile project(':monitoring')
+    //compile project(':monitoring')
     compile project(':repository')
     compile project(':vnfm-catalogue')
     compile project(':api')
+
+    compile project(':as-core')
+    compile project(':configuration')
 
     runtime project(':vim-impl')
     runtime project(':core-impl')
@@ -16,17 +26,6 @@ dependencies {
 
     compile 'org.springframework.data:spring-data-jpa:1.8.2.RELEASE'
     compile 'org.springframework.boot:spring-boot-starter-data-jpa:' + springBootVersion
-//
-//    compile ('org.apache.jclouds.driver:jclouds-slf4j:1.9.0')
-//    compile ('org.apache.jclouds.driver:jclouds-sshj:1.9.0')
-//    compile ('org.apache.jclouds.api:openstack-keystone:1.9.0')
-//    compile ('org.apache.jclouds.api:openstack-nova:1.9.0')
-//    compile ('org.apache.jclouds.api:openstack-swift:1.9.0')
-//    compile ('org.apache.jclouds.api:openstack-cinder:1.9.0')
-//    compile ('org.apache.jclouds.api:openstack-trove:1.9.0')
-//    compile ('org.apache.jclouds.labs:openstack-glance:1.9.0')
-//    compile ('org.apache.jclouds.labs:openstack-neutron:1.9.0')
-//    compile ('org.apache.jclouds.labs:openstack-marconi:1.9.0')
-//
+
     compile 'org.hibernate:hibernate-core:4.3.10.Final'
 }

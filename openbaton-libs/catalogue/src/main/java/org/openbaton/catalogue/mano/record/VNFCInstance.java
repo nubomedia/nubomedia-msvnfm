@@ -17,6 +17,7 @@ package org.openbaton.catalogue.mano.record;
 
 import org.openbaton.catalogue.mano.common.Ip;
 import org.openbaton.catalogue.mano.descriptor.VNFComponent;
+import org.openbaton.catalogue.util.IdGenerator;
 
 import javax.persistence.*;
 import java.io.Serializable;
@@ -31,8 +32,9 @@ public class VNFCInstance extends VNFComponent implements Serializable {
     protected String vim_id;
     protected String vc_id;
     protected String hostname;
+    protected String state;
 
-    @OneToOne(cascade = CascadeType.REFRESH, fetch = FetchType.EAGER)
+    @ManyToOne(cascade = CascadeType.REFRESH, fetch = FetchType.EAGER)
     protected VNFComponent vnfComponent;
 
     @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
@@ -65,6 +67,14 @@ public class VNFCInstance extends VNFComponent implements Serializable {
         this.vc_id = vc_id;
     }
 
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
     public VNFComponent getVnfComponent() {
         return vnfComponent;
     }
@@ -79,8 +89,9 @@ public class VNFCInstance extends VNFComponent implements Serializable {
                 "vim_id='" + vim_id + '\'' +
                 ", vc_id='" + vc_id + '\'' +
                 ", hostname='" + hostname + '\'' +
+                ", state='" + state + '\'' +
                 ", vnfComponent=" + vnfComponent +
-                ", floatingIps='" + floatingIps + '\'' +
+                ", floatingIps=" + floatingIps +
                 ", ips=" + ips +
                 "} " + super.toString();
     }
@@ -99,5 +110,10 @@ public class VNFCInstance extends VNFComponent implements Serializable {
 
     public void setIps(Set<Ip> ips) {
         this.ips = ips;
+    }
+
+    @PrePersist
+    public void ensureId() {
+        id = IdGenerator.createUUID();
     }
 }

@@ -22,6 +22,7 @@ import javax.persistence.Id;
 import javax.persistence.PrePersist;
 import javax.persistence.Version;
 import java.io.Serializable;
+import java.util.Date;
 
 @Entity
 public class Application implements Serializable{
@@ -42,6 +43,12 @@ public class Application implements Serializable{
     private String mediaServerId;
 
     private String extAppId;
+
+    private Date created;
+
+    private Date heartbeat;
+
+    private int missedHeartbeats;
 
     @PrePersist
     public void ensureId(){
@@ -96,6 +103,30 @@ public class Application implements Serializable{
         this.extAppId = extAppId;
     }
 
+    public Date getCreated() {
+        return created;
+    }
+
+    public void setCreated(Date created) {
+        this.created = created;
+    }
+
+    public Date getHeartbeat() {
+        return heartbeat;
+    }
+
+    public void setHeartbeat(Date heartbeat) {
+        this.heartbeat = heartbeat;
+    }
+
+    public int getMissedHeartbeats() {
+        return missedHeartbeats;
+    }
+
+    public void setMissedHeartbeats(int missedHeartbeats) {
+        this.missedHeartbeats = missedHeartbeats;
+    }
+
     @Override
     public String toString() {
         return "Application{" +
@@ -106,6 +137,9 @@ public class Application implements Serializable{
                 ", ip='" + ip + '\'' +
                 ", mediaServerId='" + mediaServerId + '\'' +
                 ", extAppId='" + extAppId + '\'' +
+                ", created=" + created +
+                ", heartbeat=" + heartbeat +
+                ", missedHeartbeats=" + missedHeartbeats +
                 '}';
     }
 }

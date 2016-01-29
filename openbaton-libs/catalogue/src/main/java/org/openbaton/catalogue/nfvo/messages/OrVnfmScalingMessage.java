@@ -4,6 +4,8 @@ import org.openbaton.catalogue.mano.descriptor.VNFComponent;
 import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.catalogue.mano.record.VNFRecordDependency;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
+import org.openbaton.catalogue.nfvo.VNFPackage;
+import org.openbaton.catalogue.nfvo.VimInstance;
 import org.openbaton.catalogue.nfvo.messages.Interfaces.OrVnfmMessage;
 
 /**
@@ -13,8 +15,29 @@ public class OrVnfmScalingMessage extends OrVnfmMessage {
 
     private VNFComponent component;
     private VNFCInstance vnfcInstance;
+    private VimInstance vimInstance;
+    private VNFPackage vnfPackage;
     private VirtualNetworkFunctionRecord virtualNetworkFunctionRecord;
     private VNFRecordDependency dependency;
+    private String mode;
+
+
+
+    public VNFPackage getVnfPackage() {
+        return vnfPackage;
+    }
+
+    public void setVnfPackage(VNFPackage vnfPackage) {
+        this.vnfPackage = vnfPackage;
+    }
+
+    public VimInstance getVimInstance() {
+        return vimInstance;
+    }
+
+    public void setVimInstance(VimInstance vimInstance) {
+        this.vimInstance = vimInstance;
+    }
 
     public VNFCInstance getVnfcInstance() {
         return vnfcInstance;
@@ -39,13 +62,12 @@ public class OrVnfmScalingMessage extends OrVnfmMessage {
     public void setVirtualNetworkFunctionRecord(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
         this.virtualNetworkFunctionRecord = virtualNetworkFunctionRecord;
     }
+    public String getMode() {
+        return mode;
+    }
 
-    @Override
-    public String toString() {
-        return "OrVnfmScalingMessage{" +
-                "component=" + component +
-                ", virtualNetworkFunctionRecord=" + virtualNetworkFunctionRecord +
-                '}';
+    public void setMode(String mode) {
+        this.mode = mode;
     }
 
     public VNFRecordDependency getDependency() {
@@ -55,4 +77,19 @@ public class OrVnfmScalingMessage extends OrVnfmMessage {
     public void setDependency(VNFRecordDependency dependency) {
         this.dependency = dependency;
     }
+
+
+    @Override
+    public String toString() {
+        return "OrVnfmScalingMessage{" +
+                "component=" + component +
+                ", vnfcInstance=" + vnfcInstance +
+                ", vimInstance=" + vimInstance +
+                ", mode="+mode+
+                ", vnfPackage=" + (vnfPackage == null ? vnfPackage : vnfPackage.getName()) +
+                ", virtualNetworkFunctionRecord=" + virtualNetworkFunctionRecord +
+                ", dependency=" + dependency +
+                '}';
+    }
+
 }

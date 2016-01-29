@@ -31,4 +31,8 @@ public interface MediaServerRepositoryCustom {
 
     public void deleteByVnfrId(String vnfrId) throws NotFoundException;
 
+    MediaServer findByHostName(String hostName);
+
+    MediaServer findByHostName(String vnfrId, String hostName);
+
 }

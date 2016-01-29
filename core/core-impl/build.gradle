@@ -10,6 +10,11 @@ dependencies {
 
     compile project(':core-int')
     compile project(':repository')
+    compile project(':configuration')
+    compile project(':vim-drivers')
+    compile project(':sdk')
+
+    //compile project(':as-core')
 
     //compile 'org.openbaton:sdk:0.6'
 

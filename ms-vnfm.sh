@@ -5,8 +5,7 @@ source ./gradle.properties
 _version=${version}
 
 _ms_vnfm_base="/opt/nubomedia/ms-vnfm"
-#_message_queue_base="apache-activemq-5.11.1"
-#_openbaton_config_file=/etc/openbaton/openbaton.properties
+_msvnfm_config_file="/etc/nubomedia/msvnfm.properties"
 
 function start_mysql_osx {
     sudo /usr/local/mysql/support-files/mysql.server start
@@ -68,7 +67,7 @@ function start {
         #then
 	    #screen -X eval "chdir $PWD"
 	#screen -c screenrc -d -m -S ms-vnfm -t ms-vnfm java -jar "build/libs/ms-vnfm-$_version.jar"
-	screen -c screenrc -d -m -S nubomedia -t ms-vnfm java -jar "build/libs/ms-vnfm-$_version.jar"
+	screen -c screenrc -d -m -S nubomedia -t ms-vnfm java -jar "build/libs/ms-vnfm-$_version.jar" --spring.config.location=file:${_msvnfm_config_file}
 	    #screen -c screenrc -r -p 0
     #fi
 }

@@ -30,7 +30,7 @@ project.ext {
     /**
      * gradle Related Vars
      */
-    mainClass = 'org.openbaton.vnfm.MediaServerManager'
+    mainClass = 'org.openbaton.vnfm.Application'
     //------------------------------------------------//
 }
 apply from: 'openbaton-libs/gradle/gradle/application.java.gradle'
@@ -44,6 +44,7 @@ repositories {
 
 dependencies {
     compile project(':main')
+
     compile 'org.hibernate:hibernate-core:4.3.10.Final'
 }
 
