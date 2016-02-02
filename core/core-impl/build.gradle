@@ -29,7 +29,7 @@ dependencies {
     compile project(':repository')
     compile project(':configuration')
     compile project(':vim-drivers')
-    compile project(':sdk')
+    //compile project(':sdk')
 
     //compile project(':as-core')
 
