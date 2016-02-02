@@ -64,9 +64,7 @@ import javax.annotation.PreDestroy;
 import java.io.IOException;
 import java.rmi.RemoteException;
 import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 /**
  * Created by lto on 27/05/15.
@@ -237,7 +235,15 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
         managedVnfrRepository.save(managedVnfr);
         //Set<Event> events = lifecycleManagement.listEvents(virtualNetworkFunctionRecord);
         //if (events.contains(Event.SCALE))
-        elasticityManagement.deactivate(virtualNetworkFunctionRecord.getParent_ns_id(), virtualNetworkFunctionRecord.getId());
+        try {
+            elasticityManagement.deactivate(virtualNetworkFunctionRecord.getParent_ns_id(), virtualNetworkFunctionRecord.getId()).get(60, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            log.error(e.getMessage(), e);
+        } catch (ExecutionException e) {
+            log.error(e.getMessage(), e);
+        } catch (TimeoutException e) {
+            log.error(e.getMessage(), e);
+        }
         try {
             virtualNetworkFunctionRecord = nfvoRequestor.getNetworkServiceRecordAgent().getVirtualNetworkFunctionRecord(virtualNetworkFunctionRecord.getParent_ns_id(), virtualNetworkFunctionRecord.getId());
         } catch (SDKException e) {
@@ -418,73 +424,20 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
         if (applicationProperties.getHeartbeat().isActivate()) {
             applicationManagement.startHeartbeatCheck();
         }
-        //test();
-    }
-
-
-    private void test() {
-        VimDriverCaller client = null;
-        client = (VimDriverCaller) ((RabbitPluginBroker) context.getBean("rabbitPluginBroker")).getVimDriverCaller("localhost", "admin", "openbaton", 5672, "openstack", "msopenstack", "15672");
-
-        final ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
-        taskScheduler.setPoolSize(25);
-        taskScheduler.setWaitForTasksToCompleteOnShutdown(true);
-        taskScheduler.setRemoveOnCancelPolicy(true);
-        taskScheduler.initialize();
-
-        final VimDriverCaller finalClient = client;
-        class Launch implements Callable<Server> {
-
-            @Override
-            public Server call() throws RemoteException {
-                try {
-                    HashSet<String> networks = new HashSet<String>();
-                    networks.add("89d7bbde-f9e6-4ac7-bac6-863a4c8fbc62");
-                    Map<String, String> floatingIps = new HashMap<String, String>();
-                    floatingIps.put("internal_nubomedia", "random");
-                    return finalClient.launchInstanceAndWait(createVimInstance(), "test", "f690e49c-151a-48de-bca8-6239dde8dd21", "ea071529-6bed-4299-a463-7e182d5b119f", "tub-nubomedia", networks, new HashSet<String>(), "#user", floatingIps);
-                } catch (VimDriverException e) {
-                    e.printStackTrace();
-                    return null;
-                }
-            }
-        }
-        List<Future<Server>> futures = new ArrayList<>();
-        for (int i = 0; i < 20; i++) {
-            futures.add(taskScheduler.submit(new Launch()));
-        }
-
-        System.out.println("Wait for servers");
-
-        for (Future<Server> future : futures)
-            try {
-                System.out.println(future.get());
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (ExecutionException e) {
-                e.printStackTrace();
-            }
-    }
-
-    private static VimInstance createVimInstance() {
-        VimInstance vimInstance = new VimInstance();
-        vimInstance.setName("vim-instance");
-        vimInstance.setTenant("nubomedia");
-        vimInstance.setAuthUrl("http://80.96.122.48:5000/v2.0");
-        vimInstance.setUsername("nubomedia");
-        vimInstance.setPassword("nub0m3d1@");
-        vimInstance.setKeyPair("tub-nubomedia");
-        vimInstance.setSecurityGroups(new HashSet<String>());
-        Location location = new Location();
-        location.setName("location");
-        vimInstance.setLocation(location);
-        return vimInstance;
     }
 
     @Override
     public void onApplicationEvent(ContextClosedEvent event) {
         for (ManagedVNFR managedVNFR : managedVnfrRepository.findAll()) {
-            elasticityManagement.deactivate(managedVNFR.getNsrId(), managedVNFR.getVnfrId());
+            try {
+                elasticityManagement.deactivate(managedVNFR.getNsrId(), managedVNFR.getVnfrId()).get(60, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                log.error(e.getMessage(), e);
+            } catch (ExecutionException e) {
+                log.error(e.getMessage(), e);
+            } catch (TimeoutException e) {
+                log.error(e.getMessage(), e);
+            }
         }
         try {
             Thread.sleep(2500);
