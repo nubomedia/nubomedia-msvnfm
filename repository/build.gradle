@@ -15,10 +15,20 @@
  *
  */
 
+repositories {
+    mavenCentral()
+    maven {
+        url "http://get.openbaton.org:8081/nexus/content/groups/public"
+    }
+}
+
 dependencies {
-    compile project(':catalogue')
+    compile 'org.openbaton:catalogue:0.16-SNAPSHOT'
+    compile 'org.openbaton:exception:0.16-SNAPSHOT'
+
+//    compile project(':catalogue')
     compile project(':vnfm-catalogue')
-    compile project(':exception')
+//    compile project(':exception')
 
     compile 'org.hibernate:hibernate-entitymanager:4.3.10.Final'
 

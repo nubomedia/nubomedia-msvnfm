@@ -15,11 +15,20 @@
  *
  */
 
+repositories {
+    mavenCentral()
+    maven {
+        url "http://get.openbaton.org:8081/nexus/content/groups/public"
+    }
+}
+
 dependencies {
 
-    compile project(':catalogue')
-    compile project(':exception')
-    compile project(':core-int')
+    compile 'org.openbaton:catalogue:0.16-SNAPSHOT'
+    compile 'org.openbaton:exception:0.16-SNAPSHOT'
+//    compile project(':catalogue')
+//    compile project(':exception')
+    compile project(':core')
 
     compile("mysql:mysql-connector-java:5.1.35")
     compile("org.hsqldb:hsqldb:2.0.0")

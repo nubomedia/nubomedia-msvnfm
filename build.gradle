@@ -2,7 +2,7 @@ plugins {
     id 'net.researchgate.release' version '2.1.2'
 }
 
-apply from: 'openbaton-libs/gradle/gradle/git.release.gradle'
+apply from: 'gradle/gradle/git.release.gradle'
 
 apply plugin: "java"
 apply plugin: 'maven'
@@ -33,7 +33,7 @@ project.ext {
     mainClass = 'org.openbaton.vnfm.Application'
     //------------------------------------------------//
 }
-apply from: 'openbaton-libs/gradle/gradle/application.java.gradle'
+apply from: 'gradle/gradle/application.java.gradle'
 
 repositories {
     mavenCentral()
@@ -48,7 +48,7 @@ dependencies {
     compile 'org.hibernate:hibernate-core:4.3.10.Final'
 }
 
-apply from: 'openbaton-libs/gradle/gradle/run.application.java.gradle'
+apply from: 'gradle/gradle/run.application.java.gradle'
 
 /*
  *

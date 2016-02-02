@@ -24,36 +24,36 @@ rootProject.name = 'ms-vnfm'
 include 'api'
 include 'repository'
 include 'vnfm-catalogue'
-include 'core-impl', 'core-int'
+include 'core'
 
-project(':core-impl').projectDir = file('core/core-impl')
-project(':core-int').projectDir = file('core/core-int')
+project(':core').projectDir = file('core')
+//project(':core-int').projectDir = file('core/core-int')
 
 
 //openbaton-libs
-include 'catalogue'
-include 'vnfm-sdk-amqp'
-include 'vnfm-sdk'
+//include 'catalogue'
+//include 'vnfm-sdk-amqp'
+//include 'vnfm-sdk'
 include 'main'
-include 'vim-drivers'
-include 'vim-int'
-include 'vim-impl'
-include 'monitoring'
-include 'exception'
-include 'plugin'
-include 'utils'
+//include 'vim-drivers'
+//include 'vim-int'
+//include 'vim-impl'
+//include 'monitoring'
+//include 'exception'
+//include 'plugin'
+//include 'utils'
 include 'configuration'
 
-project(':catalogue').projectDir = file('openbaton-libs/catalogue')
-project(':vnfm-sdk-amqp').projectDir = file('openbaton-libs/vnfm-sdk-amqp')
-project(':vnfm-sdk').projectDir = file('openbaton-libs/vnfm-sdk')
-project(':vim-drivers').projectDir = file('openbaton-libs/vim-drivers')
-project(':vim-int').projectDir = file('openbaton-libs/vim-int')
-project(':vim-impl').projectDir = file('openbaton-libs/vim-impl')
-project(':monitoring').projectDir = file('openbaton-libs/monitoring')
-project(':exception').projectDir = file('openbaton-libs/exception')
-project(':plugin').projectDir = file('openbaton-libs/plugin')
-project(':utils').projectDir = file('openbaton-libs/utils')
+//project(':catalogue').projectDir = file('openbaton-libs/catalogue')
+//project(':vnfm-sdk-amqp').projectDir = file('openbaton-libs/vnfm-sdk-amqp')
+//project(':vnfm-sdk').projectDir = file('openbaton-libs/vnfm-sdk')
+//project(':vim-drivers').projectDir = file('openbaton-libs/vim-drivers')
+//project(':vim-int').projectDir = file('openbaton-libs/vim-int')
+//project(':vim-impl').projectDir = file('openbaton-libs/vim-impl')
+//project(':monitoring').projectDir = file('openbaton-libs/monitoring')
+//project(':exception').projectDir = file('openbaton-libs/exception')
+//project(':plugin').projectDir = file('openbaton-libs/plugin')
+//project(':utils').projectDir = file('openbaton-libs/utils')
 
 //autoscaling
 include 'as-core'

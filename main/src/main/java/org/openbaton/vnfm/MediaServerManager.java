@@ -44,9 +44,9 @@ import org.openbaton.vnfm.configuration.ApplicationProperties;
 import org.openbaton.vnfm.configuration.NfvoProperties;
 import org.openbaton.vnfm.configuration.SpringProperties;
 import org.openbaton.vnfm.configuration.VnfmProperties;
+import org.openbaton.vnfm.core.api.ApplicationManagement;
+import org.openbaton.vnfm.core.api.MediaServerManagement;
 import org.openbaton.vnfm.core.api.MediaServerResourceManagement;
-import org.openbaton.vnfm.core.interfaces.ApplicationManagement;
-import org.openbaton.vnfm.core.interfaces.MediaServerManagement;
 import org.openbaton.vnfm.repositories.ManagedVNFRRepository;
 import org.openbaton.vnfm.utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,12 +57,9 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import java.io.IOException;
-import java.rmi.RemoteException;
 import java.util.*;
 import java.util.concurrent.*;
 
