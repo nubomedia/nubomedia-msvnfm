@@ -25,28 +25,20 @@ import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.catalogue.mano.record.VNFRecordDependency;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.openbaton.catalogue.nfvo.Action;
-import org.openbaton.catalogue.nfvo.Location;
-import org.openbaton.catalogue.nfvo.Server;
 import org.openbaton.catalogue.nfvo.VimInstance;
 import org.openbaton.catalogue.nfvo.messages.Interfaces.NFVMessage;
 import org.openbaton.common.vnfm_sdk.amqp.AbstractVnfmSpringAmqp;
 import org.openbaton.common.vnfm_sdk.utils.VnfmUtils;
 import org.openbaton.exceptions.NotFoundException;
-import org.openbaton.exceptions.VimDriverException;
 import org.openbaton.exceptions.VimException;
 import org.openbaton.plugin.utils.PluginStartup;
-import org.openbaton.plugin.utils.RabbitPluginBroker;
 import org.openbaton.sdk.NFVORequestor;
 import org.openbaton.sdk.api.exception.SDKException;
-import org.openbaton.vim.drivers.VimDriverCaller;
 import org.openbaton.vnfm.catalogue.ManagedVNFR;
-import org.openbaton.vnfm.configuration.ApplicationProperties;
-import org.openbaton.vnfm.configuration.NfvoProperties;
-import org.openbaton.vnfm.configuration.SpringProperties;
-import org.openbaton.vnfm.configuration.VnfmProperties;
-import org.openbaton.vnfm.core.api.ApplicationManagement;
-import org.openbaton.vnfm.core.api.MediaServerManagement;
-import org.openbaton.vnfm.core.api.MediaServerResourceManagement;
+import org.openbaton.vnfm.configuration.*;
+import org.openbaton.vnfm.core.ApplicationManagement;
+import org.openbaton.vnfm.core.MediaServerManagement;
+import org.openbaton.vnfm.core.MediaServerResourceManagement;
 import org.openbaton.vnfm.repositories.ManagedVNFRRepository;
 import org.openbaton.vnfm.utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,6 +49,8 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.support.AnnotationConfigContextLoader;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
@@ -70,6 +64,7 @@ import java.util.concurrent.*;
 @EntityScan("org.openbaton.vnfm.catalogue")
 @ComponentScan({"org.openbaton.vnfm.api", "org.openbaton.autoscaling.api", "org.openbaton.autoscaling"})
 @EnableJpaRepositories("org.openbaton.vnfm")
+@ContextConfiguration(loader = AnnotationConfigContextLoader.class, classes = {MSBeanConfiguration.class})
 public class MediaServerManager extends AbstractVnfmSpringAmqp implements ApplicationListener<ContextClosedEvent> {
 
     @Autowired
@@ -272,7 +267,6 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
         try {
             applicationManagement.deleteByVnfrId(virtualNetworkFunctionRecord.getId());
             mediaServerManagement.deleteByVnfrId(virtualNetworkFunctionRecord.getId());
-            managedVnfrRepository.deleteByVnfrId(virtualNetworkFunctionRecord.getId());
         } catch (NotFoundException e) {
             log.warn(e.getMessage());
         }
@@ -425,9 +419,13 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
 
     @Override
     public void onApplicationEvent(ContextClosedEvent event) {
+        Set<Future<Boolean>> pendingTasks = new HashSet<>();
         for (ManagedVNFR managedVNFR : managedVnfrRepository.findAll()) {
+            pendingTasks.add(elasticityManagement.deactivate(managedVNFR.getNsrId(), managedVNFR.getVnfrId()));
+        }
+        for (Future<Boolean> pendingTask : pendingTasks) {
             try {
-                elasticityManagement.deactivate(managedVNFR.getNsrId(), managedVNFR.getVnfrId()).get(60, TimeUnit.SECONDS);
+                pendingTask.get(100, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
                 log.error(e.getMessage(), e);
             } catch (ExecutionException e) {
@@ -441,5 +439,6 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
         } catch (InterruptedException e) {
             log.error(e.getMessage(), e);
         }
+        destroyPlugins();
     }
 }

@@ -17,16 +17,12 @@
 
 package org.openbaton.vnfm.api;
 
-import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.vnfm.catalogue.ManagedVNFR;
-import org.openbaton.vnfm.core.api.VirtualNetworkFunctionRecordManagement;
+import org.openbaton.vnfm.core.VirtualNetworkFunctionRecordManagement;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
 import java.util.Set;
 
 @RestController

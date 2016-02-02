@@ -15,7 +15,7 @@
  *
  */
 
-package org.openbaton.vnfm.core.api;
+package org.openbaton.vnfm.core;
 
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.vnfm.catalogue.Application;

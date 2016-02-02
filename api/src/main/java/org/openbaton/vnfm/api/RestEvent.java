@@ -19,7 +19,7 @@ package org.openbaton.vnfm.api;
 
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.vnfm.catalogue.Application;
-import org.openbaton.vnfm.core.api.ApplicationManagement;
+import org.openbaton.vnfm.core.ApplicationManagement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
