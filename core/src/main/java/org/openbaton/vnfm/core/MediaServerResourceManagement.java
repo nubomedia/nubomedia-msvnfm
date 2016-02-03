@@ -80,7 +80,7 @@ public class MediaServerResourceManagement {
     }
 
     public void initializeClient() {
-        client = (VimDriverCaller) ((RabbitPluginBroker) context.getBean("rabbitPluginBroker")).getVimDriverCaller(vnfmProperties.getRabbitmq().getBrokerIp(), springProperties.getRabbitmq().getUsername(), springProperties.getRabbitmq().getPassword(), springProperties.getRabbitmq().getPort(),"openstack", "msopenstack", vnfmProperties.getRabbitmq().getManagement().getPort());
+        client = (VimDriverCaller) ((RabbitPluginBroker) context.getBean("rabbitPluginBroker")).getVimDriverCaller(vnfmProperties.getRabbitmq().getBrokerIp(), springProperties.getRabbitmq().getUsername(), springProperties.getRabbitmq().getPassword(), springProperties.getRabbitmq().getPort(),"openstack", "openstack", vnfmProperties.getRabbitmq().getManagement().getPort());
     }
 
     @Async
