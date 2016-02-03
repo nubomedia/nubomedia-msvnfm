@@ -4,9 +4,9 @@
 [![Join the chat at https://gitter.im/openbaton/NFVO](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/openbaton/NFVO?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 -->
 
-This project is part of NUBOMEDIA project: [nubomedia](https://www.nubomedia.eu "NUBOMEDIA")
+This project is part of NUBOMEDIA project: [NUBOMEDIA][nubomedia.eu]
 
-## Getting Started
+## Welcome to Elastic Media Manager's documentation!
 
 This `VNF Manager`, called `ms-vnfm` also known as `emm`, is implemented in java using the [spring.io] framework.
 
@@ -163,6 +163,7 @@ See [LICENSE][LICENSE]
 
 Do you want to contribute? Great! [Write us](mailto:nubomedia@av.tu-berlin.de)!.
 
+[nubomedia.eu]: http://www.nubomedia.eu/
 [bootstrap]:https://raw.githubusercontent.com/tub-nubomedia/ms-vnfm/master/bootstrap
 [nfvo install]:http://openbaton.github.io/documentation/nfvo-installation/
 [spring.io]:https://spring.io/
