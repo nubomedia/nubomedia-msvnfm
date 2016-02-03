@@ -10,8 +10,8 @@ export DEBIAN_FRONTEND=noninteractive
 _dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 _ms_vnfm_base_repo="https://github.com/tub-nubomedia/ms-vnfm.git"
-#_tag="develop"
-_tag="tags/0.16"
+_tag="master"
+#_tag="tags/0.16"
 
 _base=/opt
 _nubomedia_base="${_base}/nubomedia"
