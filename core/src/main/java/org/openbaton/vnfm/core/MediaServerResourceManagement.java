@@ -179,7 +179,7 @@ public class MediaServerResourceManagement {
     }
 
     @Async
-    public Future<Void> release(VNFCInstance vnfcInstance, VimInstance vimInstance) throws VimException {
+    public Future<Boolean> release(VNFCInstance vnfcInstance, VimInstance vimInstance) throws VimException {
         log.debug("Removing VM with ExtId: " + vnfcInstance.getVc_id() + " from VimInstance " + vimInstance.getName());
         try {
             client.deleteServerByIdAndWait(vimInstance, vnfcInstance.getVc_id());
@@ -207,7 +207,7 @@ public class MediaServerResourceManagement {
                 throw new VimException("Not removed VM with ExtId " + vnfcInstance.getVc_id() + " successfully from VimInstance " + vimInstance.getName() + ". Caused by: " + e.getMessage(), e);
             }
         }
-        return new AsyncResult<Void>(null);
+        return new AsyncResult<Boolean>(true);
     }
 
     private VNFCInstance getVnfcInstanceFromServer(VimInstance vimInstance, VNFComponent vnfComponent, String hostname, Server server, VirtualDeploymentUnit vdu, Map<String, String> floatingIps, VirtualNetworkFunctionRecord vnfr) {
@@ -334,7 +334,4 @@ public class MediaServerResourceManagement {
         log.debug("userdata: " + userdata);
         return userdata;
     }
-
-
-
 }
