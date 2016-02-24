@@ -66,11 +66,12 @@ public class MediaServerManagement {
         return mediaServer;
     }
 
-    public MediaServer add(String vnfrId, VNFCInstance vnfcInstance) {
+    public MediaServer add(String vnfrId, VNFCInstance vnfcInstance, int maxCapacity) {
         MediaServer mediaServer = new MediaServer();
         mediaServer.setVnfrId(vnfrId);
         mediaServer.setVnfcInstanceId(vnfcInstance.getId());
         mediaServer.setHostName(vnfcInstance.getHostname());
+        mediaServer.setMaxCapacity(maxCapacity);
         //TODO choose the right network
         if (vnfcInstance.getFloatingIps().size() > 0) {
             mediaServer.setIp(vnfcInstance.getFloatingIps().iterator().next().getIp());
@@ -163,7 +164,7 @@ public class MediaServerManagement {
             log.trace("Checking MediaServer -> " + mediaServer);
             if (mediaServer.getIp() != null) {
                 if (bestMediaServer == null) {
-                    if (mediaServer.getUsedPoints() + points <= mediaServerProperties.getCapacity().getMax()) {
+                    if (mediaServer.getUsedPoints() + points <= mediaServer.getMaxCapacity()) {
                         log.trace("This is the first MediaServer found so far that has enough capacity left");
                         bestMediaServer = mediaServer;
                     } else {

@@ -17,6 +17,7 @@
 
 package org.openbaton.vnfm.utils;
 
+import org.openbaton.catalogue.mano.common.DeploymentFlavour;
 import org.openbaton.catalogue.mano.common.Event;
 import org.openbaton.catalogue.mano.common.LifecycleEvent;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
@@ -249,5 +250,15 @@ public class Utils {
             //}
         }
         return userdata;
+    }
+
+    public static int getCpuCoresOfFlavor(String deployment_flavour_key, String vimInstanceName, NFVORequestor nfvoRequestor) throws NotFoundException {
+        VimInstance vimInstance = Utils.getVimInstance(vimInstanceName, nfvoRequestor);
+        for (DeploymentFlavour flavor : vimInstance.getFlavours()) {
+            if (flavor.getFlavour_key().equals(deployment_flavour_key)) {
+                return flavor.getVcpus();
+            }
+        }
+        return 0;
     }
 }

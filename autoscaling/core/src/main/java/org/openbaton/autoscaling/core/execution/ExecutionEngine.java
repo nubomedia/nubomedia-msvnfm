@@ -98,6 +98,9 @@ public class ExecutionEngine {
 
     private MonitoringPluginCaller client;
 
+    @Autowired
+    private MediaServerProperties mediaServerProperties;
+
 
 //    public ExecutionEngine(Properties properties) {
 //        this.properties = properties;
@@ -184,9 +187,16 @@ public class ExecutionEngine {
             vnfr = updateVNFR(vnfr);
             //vnfr = nfvoRequestor.getNetworkServiceRecordAgent().getVirtualNetworkFunctionRecord(nsr_id, vnfr_id);
             for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
+                int cores = 1;
+                try {
+                    cores = Utils.getCpuCoresOfFlavor(vnfr.getDeployment_flavour_key(), vdu.getVimInstanceName(), nfvoRequestor);
+                } catch (NotFoundException e) {
+                    log.warn(e.getMessage(), e);
+                }
+                int maxCapacity = cores * mediaServerProperties.getCapacity().getMax();
                 for (VNFCInstance vnfcInstance_new : vdu.getVnfc_instance()) {
                     if (vnfcInstance_new.getHostname().equals(vnfcInstance.getHostname())) {
-                        mediaServerManagement.add(vnfr.getId(), vnfcInstance_new);
+                        mediaServerManagement.add(vnfr.getId(), vnfcInstance_new, maxCapacity);
                     }
                 }
             }

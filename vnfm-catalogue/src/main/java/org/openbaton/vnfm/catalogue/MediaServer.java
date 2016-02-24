@@ -47,6 +47,8 @@ public class MediaServer implements Serializable {
 
     private int usedPoints;
 
+    private int maxCapacity;
+
     @Enumerated(EnumType.STRING)
     private Status status;
 
@@ -119,6 +121,14 @@ public class MediaServer implements Serializable {
         this.hostName = hostName;
     }
 
+    public int getMaxCapacity() {
+        return maxCapacity;
+    }
+
+    public void setMaxCapacity(int maxCapacity) {
+        this.maxCapacity = maxCapacity;
+    }
+
     @Override
     public String toString() {
         return "MediaServer{" +
@@ -129,6 +139,7 @@ public class MediaServer implements Serializable {
                 ", hostName='" + hostName + '\'' +
                 ", ip='" + ip + '\'' +
                 ", usedPoints=" + usedPoints +
+                ", maxCapacity=" + maxCapacity +
                 ", status=" + status +
                 '}';
     }

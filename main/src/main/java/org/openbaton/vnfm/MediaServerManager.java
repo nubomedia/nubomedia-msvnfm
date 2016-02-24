@@ -18,6 +18,7 @@
 package org.openbaton.vnfm;
 
 import org.openbaton.autoscaling.core.management.ElasticityManagement;
+import org.openbaton.catalogue.mano.common.DeploymentFlavour;
 import org.openbaton.catalogue.mano.descriptor.VNFComponent;
 import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.openbaton.catalogue.mano.record.Status;
@@ -94,6 +95,9 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
     private SpringProperties springProperties;
     @Autowired
     private VnfmProperties vnfmProperties;
+
+    @Autowired
+    private MediaServerProperties mediaServerProperties;
 
     @Autowired
     private MediaServerResourceManagement mediaServerResourceManagement;
@@ -290,9 +294,16 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
         managedVnfrRepository.save(managedVnfr);
         log.debug("Initializing Nubomedia MediaServers:");
         for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
+            int cores = 1;
+            try {
+                cores = Utils.getCpuCoresOfFlavor(virtualNetworkFunctionRecord.getDeployment_flavour_key(), vdu.getVimInstanceName(), nfvoRequestor);
+            } catch (NotFoundException e) {
+                log.warn(e.getMessage(), e);
+            }
+            int maxCapacity = cores * mediaServerProperties.getCapacity().getMax();
             for (VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
                 try {
-                    mediaServerManagement.add(virtualNetworkFunctionRecord.getId(), vnfcInstance);
+                    mediaServerManagement.add(virtualNetworkFunctionRecord.getId(), vnfcInstance, maxCapacity);
                 } catch (Exception e) {
                     log.warn(e.getMessage(), e);
                 }

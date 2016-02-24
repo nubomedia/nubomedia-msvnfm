@@ -17,6 +17,7 @@
 
 package org.openbaton.autoscaling.utils;
 
+import org.openbaton.catalogue.mano.common.DeploymentFlavour;
 import org.openbaton.catalogue.nfvo.VimInstance;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.sdk.NFVORequestor;
@@ -142,4 +143,13 @@ public class Utils {
         throw new NotFoundException("VimInstance with name: " + name + " was not found in the provided list of VimInstances.");
     }
 
+    public static int getCpuCoresOfFlavor(String deployment_flavour_key, String vimInstanceName, NFVORequestor nfvoRequestor) throws NotFoundException {
+        VimInstance vimInstance = Utils.getVimInstance(vimInstanceName, nfvoRequestor);
+        for (DeploymentFlavour flavor : vimInstance.getFlavours()) {
+            if (flavor.getFlavour_key().equals(deployment_flavour_key)) {
+                return flavor.getVcpus();
+            }
+        }
+        return 0;
+    }
 }
