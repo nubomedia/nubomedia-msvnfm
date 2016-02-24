@@ -39,6 +39,7 @@ import org.openbaton.monitoring.interfaces.MonitoringPluginCaller;
 import org.openbaton.plugin.utils.RabbitPluginBroker;
 import org.openbaton.sdk.NFVORequestor;
 import org.openbaton.sdk.api.exception.SDKException;
+import org.openbaton.vnfm.catalogue.MediaServer;
 import org.openbaton.vnfm.configuration.*;
 import org.openbaton.vnfm.core.MediaServerManagement;
 import org.openbaton.vnfm.core.MediaServerResourceManagement;
@@ -51,7 +52,10 @@ import org.springframework.stereotype.Service;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import javax.annotation.PostConstruct;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -167,7 +171,7 @@ public class ExecutionEngine {
                         //nfvoRequestor.getNetworkServiceRecordAgent().createVNFCInstance(vnfr.getParent_ns_id(), vnfr.getId(), vdu.getId(), vnfComponent_new);
                     }
                 } else {
-                        log.warn("Maximum size of VDU with id: " + vdu.getId() + " reached...");
+                    log.warn("Maximum size of VDU with id: " + vdu.getId() + " reached...");
                 }
                 if (vnfcInstance != null) {
                     vdu.getVnfc_instance().add(vnfcInstance);
@@ -228,6 +232,7 @@ public class ExecutionEngine {
         log.info("Executing scaling-in of VNFR with id: " + vnfr.getId());
         for (int i = 1; i <= numberOfInstances; i++) {
             VNFCInstance vnfcInstance_remove = null;
+            String mediaServer_remove = null;
             if (actionMonitor.isTerminating(vnfr.getId())) {
                 actionMonitor.finishedAction(vnfr.getId(), org.openbaton.autoscaling.catalogue.Action.TERMINATED);
                 return vnfr;
@@ -238,34 +243,50 @@ public class ExecutionEngine {
                     if (vimInstance == null) {
                         vimInstance = Utils.getVimInstance(vdu.getVimInstanceName(), nfvoRequestor);
                     }
-                    if (autoScalingProperties.getTerminationRule().isActivate()) {
-                        if (client == null) client = getClient();
-                        log.debug("Search for VNFCInstance that meets the termination rule");
-                        List<String> hostnames = new ArrayList<>();
-                        for (VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
-                            hostnames.add(vnfcInstance.getHostname());
-                        }
-                        List<String> metrics = new ArrayList<>();
-                        metrics.add(autoScalingProperties.getTerminationRule().getMetric());
-                        List<Item> items = null;
-                        try {
-                            items = client.queryPMJob(hostnames, metrics, "15");
-                        } catch (MonitoringException e) {
-                            log.error(e.getMessage(), e);
-                        }
-                        log.debug("Processing measurement results...");
-                        for (Item item : items) {
-                            if (item.getLastValue().equals(autoScalingProperties.getTerminationRule().getValue())) {
-                                log.debug("Found VNFCInstance that meets termination-rule.");
-                                vnfcInstance_remove = vdu.getVnfc_instance().iterator().next();
+                    Set<MediaServer> mediaServers = mediaServerManagement.queryByVnrfId(vnfr.getId());
+                    for (MediaServer mediaServer : mediaServers) {
+                        if (mediaServer.getUsedPoints() == 0) {
+                            if (autoScalingProperties.getTerminationRule().isActivate()) {
+                                if (client == null) client = getClient();
+                                log.debug("Search for VNFCInstance that meets the termination rule");
+                                List<String> hostnames = new ArrayList<>();
+                                hostnames.add(mediaServer.getHostName());
+                                List<String> metrics = new ArrayList<>();
+                                metrics.add(autoScalingProperties.getTerminationRule().getMetric());
+                                List<Item> items = null;
+                                try {
+                                    items = client.queryPMJob(hostnames, metrics, "15");
+                                } catch (MonitoringException e) {
+                                    log.error(e.getMessage(), e);
+                                }
+                                log.debug("Processing measurement results...");
+                                for (Item item : items) {
+                                    if (item.getLastValue().equals(autoScalingProperties.getTerminationRule().getValue())) {
+                                        log.debug("Found VNFCInstance that meets termination-rule.");
+                                        mediaServer_remove = item.getHostname();
+                                        break;
+                                    }
+                                }
+                            } else {
+                                mediaServer_remove = mediaServer.getHostName();
+                            }
+                            if (mediaServer_remove != null) {
+                                log.debug("Found MediaServer to scale-in -> " + mediaServer_remove);
                                 break;
                             }
+                        } else {
+                            log.debug("Cannot scale-in MediaServer with name: " + mediaServer.getHostName() + " since applications are still registered to");
                         }
-                    } else {
-                        log.debug("Scale-in the first VNFCInstance found");
-                        vnfcInstance_remove = vdu.getVnfc_instance().iterator().next();
+                        //nfvoRequestor.getNetworkServiceRecordAgent().deleteVNFCInstance(vnfr.getParent_ns_id(), vnfr.getId(), vdu.getId(), vnfcInstance_remove.getId());
                     }
-                    //nfvoRequestor.getNetworkServiceRecordAgent().deleteVNFCInstance(vnfr.getParent_ns_id(), vnfr.getId(), vdu.getId(), vnfcInstance_remove.getId());
+                }
+                if (mediaServer_remove != null) {
+                    for (VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
+                        if (vnfcInstance.getHostname().equals(mediaServer_remove)) {
+                            vnfcInstance_remove = vnfcInstance;
+                            break;
+                        }
+                    }
                 }
                 if (vnfcInstance_remove != null) {
                     mediaServerResourceManagement.release(vnfcInstance_remove, vimInstance);
