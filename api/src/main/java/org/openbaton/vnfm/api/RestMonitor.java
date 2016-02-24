@@ -51,8 +51,9 @@ public class RestMonitor {
      */
     @RequestMapping(value = "CONSUMED_CAPACITY", method = RequestMethod.GET)
     @ResponseStatus(HttpStatus.OK)
-    public String create(@PathVariable("hostname") String hostName) throws NotFoundException {
+    public String get(@PathVariable("hostname") String hostName) throws NotFoundException {
         MediaServer mediaServer = mediaServerManagement.queryByHostName(hostName);
+        if (mediaServer == null) throw new NotFoundException("MediaServer with name " + hostName + " not found.");
         return Double.toString(mediaServer.getUsedPoints());
     }
 
