@@ -164,7 +164,8 @@ public class ApplicationManagement {
         log.debug("Listing all Applications running on VNFR with id: " + vnfrId);
         Iterable<Application> appsIterable = applicationRepository.findAppByVnfrId(vnfrId);
         if (!appsIterable.iterator().hasNext()) {
-            throw new NotFoundException("Not found any Applications running on VNFR with id: " + vnfrId);
+            //throw new NotFoundException("Not found any Applications running on VNFR with id: " + vnfrId);
+            return new HashSet<>();
         }
         return fromIterbaleToSet(appsIterable);
     }
