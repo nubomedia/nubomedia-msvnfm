@@ -165,7 +165,7 @@ public class PoolManagement {
 
     public void activate(String nsr_id, String vnfr_id) throws NotFoundException {
         log.debug("Activating pool mechanism for VNFR " + vnfr_id);
-        log.info("AutoScaling: Pool Size for nsr with: " + nsr_id + " -> " + POOL_SIZE);
+        log.info("Pool Size for VNFR with id: " + vnfr_id + " -> " + POOL_SIZE);
         VirtualNetworkFunctionRecord vnfr = null;
         try {
             vnfr = nfvoRequestor.getNetworkServiceRecordAgent().getVirtualNetworkFunctionRecord(nsr_id, vnfr_id);

@@ -122,7 +122,7 @@ public class DetectionEngine {
     }
 
     public double calculateMeasurementResult(ScalingAlarm alarm, List<Item> measurementResults) {
-        log.info("[AUTOSCALING] Calculating final measurement result " + new Date().getTime());
+        log.debug("Calculating final measurement result ...");
         double result;
         List<Double> consideredResults = new ArrayList<>();
         for (Item measurementResult : measurementResults) {
@@ -150,7 +150,7 @@ public class DetectionEngine {
     }
 
     public boolean checkThreshold(String comparisonOperator, double threshold, double result) {
-        log.info("[AUTOSCALING] Checking Threshold " + new Date().getTime());
+        log.debug("Checking Threshold ...");
         switch (comparisonOperator) {
             case ">":
                 if (result > threshold) {
@@ -189,7 +189,7 @@ public class DetectionEngine {
     }
 
     public void sendAlarm(String nsr_id, String vnfr_id, AutoScalePolicy autoScalePolicy) {
-        log.info("[AUTOSCALING] Alarm fired " + new Date().getTime());
+        log.info("Alarm fired for VNFR with id: " + vnfr_id);
         detectionManagement.sendAlarm(nsr_id, vnfr_id, autoScalePolicy);
     }
 }

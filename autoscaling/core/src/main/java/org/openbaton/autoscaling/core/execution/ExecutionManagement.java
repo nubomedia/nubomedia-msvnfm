@@ -85,8 +85,7 @@ public class ExecutionManagement {
     }
 
     public void executeActions(String nsr_id, String vnfr_id, Set<ScalingAction> actions, long cooldown) {
-        log.info("[AUTOSCALING] Executing actions " + new Date().getTime());
-        log.debug("Processing execution request of ScalingActions: " + actions + " for VNFR with id: " + vnfr_id);
+        log.info("Processing execution request of ScalingActions: " + actions + " for VNFR with id: " + vnfr_id);
         if (actionMonitor.requestAction(vnfr_id, Action.SCALE)) {
             log.debug("Creating new ExecutionTask of ScalingActions: " + actions + " for VNFR with id: " + vnfr_id);
             ExecutionTask executionTask = new ExecutionTask(nsr_id, vnfr_id, actions, cooldown, executionEngine, actionMonitor);
@@ -107,7 +106,7 @@ public class ExecutionManagement {
             actionMonitor.finishedAction(vnfr_id, Action.TERMINATED);
             return;
         }
-        log.debug("Starting CooldownTask for VNFR with id: " + vnfr_id);
+        log.info("Starting CooldownTask for VNFR with id: " + vnfr_id);
         if (actionMonitor.requestAction(vnfr_id, Action.COOLDOWN)) {
             log.debug("Creating new CooldownTask for VNFR with id: " + vnfr_id);
             CooldownTask cooldownTask = new CooldownTask(nsr_id, vnfr_id, cooldown, executionEngine, actionMonitor);
@@ -138,7 +137,7 @@ public class ExecutionManagement {
                 stop(nsr_id, vnfr.getId());
             }
         }
-        log.debug("Stopped all ExecutionTasks for NSR with id: " + nsr_id);
+        log.info("Stopped all ExecutionTasks for NSR with id: " + nsr_id);
     }
 
     @Async
@@ -162,7 +161,7 @@ public class ExecutionManagement {
             }
         }
         actionMonitor.removeId(vnfr_id);
-        log.debug("Stopped ExecutionTask for VNFR with id: " + vnfr_id);
+        log.info("Stopped ExecutionTask for VNFR with id: " + vnfr_id);
         return new AsyncResult<>(true);
     }
 }

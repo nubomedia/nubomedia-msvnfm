@@ -128,12 +128,13 @@ public class ExecutionEngine {
     }
 
     public VirtualNetworkFunctionRecord scaleOut(VirtualNetworkFunctionRecord vnfr, int numberOfInstances) throws SDKException, NotFoundException {
+        log.info("Executing scaling-out of VNFR with id: " + vnfr.getId());
         for (int i = 1; i <= numberOfInstances; i++) {
             if (actionMonitor.isTerminating(vnfr.getId())) {
                 actionMonitor.finishedAction(vnfr.getId(), org.openbaton.autoscaling.catalogue.Action.TERMINATED);
                 return vnfr;
             }
-            log.info("[AUTOSCALING] Adding new VNFCInstance -> number " + i + " " + new Date().getTime());
+            log.debug("Adding new VNFCInstance -> number " + i + " " + new Date().getTime());
             VNFCInstance vnfcInstance = null;
             for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
                 VimInstance vimInstance = null;
@@ -170,9 +171,8 @@ public class ExecutionEngine {
                 }
                 if (vnfcInstance != null) {
                     vdu.getVnfc_instance().add(vnfcInstance);
-                    log.debug("SCALE: Added new Component to VDU " + vdu.getId());
                     actionMonitor.finishedAction(vnfr.getId(), org.openbaton.autoscaling.catalogue.Action.SCALED);
-                    log.info("[AUTOSCALING] Added new VNFCInstance -> number " + i + " " + new Date().getTime());
+                    log.debug("Added new VNFCInstance -> number " + i + " " + new Date().getTime());
                     break;
                 }
             }
@@ -201,10 +201,12 @@ public class ExecutionEngine {
                 }
             }
         }
+        log.info("Executed scaling-out of VNFR with id: " + vnfr.getId());
         return vnfr;
     }
 
     public void scaleOutTo(VirtualNetworkFunctionRecord vnfr, int value) throws SDKException, NotFoundException, VimException {
+
         int vnfci_counter = 0;
         for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
             vnfci_counter += vdu.getVnfc_instance().size();
@@ -223,6 +225,7 @@ public class ExecutionEngine {
         //vnfr.setStatus(Status.SCALE);
         //nfvoRequestor.getNetworkServiceRecordAgent().updateVNFR(nsr_id, vnfr_id, vnfr);
         //vnfr = nfvoRequestor.getNetworkServiceRecordAgent().getVirtualNetworkFunctionRecord(nsr_id, vnfr_id);
+        log.info("Executing scaling-in of VNFR with id: " + vnfr.getId());
         for (int i = 1; i <= numberOfInstances; i++) {
             VNFCInstance vnfcInstance_remove = null;
             if (actionMonitor.isTerminating(vnfr.getId())) {
@@ -288,6 +291,7 @@ public class ExecutionEngine {
                 vnfr = updateVNFR(vnfr);
             }
         }
+        log.info("Executed scaling-in of VNFR with id: " + vnfr.getId());
         return vnfr;
     }
 

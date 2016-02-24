@@ -312,7 +312,6 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
         //TODO where to set it to active?
         virtualNetworkFunctionRecord.setStatus(Status.ACTIVE);
         if (virtualNetworkFunctionRecord.getAuto_scale_policy().size() > 0) {
-            log.debug("Activating Elasticity for VNFR with id: " + virtualNetworkFunctionRecord.getId());
             try {
                 elasticityManagement.activate(virtualNetworkFunctionRecord.getParent_ns_id(), virtualNetworkFunctionRecord.getId());
             } catch (NotFoundException e) {
