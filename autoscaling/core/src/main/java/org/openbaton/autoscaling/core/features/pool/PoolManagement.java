@@ -196,11 +196,10 @@ public class PoolManagement {
                 vnfcInstances = new HashSet<>();
             }
             if (POOL_PREPARE == true) {
-                for (int i = vnfcInstances.size() + 1; i <= POOL_SIZE; i++) {
-                    VNFCInstance vnfcInstance = poolEngine.allocateNewInstance(nsr_id, vnfr, vdu);
-                    if (vnfcInstance != null) {
-                        vnfcInstances.add(vnfcInstance);
-                    }
+                log.info("Preparing pool for VNFR with id: " + vnfr_id);
+                Set<VNFCInstance> vnfcInstances_new = poolEngine.allocateNewInstance(nsr_id, vnfr, vdu, POOL_SIZE);
+                if (vnfcInstances_new != null) {
+                    vnfcInstances.addAll(vnfcInstances_new);
                 }
             }
             vduMap.put(vdu.getId(), vnfcInstances);
