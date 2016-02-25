@@ -112,26 +112,25 @@ public class ElasticityManagement {
 
     public void activate(String nsr_id) throws NotFoundException, VimException {
         log.debug("Activating Elasticity for NSR with id: " + nsr_id);
-        detectionManagment.start(nsr_id);
         if (autoScalingProperties.getPool().isActivate()) {
             log.debug("Activating pool mechanism");
             poolManagement.activate(nsr_id);
         } else {
             log.debug("pool mechanism is disabled");
         }
+        detectionManagment.start(nsr_id);
         log.info("Activated Elasticity for NSR with id: " + nsr_id);
     }
-
-    @Async
+    
     public void activate(String nsr_id, String vnfr_id) throws NotFoundException, VimException {
         log.debug("Activating Elasticity for NSR with id: " + nsr_id);
-        detectionManagment.start(nsr_id, vnfr_id);
         if (autoScalingProperties.getPool().isActivate()) {
             log.debug("Activating pool mechanism");
             poolManagement.activate(nsr_id, vnfr_id);
         } else {
             log.debug("pool mechanism is disabled");
         }
+        detectionManagment.start(nsr_id, vnfr_id);
         log.info("Activated Elasticity for NSR with id: " + nsr_id);
     }
 
