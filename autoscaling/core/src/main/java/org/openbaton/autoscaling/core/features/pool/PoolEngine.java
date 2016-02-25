@@ -122,7 +122,7 @@ public class PoolEngine {
                 log.error(e.getMessage(), e);
             }
         } else {
-            log.warn("Not able to allocate new VNFCInstance for the Pool. Maximum number of VNFCInstances for VDU with id: " + vdu.getId() + " is reached");
+            log.debug("Not able to allocate new VNFCInstance for the Pool. Maximum number of VNFCInstances for VDU with id: " + vdu.getId() + " is reached");
         }
         if (vnfcInstanceFuture != null) {
             try {
@@ -142,7 +142,7 @@ public class PoolEngine {
     public Set<VNFCInstance> allocateNewInstance(String nsr_id, VirtualNetworkFunctionRecord vnfr, VirtualDeploymentUnit vdu, int numberOfInstances) throws NotFoundException {
         Set<VNFCInstance> vnfcInstances = new HashSet<>();
         Set<Future<VNFCInstance>> vnfcFutureInstances = new HashSet<>();
-        log.debug("Allocating new VNFCInstance on NSR::VNFR::VDU -> " + nsr_id + "::" + vnfr.getId() + "::" + vdu.getId());
+        log.debug("Allocating " + numberOfInstances + " new VNFCInstances on NSR::VNFR::VDU -> " + nsr_id + "::" + vnfr.getId() + "::" + vdu.getId());
         int reservedInstances = getNumberOfReservedInstances(nsr_id, vnfr.getId(), vdu.getId());
         for (int i = 1; i <= numberOfInstances; i++) {
             if ((vdu.getVnfc_instance().size() + reservedInstances + i <= vdu.getScale_in_out()) && vdu.getVnfc().iterator().hasNext()) {
@@ -156,14 +156,14 @@ public class PoolEngine {
                     log.error(e.getMessage(), e);
                 }
             } else {
-                log.warn("Not able to allocate new VNFCInstance for the Pool. Maximum number of VNFCInstances for VDU with id: " + vdu.getId() + " is reached");
+                log.debug("Not able to allocate new VNFCInstance for the Pool. Maximum number of VNFCInstances for VDU with id: " + vdu.getId() + " is reached");
             }
         }
         for (Future<VNFCInstance> vnfcFutureInstance : vnfcFutureInstances) {
             try {
                 VNFCInstance vnfcInstance = vnfcFutureInstance.get();
                 vnfcInstances.add(vnfcInstance);
-                log.debug("Allocated new VNFCInstance on NSR::VNFR::VDU -> " + nsr_id + "::" + vnfr.getId() + "::" + vdu.getId() + " -> " + vnfcInstance);
+                log.info("Allocated new VNFCInstance on NSR::VNFR::VDU -> " + nsr_id + "::" + vnfr.getId() + "::" + vdu.getId() + " -> " + vnfcInstance);
             } catch (InterruptedException e) {
                 log.error(e.getMessage(), e);
             } catch (ExecutionException e) {
@@ -252,7 +252,7 @@ public class PoolEngine {
             }
             poolManagement.removeReservedInstances(nsr.getId());
         } else {
-            log.warn("Not found any reserved Instances for NSR with id: " + nsr.getId());
+            log.debug("Not found any reserved Instances for NSR with id: " + nsr.getId());
         }
     }
 
@@ -268,10 +268,10 @@ public class PoolEngine {
                 }
                 poolManagement.getReservedInstances(nsr.getId()).remove(vnfr.getId());
             } else {
-                log.warn("Not found any reserved Instances for VNFR with id: " + vnfr.getId() + " of NSR with id: " + nsr.getId());
+                log.debug("Not found any reserved Instances for VNFR with id: " + vnfr.getId() + " of NSR with id: " + nsr.getId());
             }
         } else {
-            log.warn("Not found any reserved Instances for NSR with id: " + nsr.getId());
+            log.debug("Not found any reserved Instances for NSR with id: " + nsr.getId());
         }
 
     }
@@ -296,13 +296,13 @@ public class PoolEngine {
                         poolManagement.getReservedInstances(nsr.getId()).get(vnfr.getId()).remove(vdu.getId());
                     }
                 } else {
-                    log.warn("Not found any reserved Instances for VDU with id: " + vdu.getId() + " of VNFR with id: " + vnfr.getId() + " of NSR with id: " + nsr.getId());
+                    log.debug("Not found any reserved Instances for VDU with id: " + vdu.getId() + " of VNFR with id: " + vnfr.getId() + " of NSR with id: " + nsr.getId());
                 }
             } else {
-                log.warn("Not found any reserved Instances for VNFR with id: " + vnfr.getId() + " of NSR with id: " + nsr.getId());
+                log.debug("Not found any reserved Instances for VNFR with id: " + vnfr.getId() + " of NSR with id: " + nsr.getId());
             }
         } else {
-            log.warn("Not found any reserved Instances for NSR with id: " + nsr.getId());
+            log.debug("Not found any reserved Instances for NSR with id: " + nsr.getId());
         }
         for (Future<Boolean> releasingInstance : releasingInstances) {
             try {

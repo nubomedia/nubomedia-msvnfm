@@ -79,7 +79,7 @@ public class PoolTask implements Runnable {
                     actionMonitor.finishedAction(nsr_id, Action.TERMINATED);
                     return;
                 }
-                int launchPerRound = 3;
+                int launchPerRound = 5;
                 int currentPoolSize = reservedInstances.get(vnfr_id).get(vdu_id).size();
                 log.debug("Current pool size of NSR::VNFR::VDU: " + nsr_id + "::" + vnfr_id + "::" + vdu_id + " -> " + currentPoolSize);
                 int launch = pool_size - currentPoolSize;

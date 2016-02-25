@@ -64,6 +64,7 @@ public class DecisionEngine {
 
     public void sendDecision(String nsr_id, String vnfr_id, Set<ScalingAction> actions, long cooldown) {
         log.debug("Sending decision to Executor " + new Date().getTime());
+        log.info("[DECISION_MAKER] DECIDED_ABOUT_ACTIONS " + new Date().getTime());
         executionManagement.executeActions(nsr_id, vnfr_id, actions, cooldown);
         log.info("Sent decision to Executor " + new Date().getTime());
     }
@@ -82,4 +83,15 @@ public class DecisionEngine {
         }
         return vnfr.getStatus();
     }
+
+    public VirtualNetworkFunctionRecord getVNFR(String nsr_id, String vnfr_id) throws SDKException {
+        try {
+            VirtualNetworkFunctionRecord vnfr = nfvoRequestor.getNetworkServiceRecordAgent().getVirtualNetworkFunctionRecord(nsr_id, vnfr_id);
+            return vnfr;
+        } catch (SDKException e) {
+            log.error(e.getMessage(), e);
+            throw e;
+        }
+    }
+
 }

@@ -266,7 +266,7 @@ public class MediaServerResourceManagement {
         log.debug("Finding DeploymentFlavor with name: " + key + " on VimInstance " + vimInstance.getName());
         for (DeploymentFlavour deploymentFlavour : vimInstance.getFlavours()) {
             if (deploymentFlavour.getFlavour_key().equals(key) || deploymentFlavour.getExtId().equals(key) || deploymentFlavour.getId().equals(key)) {
-                log.info("Found DeploymentFlavour with ExtId: " + deploymentFlavour.getExtId() + " of DeploymentFlavour with name: " + key + " on VimInstance " + vimInstance.getName());
+                log.debug("Found DeploymentFlavour with ExtId: " + deploymentFlavour.getExtId() + " of DeploymentFlavour with name: " + key + " on VimInstance " + vimInstance.getName());
                 return deploymentFlavour.getExtId();
             }
         }
@@ -284,7 +284,7 @@ public class MediaServerResourceManagement {
             for (String image : vm_images) {
                 for (NFVImage nfvImage : vimInstance.getImages()) {
                     if (image.equals(nfvImage.getName()) || image.equals(nfvImage.getExtId())) {
-                        log.info("Image choosed with name: " + nfvImage.getName() + " and ExtId: " + nfvImage.getExtId());
+                        log.debug("Image choosed with name: " + nfvImage.getName() + " and ExtId: " + nfvImage.getExtId());
                         return nfvImage.getExtId();
                     }
                 }

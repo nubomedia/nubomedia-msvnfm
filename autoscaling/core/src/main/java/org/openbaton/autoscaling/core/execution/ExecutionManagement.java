@@ -85,6 +85,7 @@ public class ExecutionManagement {
     }
 
     public void executeActions(String nsr_id, String vnfr_id, Set<ScalingAction> actions, long cooldown) {
+        log.info("[EXECUTOR] RECEIVED_ACTION " + new Date().getTime());
         log.info("Processing execution request of ScalingActions: " + actions + " for VNFR with id: " + vnfr_id);
         if (actionMonitor.requestAction(vnfr_id, Action.SCALE)) {
             log.debug("Creating new ExecutionTask of ScalingActions: " + actions + " for VNFR with id: " + vnfr_id);
@@ -102,6 +103,7 @@ public class ExecutionManagement {
     }
 
     public void executeCooldown(String nsr_id, String vnfr_id, long cooldown) {
+        log.info("[EXECUTOR] START_COOLDOWN " + new Date().getTime());
         if (actionMonitor.isTerminating(vnfr_id)) {
             actionMonitor.finishedAction(vnfr_id, Action.TERMINATED);
             return;

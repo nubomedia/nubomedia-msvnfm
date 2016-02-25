@@ -132,6 +132,7 @@ public class ExecutionEngine {
     }
 
     public VirtualNetworkFunctionRecord scaleOut(VirtualNetworkFunctionRecord vnfr, int numberOfInstances) throws SDKException, NotFoundException {
+        log.info("[EXECUTOR] START_SCALE_OUT " + new Date().getTime());
         log.info("Executing scaling-out of VNFR with id: " + vnfr.getId());
         for (int i = 1; i <= numberOfInstances; i++) {
             if (actionMonitor.isTerminating(vnfr.getId())) {
@@ -145,7 +146,9 @@ public class ExecutionEngine {
                 if (vdu.getVnfc_instance().size() < vdu.getScale_in_out() && (vdu.getVnfc().iterator().hasNext())) {
                     if (autoScalingProperties.getPool().isActivate()) {
                         log.trace("Getting VNFCInstance from pool");
+                        log.info("[EXECUTOR] REQUEST_RESOURCES_POOL " + new Date().getTime());
                         vnfcInstance = poolManagement.getReservedInstance(vnfr.getParent_ns_id(), vnfr.getId(), vdu.getId());
+                        log.info("[EXECUTOR] FINISH_REQUEST_RESOURCES_POOL " + new Date().getTime());
                         if (vnfcInstance != null) {
                             log.debug("Got VNFCInstance from pool -> " + vnfcInstance);
                         } else {
@@ -160,7 +163,9 @@ public class ExecutionEngine {
                         }
                         VNFComponent vnfComponent = vdu.getVnfc().iterator().next();
                         try {
+                            log.info("[EXECUTOR] ALLOCATE_RESOURCES " + new Date().getTime());
                             vnfcInstance = mediaServerResourceManagement.allocate(vimInstance, vdu, vnfr, vnfComponent).get();
+                            log.info("[EXECUTOR] FINISH_ALLOCATE_RESOURCES " + new Date().getTime());
                         } catch (InterruptedException e) {
                             log.warn(e.getMessage(), e);
                         } catch (ExecutionException e) {
@@ -206,6 +211,7 @@ public class ExecutionEngine {
             }
         }
         log.info("Executed scaling-out of VNFR with id: " + vnfr.getId());
+        log.info("[EXECUTOR] FINISH_SCALE_OUT " + new Date().getTime());
         return vnfr;
     }
 

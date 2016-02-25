@@ -31,11 +31,12 @@ import org.openbaton.sdk.api.exception.SDKException;
 import org.openbaton.vnfm.configuration.NfvoProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.Date;
+import java.util.List;
+import java.util.Properties;
 
 /**
  * Created by mpa on 27.10.15.
@@ -74,7 +75,8 @@ public class DetectionTask implements Runnable {
         this.detectionEngine = detectionEngine;
         this.actionMonitor = actionMonitor;
 
-        this.nfvoRequestor = new NFVORequestor(nfvoProperties.getUsername(), nfvoProperties.getPassword(), nfvoProperties.getIp(), nfvoProperties.getPort(), "1");        this.name = "DetectionTask#" + nsr_id + ":" + vnfr_id;
+        this.nfvoRequestor = new NFVORequestor(nfvoProperties.getUsername(), nfvoProperties.getPassword(), nfvoProperties.getIp(), nfvoProperties.getPort(), "1");
+        this.name = "DetectionTask#" + nsr_id + ":" + vnfr_id;
         this.first_time = true;
         this.fired = false;
     }
@@ -91,7 +93,7 @@ public class DetectionTask implements Runnable {
             first_time = false;
             try {
                 int i = 0;
-                while ( i < autoScalePolicy.getCooldown()) {
+                while (i < autoScalePolicy.getCooldown()) {
                     Thread.sleep(1000);
                     i++;
                     //terminate gracefully at this point in time if suggested from the outside
@@ -104,7 +106,7 @@ public class DetectionTask implements Runnable {
                 log.error(e.getMessage(), e);
             }
         }
-
+        log.info("[DETECTOR] CHECK_ALARM " + new Date().getTime());
         log.debug("DetectionTask: Checking AutoScalingPolicy " + autoScalePolicy.getName() + " with id: " + autoScalePolicy.getId() + " VNFR with id: " + vnfr_id);
         VirtualNetworkFunctionRecord vnfr = null;
         try {
@@ -118,19 +120,18 @@ public class DetectionTask implements Runnable {
             return;
         }
         if (vnfr != null) {
-            log.info("[AUTOSCALING] Checking Alarms " + new Date().getTime());
             for (ScalingAlarm alarm : autoScalePolicy.getAlarms()) {
                 //terminate gracefully at this point in time if suggested from the outside
                 if (actionMonitor.isTerminating(autoScalePolicy.getId())) {
                     actionMonitor.finishedAction(autoScalePolicy.getId(), Action.TERMINATED);
                     return;
                 }
-                alarmsWeightCount =+ alarm.getWeight();
+                alarmsWeightCount = +alarm.getWeight();
                 List<Item> measurementResults = null;
                 try {
-                    log.info("[AUTOSCALING] Collecting Measurements results for Alarm " + new Date().getTime());
+                    log.info("[DETECTOR] REQUEST_MEASUREMENTS " + new Date().getTime());
                     measurementResults = detectionEngine.getRawMeasurementResults(vnfr, alarm.getMetric(), Integer.toString(autoScalePolicy.getPeriod()));
-                    log.info("[AUTOSCALING] Collected Measurements results for Alarm" + new Date().getTime());
+                    log.info("[DETECTOR] GOT_MEASUREMENT_RESULTS " + new Date().getTime());
 
                 } catch (MonitoringException e) {
                     log.error(e.getMessage(), e);
@@ -138,7 +139,7 @@ public class DetectionTask implements Runnable {
                 double finalAlarmResult = detectionEngine.calculateMeasurementResult(alarm, measurementResults);
                 log.trace("DetectionTask: Measurement result on vnfr " + vnfr.getId() + " on metric " + alarm.getMetric() + " with statistic " + alarm.getStatistic() + " is " + finalAlarmResult + " " + measurementResults);
                 if (detectionEngine.checkThreshold(alarm.getComparisonOperator(), alarm.getThreshold(), finalAlarmResult)) {
-                    alarmsWeightFired =+ alarm.getWeight();
+                    alarmsWeightFired = +alarm.getWeight();
                     log.debug("DetectionTask: Alarm with id: " + alarm.getId() + " of AutoScalePolicy with id " + autoScalePolicy.getId() + " is fired");
                 } else {
                     log.trace("DetectionTask: Alarm with id: " + alarm.getId() + " of AutoScalePolicy with id " + autoScalePolicy.getId() + " is not fired");
@@ -155,9 +156,10 @@ public class DetectionTask implements Runnable {
             }
             if (detectionEngine.checkThreshold(autoScalePolicy.getComparisonOperator(), autoScalePolicy.getThreshold(), finalResult)) {
                 //if (fired == false) {
-                    log.info("Threshold of AutoScalingPolicy with id " + autoScalePolicy.getId() + " is crossed -> " + autoScalePolicy.getThreshold() + autoScalePolicy.getComparisonOperator() + finalResult);
-                    fired = true;
-                    detectionEngine.sendAlarm(nsr_id, vnfr_id, autoScalePolicy);
+                log.info("Threshold of AutoScalingPolicy with id " + autoScalePolicy.getId() + " is crossed -> " + autoScalePolicy.getThreshold() + autoScalePolicy.getComparisonOperator() + finalResult);
+                fired = true;
+                log.info("[DETECTOR] DETECTED_ALARM " + new Date().getTime());
+                detectionEngine.sendAlarm(nsr_id, vnfr_id, autoScalePolicy);
                 //} else {
                 //    log.debug("Threshold of AutoScalingPolicy with id " + autoScalePolicy.getId() + " was already crossed. So don't FIRE it again and wait for CLEARED-> " + autoScalePolicy.getThreshold() + autoScalePolicy.getComparisonOperator() + finalResult);
                 //}
