@@ -23,12 +23,12 @@ repositories {
 }
 
 dependencies {
-    compile 'org.openbaton:plugin:1.0.1-SNAPSHOT'
-    compile 'org.openbaton:catalogue:1.0.1-SNAPSHOT'
-    compile 'org.openbaton:monitoring:1.0.1-SNAPSHOT'
-    compile 'org.openbaton:vnfm-sdk-amqp:1.0.1-SNAPSHOT'
-    compile 'org.openbaton:vim-int:1.0.1-SNAPSHOT'
-    compile 'org.openbaton:vim-impl:1.0.1-SNAPSHOT'
+    compile 'org.openbaton:plugin:1.0.1'
+    compile 'org.openbaton:catalogue:1.0.1'
+    compile 'org.openbaton:monitoring:1.0.1'
+    compile 'org.openbaton:vnfm-sdk-amqp:1.0.1'
+    compile 'org.openbaton:vim-int:1.0.1'
+    compile 'org.openbaton:vim-impl:1.0.1'
 
 //    compile project(':catalogue')
     compile project(':as-catalogue')
@@ -47,7 +47,7 @@ dependencies {
     //compile project(':sdk')
 //    runtime project(':vim-impl')
 
-    compile ('org.openbaton:sdk:0.16-SNAPSHOT') {
+    compile ('org.openbaton:sdk:1.0.1') {
         exclude module: 'catalogue'
     }
     //compile 'org.openbaton:monitoring:0.15-SNAPSHOT'
