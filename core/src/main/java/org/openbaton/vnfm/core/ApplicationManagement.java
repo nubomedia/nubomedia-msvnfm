@@ -99,8 +99,8 @@ public class ApplicationManagement {
     public void delete(String vnfrId, String appId) throws NotFoundException {
         log.debug("Removing Application with id: " + appId + " running on VNFR with id: " + vnfrId);
         Application application = applicationRepository.findOne(appId);
-        if (application==null) {
-            throw new NotFoundException("Not found application with id: " + application.getId());
+        if (application == null || !application.getVnfr_id().equals(vnfrId)) {
+            throw new NotFoundException("Not found application with id: " + appId + " running on VNFR with id: " + vnfrId);
         }
         MediaServer mediaServer = mediaServerManagement.query(application.getMediaServerId());
         mediaServer.setUsedPoints(mediaServer.getUsedPoints() - application.getPoints());
