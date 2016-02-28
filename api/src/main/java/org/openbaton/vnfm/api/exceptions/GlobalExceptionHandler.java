@@ -44,7 +44,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     private Logger log = LoggerFactory.getLogger(this.getClass());
 
 
-    @ExceptionHandler({NotFoundException.class, NoResultException.class})
+    @ExceptionHandler({NotFoundException.class, NoResultException.class, NullPointerException.class})
     @ResponseStatus(value = HttpStatus.NOT_FOUND)
     protected ResponseEntity<Object> handleNotFoundException(Exception e, WebRequest request) {
         log.error("Exception with message " + e.getMessage() + " was thrown");
