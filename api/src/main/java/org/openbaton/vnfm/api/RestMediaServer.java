@@ -38,7 +38,7 @@ public class RestMediaServer {
     private MediaServerManagement mediaServerManagement;
 
     /**
-     * Lists all the MediaServers for a specific VNFR
+     * Lists all the MediaServers of a specific VNFR
      *
      * @param vnfrId : ID of VNFR
      */
@@ -46,5 +46,32 @@ public class RestMediaServer {
     @ResponseStatus(HttpStatus.OK)
     public Set<MediaServer> queryAll(@PathVariable("vnfrId") String vnfrId) throws NotFoundException {
         return mediaServerManagement.queryByVnrfId(vnfrId);
+    }
+
+    /**
+     * Returns the number of MediaServers of a specific VNFR
+     *
+     * @param vnfrId : ID of VNFR
+     */
+    @RequestMapping(value = "#", method = RequestMethod.GET)
+    @ResponseStatus(HttpStatus.OK)
+    public int queryNumber(@PathVariable("vnfrId") String vnfrId) throws NotFoundException {
+        return mediaServerManagement.queryByVnrfId(vnfrId).size();
+    }
+
+    /**
+     * Returns the number of MediaServers of a specific VNFR
+     *
+     * @param vnfrId : ID of VNFR
+     */
+    @RequestMapping(value = "load", method = RequestMethod.GET)
+    @ResponseStatus(HttpStatus.OK)
+    public double queryLoad(@PathVariable("vnfrId") String vnfrId) throws NotFoundException {
+        Set<MediaServer> mediaServers = mediaServerManagement.queryByVnrfId(vnfrId);
+        double sum = 0;
+        for (MediaServer mediaServer : mediaServers) {
+            sum = sum + mediaServer.getUsedPoints();
+        }
+        return sum / mediaServers.size();
     }
 }
