@@ -53,14 +53,14 @@ public class RestMediaServer {
      *
      * @param vnfrId : ID of VNFR
      */
-    @RequestMapping(value = "#", method = RequestMethod.GET)
+    @RequestMapping(value = "number", method = RequestMethod.GET)
     @ResponseStatus(HttpStatus.OK)
     public int queryNumber(@PathVariable("vnfrId") String vnfrId) throws NotFoundException {
         return mediaServerManagement.queryByVnrfId(vnfrId).size();
     }
 
     /**
-     * Returns the number of MediaServers of a specific VNFR
+     * Returns the load over all MediaServers of a specific VNFR
      *
      * @param vnfrId : ID of VNFR
      */
