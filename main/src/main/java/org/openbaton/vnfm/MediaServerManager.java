@@ -35,7 +35,8 @@ import org.openbaton.exceptions.VimException;
 import org.openbaton.plugin.utils.PluginStartup;
 import org.openbaton.sdk.NFVORequestor;
 import org.openbaton.sdk.api.exception.SDKException;
-import org.openbaton.vnfm.catalogue.ManagedVNFR;
+import org.openbaton.vnfm.catalogue.*;
+import org.openbaton.vnfm.catalogue.Application;
 import org.openbaton.vnfm.configuration.*;
 import org.openbaton.vnfm.core.ApplicationManagement;
 import org.openbaton.vnfm.core.MediaServerManagement;
@@ -403,12 +404,22 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
                     } else if (managedVNFR.getTask() == Action.RELEASE_RESOURCES) {
                         nfvMessage = VnfmUtils.getNfvMessage(Action.RELEASE_RESOURCES, terminate(vnfr));
                     } else if (managedVNFR.getTask() == Action.SCALING) {
-                        try {
-                            elasticityManagement.activate(managedVNFR.getNsrId(), managedVNFR.getVnfrId());
-                        } catch (NotFoundException e) {
-                            log.error(e.getMessage(), e);
-                        } catch (VimException e) {
-                            log.error(e.getMessage(), e);
+                        if (vnfr.getAuto_scale_policy().size() > 0) {
+                            try {
+                                elasticityManagement.activate(managedVNFR.getNsrId(), managedVNFR.getVnfrId());
+                            } catch (NotFoundException e) {
+                                log.warn(e.getMessage());
+                                if (log.isDebugEnabled()) {
+                                    log.error(e.getMessage(), e);
+                                }
+                            } catch (VimException e) {
+                                log.warn(e.getMessage());
+                                if (log.isDebugEnabled()) {
+                                    log.error(e.getMessage(), e);
+                                }
+                            }
+                        } else {
+                            log.debug("Do not activate Elasticity because there are no AutoScalePolicies defined.");
                         }
                     }
                     if (nfvMessage != null) {
@@ -421,6 +432,11 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
             } catch (SDKException e) {
                 log.error(e.getMessage(), e);
             }
+        }
+        log.info("Set number of missed heartbeats to 0 for all applications.");
+        for (Application app : applicationManagement.query()) {
+            app.setMissedHeartbeats(0);
+            log.debug("Set missed heartbeats to 0 for application " + app.getId());
         }
         if (applicationProperties.getHeartbeat().isActivate()) {
             applicationManagement.startHeartbeatCheck();
