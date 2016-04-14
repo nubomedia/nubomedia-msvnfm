@@ -261,18 +261,23 @@ public class ExecutionEngine {
                                 hostnames.add(mediaServer.getHostName());
                                 List<String> metrics = new ArrayList<>();
                                 metrics.add(autoScalingProperties.getTerminationRule().getMetric());
-                                List<Item> items = null;
+                                List<Item> items = new ArrayList<>();
                                 try {
                                     items = client.queryPMJob(hostnames, metrics, "15");
                                 } catch (MonitoringException e) {
                                     log.error(e.getMessage(), e);
                                 }
                                 log.debug("Processing measurement results...");
+                                if (items.size() == 0) {
+                                    log.warn("Not found the expected measurement results for termination rule. Requested metric is: " + autoScalingProperties.getTerminationRule().getMetric());
+                                }
                                 for (Item item : items) {
                                     if (item.getLastValue().equals(autoScalingProperties.getTerminationRule().getValue())) {
                                         log.debug("Found VNFCInstance that meets termination-rule.");
                                         mediaServer_remove = item.getHostname();
                                         break;
+                                    } else {
+                                        log.debug("VNFCInstance " + item.getHostname() + " does not meet termination rule -> " + item.getMetric() + "==" + item.getLastValue() + "!=" + autoScalingProperties.getTerminationRule().getValue());
                                     }
                                 }
                             } else {
