@@ -436,6 +436,7 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
         log.info("Set number of missed heartbeats to 0 for all applications.");
         for (Application app : applicationManagement.query()) {
             app.setMissedHeartbeats(0);
+            app.setHeartbeat(new Date());
             log.debug("Set missed heartbeats to 0 for application " + app.getId());
         }
         if (applicationProperties.getHeartbeat().isActivate()) {
