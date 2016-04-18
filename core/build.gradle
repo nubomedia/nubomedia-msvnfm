@@ -38,6 +38,9 @@ dependencies {
 
     //compile 'org.openbaton:sdk:0.6'
 
+    compile 'org.apache.commons:commons-collections4:4.1'
+
+
     /**
      * Spring dependencies
      */

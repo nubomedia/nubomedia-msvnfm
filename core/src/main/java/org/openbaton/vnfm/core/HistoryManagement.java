@@ -130,10 +130,10 @@ public class HistoryManagement {
             }
             HistoryEntry entry = new HistoryEntry(timestamp, averageValue);
 
-            if (! numberHistory.containsKey(managedVNFR.getVnfrId())) {
-                numberHistory.put(managedVNFR.getVnfrId(), new CircularFifoQueue<Point>(mediaServerProperties.getHistory().getLength()));
+            if (! loadHistory.containsKey(managedVNFR.getVnfrId())) {
+                loadHistory.put(managedVNFR.getVnfrId(), new CircularFifoQueue<Point>(mediaServerProperties.getHistory().getLength()));
             }
-            numberHistory.get(managedVNFR.getVnfrId()).add(entry);
+            loadHistory.get(managedVNFR.getVnfrId()).add(entry);
         }
     }
 

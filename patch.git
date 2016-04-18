@@ -1,0 +1,433 @@
+diff --git a/api/src/main/java/org/openbaton/vnfm/api/RestMediaServer.java b/api/src/main/java/org/openbaton/vnfm/api/RestMediaServer.java
+index 7a5857c..9909b2a 100644
+--- a/api/src/main/java/org/openbaton/vnfm/api/RestMediaServer.java
++++ b/api/src/main/java/org/openbaton/vnfm/api/RestMediaServer.java
+@@ -19,6 +19,7 @@ package org.openbaton.vnfm.api;
+ 
+ import org.openbaton.exceptions.NotFoundException;
+ import org.openbaton.vnfm.catalogue.MediaServer;
++import org.openbaton.vnfm.core.HistoryManagement;
+ import org.openbaton.vnfm.core.MediaServerManagement;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+@@ -26,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
+ import org.springframework.http.HttpStatus;
+ import org.springframework.web.bind.annotation.*;
+ 
++import java.util.Queue;
+ import java.util.Set;
+ 
+ @RestController
+@@ -37,6 +39,9 @@ public class RestMediaServer {
+     @Autowired
+     private MediaServerManagement mediaServerManagement;
+ 
++    @Autowired
++    private HistoryManagement historyManagement;
++
+     /**
+      * Lists all the MediaServers of a specific VNFR
+      *
+@@ -74,4 +79,26 @@ public class RestMediaServer {
+         }
+         return sum / mediaServers.size();
+     }
++
++    /**
++     * Returns the history of number of MediaServers of a specific VNFR
++     *
++     * @param vnfrId : ID of VNFR
++     */
++    @RequestMapping(value = "number/history", method = RequestMethod.GET)
++    @ResponseStatus(HttpStatus.OK)
++    public Queue queryNumberHistory(@PathVariable("vnfrId") String vnfrId) throws NotFoundException {
++        return historyManagement.getNumberHistory(vnfrId);
++    }
++
++    /**
++     * Returns the history of load over all MediaServers of a specific VNFR
++     *
++     * @param vnfrId : ID of VNFR
++     */
++    @RequestMapping(value = "load/history", method = RequestMethod.GET)
++    @ResponseStatus(HttpStatus.OK)
++    public Queue queryLoadHistory(@PathVariable("vnfrId") String vnfrId) throws NotFoundException {
++        return historyManagement.getLoadHistory(vnfrId);
++    }
+ }
+diff --git a/configuration/src/main/java/org/openbaton/vnfm/configuration/MediaServerProperties.java b/configuration/src/main/java/org/openbaton/vnfm/configuration/MediaServerProperties.java
+index 755e11f..0c7e5a4 100644
+--- a/configuration/src/main/java/org/openbaton/vnfm/configuration/MediaServerProperties.java
++++ b/configuration/src/main/java/org/openbaton/vnfm/configuration/MediaServerProperties.java
+@@ -33,6 +33,16 @@ public class MediaServerProperties {
+ 
+     private Monitor monitor;
+ 
++    public History getHistory() {
++        return history;
++    }
++
++    public void setHistory(History history) {
++        this.history = history;
++    }
++
++    private History history;
++
+     private StunServer stunServer;
+ 
+     private TurnServer turnServer;
+@@ -74,6 +84,7 @@ public class MediaServerProperties {
+         return "MediaServerProperties{" +
+                 "capacity=" + capacity +
+                 ", monitor=" + monitor +
++                ", history=" + history +
+                 ", stunServer=" + stunServer +
+                 ", turnServer=" + turnServer +
+                 '}';
+@@ -99,6 +110,26 @@ public class MediaServerProperties {
+         }
+     }
+ 
++    public static class History {
++
++        private int length;
++
++        public int getLength() {
++            return length;
++        }
++
++        public void setLength(int length) {
++            this.length = length;
++        }
++
++        @Override
++        public String toString() {
++            return "History{" +
++                    "length=" + length +
++                    '}';
++        }
++    }
++
+     public static class Monitor {
+ 
+         private String url;
+diff --git a/core/src/main/java/org/openbaton/vnfm/core/HistoryManagement.java b/core/src/main/java/org/openbaton/vnfm/core/HistoryManagement.java
+new file mode 100644
+index 0000000..a3e2e87
+--- /dev/null
++++ b/core/src/main/java/org/openbaton/vnfm/core/HistoryManagement.java
+@@ -0,0 +1,194 @@
++/*
++ *
++ *  * Copyright (c) 2015 Technische Universität Berlin
++ *  *  Licensed under the Apache License, Version 2.0 (the "License");
++ *  *  you may not use this file except in compliance with the License.
++ *  *  You may obtain a copy of the License at
++ *  *
++ *  *         http://www.apache.org/licenses/LICENSE-2.0
++ *  *
++ *  *  Unless required by applicable law or agreed to in writing, software
++ *  *  distributed under the License is distributed on an "AS IS" BASIS,
++ *  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ *  *  See the License for the specific language governing permissions and
++ *  *  limitations under the License.
++ *
++ */
++
++package org.openbaton.vnfm.core;
++
++import org.apache.commons.collections4.queue.CircularFifoQueue;
++import org.openbaton.catalogue.util.IdGenerator;
++import org.openbaton.exceptions.NotFoundException;
++import org.openbaton.vnfm.catalogue.ManagedVNFR;
++import org.openbaton.vnfm.catalogue.MediaServer;
++import org.openbaton.vnfm.configuration.MediaServerProperties;
++import org.openbaton.vnfm.repositories.ManagedVNFRRepository;
++import org.openbaton.vnfm.repositories.MediaServerRepository;
++import org.slf4j.Logger;
++import org.slf4j.LoggerFactory;
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.context.annotation.Scope;
++import org.springframework.scheduling.annotation.Scheduled;
++import org.springframework.stereotype.Service;
++
++import javax.annotation.PostConstruct;
++import javax.persistence.Id;
++import javax.persistence.Version;
++import java.awt.*;
++import java.io.Serializable;
++import java.util.Date;
++import java.util.HashMap;
++import java.util.Queue;
++
++/**
++ * Created by mpa on 01.10.15.
++ */
++@Service
++@Scope
++public class HistoryManagement {
++
++    protected Logger log = LoggerFactory.getLogger(this.getClass());
++
++    @Autowired
++    private MediaServerRepository mediaServerRepository;
++
++    @Autowired
++    private ManagedVNFRRepository managedVNFRRepository;
++
++    @Autowired
++    private MediaServerProperties mediaServerProperties;
++
++    private HashMap<String, Queue> numberHistory;
++
++    private HashMap<String, Queue> loadHistory;
++
++    @PostConstruct
++    private void init() {
++        loadHistory = new HashMap<>();
++        numberHistory = new HashMap<>();
++
++    }
++
++    public HashMap<String, Queue> getNumberHistory() {
++        return numberHistory;
++    }
++
++    public Queue getNumberHistory(String vnfrId) throws NotFoundException {
++        if (numberHistory.containsKey(vnfrId)) {
++            return numberHistory.get(vnfrId);
++        } else {
++            throw new NotFoundException("Not Found History Entry (number of instances) for VNFR " + vnfrId);
++        }
++    }
++
++    public void deleteNumberHistory(String vnfrId) throws NotFoundException {
++        if (numberHistory.containsKey(vnfrId)) {
++            numberHistory.remove(vnfrId);
++        } else {
++            throw new NotFoundException("Not Found History Entry (number of instances) for VNFR " + vnfrId);
++        }
++    }
++
++    public HashMap<String, Queue> getLoadHistory() {
++        return loadHistory;
++    }
++
++    public void deleteLoadHistory(String vnfrId) throws NotFoundException {
++        if (loadHistory.containsKey(vnfrId)) {
++            loadHistory.remove(vnfrId);
++        } else {
++            throw new NotFoundException("Not Found History Entry (averaged load) for VNFR " + vnfrId);
++        }
++    }
++
++    public Queue getLoadHistory(String vnfrId) throws NotFoundException {
++        if (loadHistory.containsKey(vnfrId)) {
++            return loadHistory.get(vnfrId);
++        } else {
++            throw new NotFoundException("Not Found History Entry (averaged load) for VNFR " + vnfrId);
++        }
++    }
++
++    @Scheduled(initialDelay=1000, fixedRate=5000)
++    private void collectLoadHistory() {
++        Long timestamp = new Date().getTime();
++        log.debug("Collecting history of averaged load at timestamp " + timestamp);
++        for (ManagedVNFR managedVNFR : managedVNFRRepository.findAll()) {
++            log.debug("Collecting history for VNFR " + managedVNFR.getVnfrId());
++            double sum = 0;
++            int size = 0;
++            for (MediaServer mediaServer : mediaServerRepository.findAllByVnrfId(managedVNFR.getVnfrId())) {
++                sum = sum + mediaServer.getUsedPoints();
++                size++;
++            }
++            double averageValue;
++            if (size > 0) {
++                averageValue = sum / size;
++            } else {
++                averageValue = -1;
++            }
++            HistoryEntry entry = new HistoryEntry(timestamp, averageValue);
++
++            if (! numberHistory.containsKey(managedVNFR.getVnfrId())) {
++                numberHistory.put(managedVNFR.getVnfrId(), new CircularFifoQueue<Point>(mediaServerProperties.getHistory().getLength()));
++            }
++            numberHistory.get(managedVNFR.getVnfrId()).add(entry);
++        }
++    }
++
++    @Scheduled(initialDelay=1000, fixedRate=5000)
++    private void collectNumberOfInstancesHistory() {
++        Long timestamp = new Date().getTime();
++        log.debug("Collecting history of number of instances at timestamp " + timestamp);
++        for (ManagedVNFR managedVNFR : managedVNFRRepository.findAll()) {
++            log.debug("Collecting history for VNFR " + managedVNFR.getVnfrId());
++            int size = 0;
++            for (MediaServer mediaServer : mediaServerRepository.findAllByVnrfId(managedVNFR.getVnfrId())) {
++                size++;
++            }
++            HistoryEntry entry = new HistoryEntry(timestamp, size);
++
++            if (! numberHistory.containsKey(managedVNFR.getVnfrId())) {
++                numberHistory.put(managedVNFR.getVnfrId(), new CircularFifoQueue<Point>(mediaServerProperties.getHistory().getLength()));
++            }
++            numberHistory.get(managedVNFR.getVnfrId()).add(entry);
++        }
++    }
++}
++
++class HistoryEntry implements Serializable {
++
++    private long timestamp;
++
++    private double value;
++
++    public HistoryEntry(long timestamp, double value) {
++        this.timestamp = timestamp;
++        this.value = value;
++    }
++
++    public long getTimestamp() {
++        return timestamp;
++    }
++
++    public void setTimestamp(long timestamp) {
++        this.timestamp = timestamp;
++    }
++
++    public double getValue() {
++        return value;
++    }
++
++    public void setValue(double value) {
++        this.value = value;
++    }
++
++    @Override
++    public String toString() {
++        return "HistoryEntry{" +
++                "timestamp=" + timestamp +
++                ", value=" + value +
++                '}';
++    }
++}
+diff --git a/etc/msvnfm.properties b/etc/msvnfm.properties
+index 154ecaa..69631c5 100755
+--- a/etc/msvnfm.properties
++++ b/etc/msvnfm.properties
+@@ -124,6 +124,7 @@ autoscaling.termination-rule.value=0.0
+ #MediaServer-related properties
+ mediaserver.capacity.max=100
+ mediaserver.monitor.url=localhost
++mediaserver.history.length=3600
+ mediaserver.stun-server.activate=false
+ mediaserver.stun-server.address=localhost
+ mediaserver.stun-server.port=3478
+diff --git a/main/build.gradle b/main/build.gradle
+index 668972b..b595acf 100644
+--- a/main/build.gradle
++++ b/main/build.gradle
+@@ -24,10 +24,10 @@ repositories {
+ 
+ dependencies {
+ 
+-    compile 'org.openbaton:vnfm-sdk-amqp:1.0.1'
+-    compile 'org.openbaton:vim-drivers:1.0.1'
+-    compile 'org.openbaton:vim-int:1.0.1'
+-    compile 'org.openbaton:vim-impl:1.0.1'
++    compile 'org.openbaton:vnfm-sdk-amqp:1.1.0-SNAPSHOT'
++    compile 'org.openbaton:vim-drivers:1.1.0-SNAPSHOT'
++    compile 'org.openbaton:vim-int:1.1.0-SNAPSHOT'
++    compile 'org.openbaton:vim-impl:1.1.0-SNAPSHOT'
+ //    compile project(':vnfm-sdk-amqp')
+ //    compile project(':vim-drivers')
+ //    compile project(':vim-int')
+diff --git a/main/src/main/java/org/openbaton/vnfm/MSBeanConfiguration.java b/main/src/main/java/org/openbaton/vnfm/MSBeanConfiguration.java
+index 10a30ac..f18bc0e 100644
+--- a/main/src/main/java/org/openbaton/vnfm/MSBeanConfiguration.java
++++ b/main/src/main/java/org/openbaton/vnfm/MSBeanConfiguration.java
+@@ -24,16 +24,20 @@ import org.openbaton.autoscaling.core.detection.DetectionManagement;
+ import org.openbaton.autoscaling.core.execution.ExecutionEngine;
+ import org.openbaton.autoscaling.core.execution.ExecutionManagement;
+ import org.openbaton.autoscaling.core.management.ElasticityManagement;
++import org.openbaton.vnfm.configuration.MediaServerProperties;
++import org.openbaton.vnfm.core.HistoryManagement;
+ import org.openbaton.vnfm.core.MediaServerResourceManagement;
+ import org.springframework.context.annotation.Bean;
+ import org.springframework.context.annotation.Configuration;
+ import org.springframework.scheduling.annotation.EnableAsync;
++import org.springframework.scheduling.annotation.EnableScheduling;
+ 
+ /**
+  * Created by mpa on 02.02.16.
+  */
+ @Configuration
+ @EnableAsync
++@EnableScheduling
+ public class MSBeanConfiguration {
+ 
+     @Bean
+@@ -46,4 +50,10 @@ public class MSBeanConfiguration {
+         return new ElasticityManagement();
+     }
+ 
++    @Bean
++    public HistoryManagement historyManagement() {
++        return new HistoryManagement();
++    }
++
+ }
++
+diff --git a/repository/src/main/java/org/openbaton/vnfm/repositories/MediaServerRepositoryCustom.java b/repository/src/main/java/org/openbaton/vnfm/repositories/MediaServerRepositoryCustom.java
+index fed0aea..85034f7 100644
+--- a/repository/src/main/java/org/openbaton/vnfm/repositories/MediaServerRepositoryCustom.java
++++ b/repository/src/main/java/org/openbaton/vnfm/repositories/MediaServerRepositoryCustom.java
+@@ -21,6 +21,7 @@ package org.openbaton.vnfm.repositories;
+ import org.openbaton.exceptions.NotFoundException;
+ import org.openbaton.vnfm.catalogue.MediaServer;
+ 
++import javax.print.attribute.standard.Media;
+ import java.util.Set;
+ 
+ /**
+@@ -28,12 +29,12 @@ import java.util.Set;
+  */
+ public interface MediaServerRepositoryCustom {
+ 
+-    public Iterable findAllByVnrfId(String id);
++    public Iterable<MediaServer> findAllByVnrfId(String id);
+ 
+     public void deleteByVnfrId(String vnfrId) throws NotFoundException;
+ 
+-    MediaServer findByHostName(String hostName);
++    public MediaServer findByHostName(String hostName);
+ 
+-    MediaServer findByHostName(String vnfrId, String hostName);
++    public MediaServer findByHostName(String vnfrId, String hostName);
+ 
+ }
+diff --git a/src/main/resources/conf.properties b/src/main/resources/conf.properties
+index 74edd66..868c7a9 100644
+--- a/src/main/resources/conf.properties
++++ b/src/main/resources/conf.properties
+@@ -18,4 +18,5 @@
+ type=media-server
+ endpoint=media-server-endpoint
+ 
+-allocate=true
+\ No newline at end of file
++allocate=true
++enabled = true
+\ No newline at end of file
+diff --git a/src/main/resources/mediaserver.properties b/src/main/resources/mediaserver.properties
+index 0e32159..bea2395 100644
+--- a/src/main/resources/mediaserver.properties
++++ b/src/main/resources/mediaserver.properties
+@@ -18,6 +18,7 @@
+ #MediaServer-related properties
+ mediaserver.capacity.max=100
+ mediaserver.monitor.url=localhost
++mediaserver.history.length=3600
+ mediaserver.stun-server.activate=false
+ mediaserver.stun-server.address=localhost
+ mediaserver.stun-server.port=3478
