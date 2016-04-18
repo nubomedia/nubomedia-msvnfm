@@ -37,9 +37,7 @@ import javax.persistence.Id;
 import javax.persistence.Version;
 import java.awt.*;
 import java.io.Serializable;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Queue;
+import java.util.*;
 
 /**
  * Created by mpa on 01.10.15.
@@ -155,6 +153,26 @@ public class HistoryManagement {
             numberHistory.get(managedVNFR.getVnfrId()).add(entry);
         }
     }
+
+    @Scheduled(initialDelay=1000, fixedRate=60000)
+    private void clean() {
+        Set<String> vnfrIds = new HashSet<>();
+        for (ManagedVNFR managedVNFR : managedVNFRRepository.findAll()) {
+            vnfrIds.add(managedVNFR.getVnfrId());
+        }
+        for (String vnfrId : loadHistory.keySet()) {
+            if (!vnfrIds.contains(vnfrId)) {
+                loadHistory.remove(vnfrId);
+            }
+        }
+        for (String vnfrId : numberHistory.keySet()) {
+            if (!vnfrIds.contains(vnfrId)) {
+                numberHistory.remove(vnfrId);
+            }
+        }
+    }
+
+
 }
 
 class HistoryEntry implements Serializable {
