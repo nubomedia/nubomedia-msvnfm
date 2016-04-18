@@ -113,7 +113,7 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
     }
 
     @Override
-    public VirtualNetworkFunctionRecord instantiate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, Object object, List<VimInstance> vimInstances) {
+    public VirtualNetworkFunctionRecord instantiate(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, Object scripts, Map<String, Collection<VimInstance>> vimInstances) {
         Iterable<ManagedVNFR> managedVnfrs = managedVnfrRepository.findByVnfrId(virtualNetworkFunctionRecord.getId());
         ManagedVNFR managedVNFR = null;
         if (managedVnfrs.iterator().hasNext()) {
@@ -136,7 +136,8 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
         for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
             VimInstance vimInstance = null;
             try {
-                vimInstance = Utils.getVimInstance(vdu.getVimInstanceName(), vimInstances);
+                log.debug("VIMINSTANCES: " + vimInstances.toString());
+                vimInstance = Utils.getVimInstance(vdu.getVimInstanceName(), (HashSet<VimInstance>) vimInstances.get(vdu.getId()));
             } catch (NotFoundException e) {
                 log.error(e.getMessage(), e);
             }
@@ -393,7 +394,18 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
                     if (managedVNFR.getTask() == Action.INSTANTIATE) {
                         try {
                             List<VimInstance> vimInstances = nfvoRequestor.getVimInstanceAgent().findAll();
-                            nfvMessage = VnfmUtils.getNfvMessage(Action.INSTANTIATE, instantiate(vnfr, null, vimInstances));
+                            Map<String, Collection<VimInstance>> vimInstancesMap = new HashMap<>();
+                            for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
+                                vimInstancesMap.put(vdu.getId(), new HashSet<VimInstance>());
+                                for (String vimInstanceName : vdu.getVimInstanceName()) {
+                                    for (VimInstance vimInstance : vimInstances) {
+                                        if (vimInstanceName.equals(vimInstance.getName())) {
+                                            vimInstancesMap.get(vdu.getId()).add(vimInstance);
+                                        }
+                                    }
+                                }
+                            }
+                            nfvMessage = VnfmUtils.getNfvMessage(Action.INSTANTIATE, instantiate(vnfr, null, vimInstancesMap));
                         } catch (SDKException e) {
                             log.error(e.getMessage(), e);
                         } catch (ClassNotFoundException e) {

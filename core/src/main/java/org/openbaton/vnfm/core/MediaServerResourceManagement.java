@@ -158,17 +158,17 @@ public class MediaServerResourceManagement {
                 if (vnfcInstance != null) {
                     try {
                         client.deleteServerByIdAndWait(vimInstance, vnfcInstance.getVc_id());
-                    } catch (RemoteException e1) {
-                        log.error(e1.getMessage(), e);
+//                    } catch (RemoteException e1) {
+//                        log.error(e1.getMessage(), e);
                     } catch (VimDriverException e1) {
                         log.error(e1.getMessage(), e);
                     }
                 }
             }
             throw new VimException("Not launched VM with hostname " + hostname + " successfully on VimInstance " + vimInstance.getName() + ". Caused by: " + e.getMessage(), e, vnfcInstance);
-        } catch (RemoteException e) {
-            log.error("Not launched VM with hostname " + hostname + " successfully on VimInstance " + vimInstance.getName() + ". Caused by: " + e.getMessage());
-            throw new VimException(e);
+//        } catch (RemoteException e) {
+//            log.error("Not launched VM with hostname " + hostname + " successfully on VimInstance " + vimInstance.getName() + ". Caused by: " + e.getMessage());
+//            throw new VimException(e);
         }
 
         log.debug("Creating VNFCInstance based on the VM launched previously -> VM: " + server);
@@ -184,13 +184,13 @@ public class MediaServerResourceManagement {
         try {
             client.deleteServerByIdAndWait(vimInstance, vnfcInstance.getVc_id());
             log.info("Removed VM with ExtId: " + vnfcInstance.getVc_id() + " from VimInstance " + vimInstance.getName());
-        } catch (RemoteException e) {
-            if (log.isDebugEnabled()) {
-                log.error("Not removed VM with ExtId " + vnfcInstance.getVc_id() + " successfully from VimInstance " + vimInstance.getName() + ". Caused by: " + e.getMessage(), e);
-            } else {
-                log.error("Not removed VM with ExtId " + vnfcInstance.getVc_id() + " successfully from VimInstance " + vimInstance.getName() + ". Caused by: " + e.getMessage());
-            }
-            throw new VimException("Not removed VM with ExtId " + vnfcInstance.getVc_id() + " successfully from VimInstance " + vimInstance.getName() + ". Caused by: " + e.getMessage(), e);
+//        } catch (RemoteException e) {
+//            if (log.isDebugEnabled()) {
+//                log.error("Not removed VM with ExtId " + vnfcInstance.getVc_id() + " successfully from VimInstance " + vimInstance.getName() + ". Caused by: " + e.getMessage(), e);
+//            } else {
+//                log.error("Not removed VM with ExtId " + vnfcInstance.getVc_id() + " successfully from VimInstance " + vimInstance.getName() + ". Caused by: " + e.getMessage());
+//            }
+//            throw new VimException("Not removed VM with ExtId " + vnfcInstance.getVc_id() + " successfully from VimInstance " + vimInstance.getName() + ". Caused by: " + e.getMessage(), e);
         } catch (VimDriverException e) {
             try {
                 Thread.sleep(1000);
@@ -199,9 +199,9 @@ public class MediaServerResourceManagement {
             }
             try {
                 client.deleteServerByIdAndWait(vimInstance, vnfcInstance.getVc_id());
-            } catch (RemoteException e1) {
-                log.error(e1.getMessage(), e);
-                throw new VimException("Not removed VM with ExtId " + vnfcInstance.getVc_id() + " successfully from VimInstance " + vimInstance.getName() + ". Caused by: " + e.getMessage(), e);
+//            } catch (RemoteException e1) {
+//                log.error(e1.getMessage(), e);
+//                throw new VimException("Not removed VM with ExtId " + vnfcInstance.getVc_id() + " successfully from VimInstance " + vimInstance.getName() + ". Caused by: " + e.getMessage(), e);
             } catch (VimDriverException e1) {
                 log.error(e1.getMessage(), e);
                 throw new VimException("Not removed VM with ExtId " + vnfcInstance.getVc_id() + " successfully from VimInstance " + vimInstance.getName() + ". Caused by: " + e.getMessage(), e);

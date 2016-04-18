@@ -19,6 +19,7 @@ package org.openbaton.vnfm.api;
 
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.vnfm.catalogue.MediaServer;
+import org.openbaton.vnfm.core.HistoryManagement;
 import org.openbaton.vnfm.core.MediaServerManagement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Queue;
 import java.util.Set;
 
 @RestController
@@ -36,6 +38,9 @@ public class RestMediaServer {
 
     @Autowired
     private MediaServerManagement mediaServerManagement;
+
+    @Autowired
+    private HistoryManagement historyManagement;
 
     /**
      * Lists all the MediaServers of a specific VNFR
@@ -73,5 +78,27 @@ public class RestMediaServer {
             sum = sum + mediaServer.getUsedPoints();
         }
         return sum / mediaServers.size();
+    }
+
+    /**
+     * Returns the history of number of MediaServers of a specific VNFR
+     *
+     * @param vnfrId : ID of VNFR
+     */
+    @RequestMapping(value = "number/history", method = RequestMethod.GET)
+    @ResponseStatus(HttpStatus.OK)
+    public Queue queryNumberHistory(@PathVariable("vnfrId") String vnfrId) throws NotFoundException {
+        return historyManagement.getNumberHistory(vnfrId);
+    }
+
+    /**
+     * Returns the history of load over all MediaServers of a specific VNFR
+     *
+     * @param vnfrId : ID of VNFR
+     */
+    @RequestMapping(value = "load/history", method = RequestMethod.GET)
+    @ResponseStatus(HttpStatus.OK)
+    public Queue queryLoadHistory(@PathVariable("vnfrId") String vnfrId) throws NotFoundException {
+        return historyManagement.getLoadHistory(vnfrId);
     }
 }

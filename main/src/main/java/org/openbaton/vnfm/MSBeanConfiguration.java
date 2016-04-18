@@ -24,16 +24,20 @@ import org.openbaton.autoscaling.core.detection.DetectionManagement;
 import org.openbaton.autoscaling.core.execution.ExecutionEngine;
 import org.openbaton.autoscaling.core.execution.ExecutionManagement;
 import org.openbaton.autoscaling.core.management.ElasticityManagement;
+import org.openbaton.vnfm.configuration.MediaServerProperties;
+import org.openbaton.vnfm.core.HistoryManagement;
 import org.openbaton.vnfm.core.MediaServerResourceManagement;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * Created by mpa on 02.02.16.
  */
 @Configuration
 @EnableAsync
+@EnableScheduling
 public class MSBeanConfiguration {
 
     @Bean
@@ -46,4 +50,10 @@ public class MSBeanConfiguration {
         return new ElasticityManagement();
     }
 
+    @Bean
+    public HistoryManagement historyManagement() {
+        return new HistoryManagement();
+    }
+
 }
+

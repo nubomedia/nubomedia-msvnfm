@@ -33,6 +33,16 @@ public class MediaServerProperties {
 
     private Monitor monitor;
 
+    public History getHistory() {
+        return history;
+    }
+
+    public void setHistory(History history) {
+        this.history = history;
+    }
+
+    private History history;
+
     private StunServer stunServer;
 
     private TurnServer turnServer;
@@ -74,6 +84,7 @@ public class MediaServerProperties {
         return "MediaServerProperties{" +
                 "capacity=" + capacity +
                 ", monitor=" + monitor +
+                ", history=" + history +
                 ", stunServer=" + stunServer +
                 ", turnServer=" + turnServer +
                 '}';
@@ -95,6 +106,26 @@ public class MediaServerProperties {
         public String toString() {
             return "Capacity{" +
                     "max='" + max + '\'' +
+                    '}';
+        }
+    }
+
+    public static class History {
+
+        private int length;
+
+        public int getLength() {
+            return length;
+        }
+
+        public void setLength(int length) {
+            this.length = length;
+        }
+
+        @Override
+        public String toString() {
+            return "History{" +
+                    "length=" + length +
                     '}';
         }
     }
