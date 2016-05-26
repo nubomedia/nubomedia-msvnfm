@@ -23,12 +23,12 @@ repositories {
 }
 
 dependencies {
-    compile 'org.openbaton:plugin:1.1.0-SNAPSHOT'
-    compile 'org.openbaton:catalogue:1.1.0-SNAPSHOT'
-    compile 'org.openbaton:monitoring:1.1.0-SNAPSHOT'
-    compile 'org.openbaton:vim-int:1.1.0-SNAPSHOT'
-    compile 'org.openbaton:vim-impl:1.1.0-SNAPSHOT'
-    compile 'org.openbaton:vnfm-sdk-amqp:1.1.0-SNAPSHOT'
+    compile 'org.openbaton:plugin:' + openbatonVersion
+    compile 'org.openbaton:catalogue:' + openbatonVersion
+    compile 'org.openbaton:monitoring:' + openbatonVersion
+    compile 'org.openbaton:vim-int:' + openbatonVersion
+    compile 'org.openbaton:vim-impl:' + openbatonVersion
+    compile 'org.openbaton:vnfm-sdk-amqp:' + openbatonVersion
 
 //    compile project(':catalogue')
     compile project(':as-catalogue')

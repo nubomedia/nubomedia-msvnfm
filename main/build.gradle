@@ -24,10 +24,10 @@ repositories {
 
 dependencies {
 
-    compile 'org.openbaton:vnfm-sdk-amqp:2.0.1-SNAPSHOT'
-    compile 'org.openbaton:vim-drivers:2.0.1-SNAPSHOT'
-    compile 'org.openbaton:vim-int:2.0.1-SNAPSHOT'
-    compile 'org.openbaton:vim-impl:2.0.1-SNAPSHOT'
+    compile 'org.openbaton:vnfm-sdk-amqp:' + openbatonVersion
+    compile 'org.openbaton:vim-drivers:' + openbatonVersion
+    compile 'org.openbaton:vim-int:' + openbatonVersion
+    compile 'org.openbaton:vim-impl:' + openbatonVersion
 //    compile project(':vnfm-sdk-amqp')
 //    compile project(':vim-drivers')
 //    compile project(':vim-int')

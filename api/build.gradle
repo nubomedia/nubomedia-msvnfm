@@ -24,8 +24,8 @@ repositories {
 
 dependencies {
 
-    compile 'org.openbaton:catalogue:2.0.1-SNAPSHOT'
-    compile 'org.openbaton:exception:2.0.1-SNAPSHOT'
+    compile 'org.openbaton:catalogue:' + openbatonVersion
+    compile 'org.openbaton:exception:' + openbatonVersion
 //    compile project(':catalogue')
 //    compile project(':exception')
     compile project(':core')

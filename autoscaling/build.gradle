@@ -38,6 +38,11 @@ project.ext {
     applicationVersion = version
     applicationVersionDebian = "1";
 
+    /**
+     * Open Baton Related Version
+     */
+    openbatonVersion = "2.0.6"
+
     //------------------------------------------------//
     //------------------------------------------------//
     /**

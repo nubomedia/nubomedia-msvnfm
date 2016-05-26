@@ -28,9 +28,9 @@ dependencies {
     compile project(':repository')
     compile project(':configuration')
 //    compile project(':vim-drivers')
-    compile 'org.openbaton:catalogue:2.0.1-SNAPSHOT'
-    compile 'org.openbaton:vim-drivers:2.0.1-SNAPSHOT'
-    compile 'org.openbaton:exception:2.0.1-SNAPSHOT'
+    compile 'org.openbaton:catalogue:' + openbatonVersion
+    compile 'org.openbaton:vim-drivers:' + openbatonVersion
+    compile 'org.openbaton:exception:' + openbatonVersion
 
     //compile project(':sdk')
 

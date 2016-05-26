@@ -134,13 +134,7 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
          */
         log.debug("Processing allocation of Recources for vnfr: " + virtualNetworkFunctionRecord);
         for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
-            VimInstance vimInstance = null;
-            try {
-                log.debug("VIMINSTANCES: " + vimInstances.toString());
-                vimInstance = Utils.getVimInstance(vdu.getVimInstanceName(), (HashSet<VimInstance>) vimInstances.get(vdu.getId()));
-            } catch (NotFoundException e) {
-                log.error(e.getMessage(), e);
-            }
+            VimInstance vimInstance = vimInstances.get(vdu.getParent_vdu()).iterator().next();
             List<Future<VNFCInstance>> vnfcInstancesFuturePerVDU = new ArrayList<>();
             log.debug("Creating " + vdu.getVnfc().size() + " VMs");
             for (VNFComponent vnfComponent : vdu.getVnfc()) {
@@ -290,6 +284,11 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
     }
 
     @Override
+    protected void checkEMS(String hostname) {
+
+    }
+
+    @Override
     public VirtualNetworkFunctionRecord start(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
         ManagedVNFR managedVnfr = managedVnfrRepository.findByVnfrId(virtualNetworkFunctionRecord.getId()).iterator().next();
         managedVnfr.setTask(Action.START);
@@ -365,7 +364,7 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
     }
 
     private void startPlugins() throws IOException {
-        PluginStartup.startPluginRecursive("./plugins", true, vnfmProperties.getRabbitmq().getBrokerIp(), String.valueOf(springProperties.getRabbitmq().getPort()), 15, springProperties.getRabbitmq().getUsername(), springProperties.getRabbitmq().getPassword(), vnfmProperties.getRabbitmq().getManagement().getPort());
+        PluginStartup.startPluginRecursive("./plugins", true, vnfmProperties.getRabbitmq().getBrokerIp(), String.valueOf(springProperties.getRabbitmq().getPort()), 15, springProperties.getRabbitmq().getUsername(), springProperties.getRabbitmq().getPassword(), vnfmProperties.getRabbitmq().getManagement().getPort(), "/var/log/nubomedia/plugins-logs");
     }
 
     private void destroyPlugins() {

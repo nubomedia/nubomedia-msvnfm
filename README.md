@@ -155,14 +155,64 @@ The following list gives an overview of available configuration parameters and i
 
 The log file is located in `/var/log/nubomedia/ms-vnfm.log` by default. The path can be changed in `/etc/nubomedia/msvnfm.properties` adapting the property `logging.file=` to your needs.
 
-## LICENSE
+News
+----
 
-See [LICENSE][LICENSE]
+Follow us on Twitter @[NUBOMEDIA Twitter].
 
-#### Development
+Issue tracker
+-------------
 
-Do you want to contribute? Great! [Write us](mailto:nubomedia@av.tu-berlin.de)!.
+Issues and bug reports should be posted to [GitHub Issues].
 
+Licensing and distribution
+--------------------------
+
+Software associated to NUBOMEDIA is provided as open source under GNU Library or
+"Lesser" General Public License, version 2.1 (LGPL-2.1). Please check the
+specific terms and conditions linked to this open source license at
+http://opensource.org/licenses/LGPL-2.1. Please note that software derived as a
+result of modifying the source code of NUBOMEDIA software in order to fix a bug
+or incorporate enhancements is considered a derivative work of the product.
+Software that merely uses or aggregates (i.e. links to) an otherwise unmodified
+version of existing software is not considered a derivative work.
+
+Contribution policy
+-------------------
+
+You can contribute to the NUBOMEDIA community through bug-reports, bug-fixes,
+new code or new documentation. For contributing to the NUBOMEDIA community,
+drop a post to the [NUBOMEDIA Public Mailing List] providing full information
+about your contribution and its value. In your contributions, you must comply
+with the following guidelines
+
+* You must specify the specific contents of your contribution either through a
+  detailed bug description, through a pull-request or through a patch.
+* You must specify the licensing restrictions of the code you contribute.
+* For newly created code to be incorporated in the NUBOMEDIA code-base, you
+  must accept NUBOMEDIA to own the code copyright, so that its open source
+  nature is guaranteed.
+* You must justify appropriately the need and value of your contribution. The
+  NUBOMEDIA project has no obligations in relation to accepting contributions
+  from third parties.
+* The NUBOMEDIA project leaders have the right of asking for further
+  explanations, tests or validations of any code contributed to the community
+  before it being incorporated into the NUBOMEDIA code-base. You must be ready
+  to addressing all these kind of concerns before having your code approved.
+
+Support
+-------
+
+The NUBOMEDIA community provides support through the [NUBOMEDIA Public Mailing List].
+
+[Development Guide]: http://nubomedia.readthedocs.org/
+[GitHub Issues]: https://github.com/tub-nubomedia/marketplace/issues
+[GitHub NUBOMEDIA Group]: https://github.com/nubomedia
+[LGPL v2.1 License]: http://www.gnu.org/licenses/lgpl-2.1.html
+[NUBOMEDIA Logo]: http://www.nubomedia.eu/sites/default/files/nubomedia_logo-small.png
+[NUBOMEDIA Twitter]: https://twitter.com/nubomedia
+[NUBOMEDIA Public Mailing list]: https://groups.google.com/forum/#!forum/nubomedia-dev
+[NUBOMEDIA]: http://www.nubomedia.eu
 [nubomedia.eu]: http://www.nubomedia.eu/
 [bootstrap]:https://raw.githubusercontent.com/tub-nubomedia/ms-vnfm/master/bootstrap
 [nfvo install]:http://openbaton.github.io/documentation/nfvo-installation/

@@ -26,6 +26,11 @@ project.ext {
     applicationVersion = "0.4-alpha"
     applicationVersionDebian = "1";
 
+    /**
+     * Open Baton Related Version
+     */
+    openbatonVersion = "2.0.6"
+
     //------------------------------------------------//
     /**
      * gradle Related Vars
