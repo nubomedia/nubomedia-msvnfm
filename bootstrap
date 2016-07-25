@@ -1,38 +1,48 @@
-#!/usr/bin/env bash
-set -e
+#!/bin/sh
 #
-# This script allows you to install ms-vnfm. To execute it:
+# This script allows you to install Nubomedia PaaS API. To execute it:
 #
-# 'curl -fsSkL https://gitlab.tubit.tu-berlin.de/NUBOMEDIA/bootstrap/raw/master/bootstrap | bash'
+# 'curl -fsSkL https://raw.githubusercontent.com/fhg-fokus-nubomedia/bootstrap/master/bootstrap | bash'
 
+. /lib/lsb/init-functions
 
-export DEBIAN_FRONTEND=noninteractive
-_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+#general configuration
+_PROJECT_NAME="ms-vnfm"
+_BASE="/opt"
+_PROJECT_ROOT_BASE="${_BASE}/nubomedia"
+_PROJECT_BASE="${_PROJECT_ROOT_BASE}/${_PROJECT_NAME}"
+_PROJECT_PROPERTIES_FOLDER="/etc/nubomedia"
+_DEFAULT_PROPERTIES_FILE="${_PROJECT_BASE}/etc/msvnfm.properties"
+_PROJECT_PROPERTIES_FILE="${_PROJECT_PROPERTIES_FOLDER}/msvnfm.properties"
+_PROJECT_LOG_FOLDER="/var/log/nubomedia"
 
-_ms_vnfm_base_repo="https://github.com/tub-nubomedia/ms-vnfm.git"
-_tag="master"
-#_tag="tags/0.16"
+_DATABASE_NAME="nubomedia"
 
-_base=/opt
-_nubomedia_base="${_base}/nubomedia"
-_ms_vnfm="${_nubomedia_base}/ms-vnfm"
-_log_folder=/var/log/nubomedia
+#debian configuration
+_APT_KEY_SERVER="keyserver.ubuntu.com"
+_APT_KEY_SERVER_KEY="F04B5A6F"
+_APT_REPOSITORY="deb http://repository.nubomedia.eu/ trusty main"
 
-_user="$(id -un 2>/dev/null || true)"
+#git configuration
+_PROJECT_REPO="https://github.com/tub-nubomedia/ms-vnfm.git"
+_SCRIPT_NAME="nubomedia-paas.sh"
+_TAG="develop"
+#_TAG="tags/1.1"
 
-function checkBinary {
-  echo -n " * Checking for '$1'..."
-  if command -v $1 >/dev/null 2>&1; then
-     echo "OK"
-     return 0
-   else
-     echo >&2 "FAILED."
-     return 1
-   fi
+_USER="$(id -un 2>/dev/null || true)"
+
+checkBinary () {
+  if command -v $1 >/dev/null 2>&1 ; then
+      log_success_msg "Checking for '$1'"
+      return 0
+  else
+      log_failure_msg "Checking for '$1'"
+      return 1
+  fi
 }
 
 _ex='sh -c'
-if [ "$_user" != 'root' ]; then
+if [ "$_USER" != 'root' ]; then
     if checkBinary sudo; then
         _ex='sudo -E sh -c'
     elif checkBinary su; then
@@ -40,195 +50,542 @@ if [ "$_user" != 'root' ]; then
     fi
 fi
 
-function createNubomediaBase {
-    echo "Creating the Nubomedia base folder"
-    # removing it if exists
-    $_ex 'rm -rf '$_nubomedia_base
-    $_ex 'mkdir -p '$_ms_vnfm
-    $_ex 'chown -R '"$_user $_nubomedia_base"
- 
-    # create log folder and give perission
-    $_ex 'rm -rf '$_log_folder
-    $_ex 'mkdir -p '$_log_folder
-    $_ex 'chown -R '"$_user $_log_folder"
+# Checks if the function call of setting properties got the expected values
+# $1: description shown for entering value (mandatory)
+# $2: configuration property (mandatory)
+# $3: default configuration value (optional)
+checkPropertyConfiguration () {
+    # Checking if the description is given
+    if [ -z "$1" ]; then
+      echo "-Parameter #1 is not set. Please provide the description of this configration parameter."
+      return 1
+    # Checking if the configuration parameter is given
+    elif [ -z "$2" ]; then
+      echo "-Parameter #2 is not set. Please provide the configration parameter."
+      return 1
+    fi
+    # Reading the value from the user
+    export _VALUE
+    read -p "$1 [$3]:" _VALUE
+    # Checking if at least one of both values is defined (either default or defined)
+    if [ -z "${_VALUE}" ] && [ -z "${3}" ]; then
+        log_failure_msg "You have to provide a value for \"$2\" since there is no default"
+        checkPropertyConfiguration "$1" "$2" "$3"
+    elif [ ! -z "${_VALUE}" ]; then
+        setProperty $2 $_VALUE
+        log_success_msg "Set parameter \"$2\" to value \"$_VALUE\""
+    elif [ ! -z "${3}" ]; then
+        setProperty $2 $3
+        log_success_msg "Kept parameter \"$2\" as the default value \"$3\""
+    fi
 }
 
-function checkoutMSVNFM {
-    echo "Getting MS-VNFM..."
-    createNubomediaBase
-    git clone --recursive "${_ms_vnfm_base_repo}" "${_ms_vnfm}"
-    pushd "${_ms_vnfm}"
-    git checkout ${_tag}
-    popd
-    $_ex 'rm -rf "/etc/nubomedia"; mkdir "/etc/nubomedia"'
-    $_ex 'cp '"${_ms_vnfm}/etc/msvnfm.properties /etc/nubomedia/msvnfm.properties"
+# Set the properties in the configuration file (no further checks)
+# $1: configuration property (mandatory)
+# $2: configuration property value (mandatory)
+setProperty () {
+    $_ex 'sed -i "s/^'"$1"'=.*/'"$1"'="'$2'"/g" '"$_PROJECT_PROPERTIES_FILE"
 }
 
-function compileMSVNFM {
-    echo "compiling the MS-VNFM"
-    pushd "${_ms_vnfm}"
-    ./ms-vnfm.sh compile
-    if [ $? -ne 0 ]; then
-        echo "ERROR: The compilation of the NFVO failed"
+#property configuration
+configureProperties () {
+    echo "The properties file to change is: $_PROJECT_PROPERTIES_FILE"
+
+    echo "NUBOMEDIA Media Server VNF Manager (EMM) configuration"
+    checkPropertyConfiguration "Enter the port of the VNF Manager" "paas.port" "9000"
+    if askForConfiguration "Do you want to configure a STUN server?"; then
+        checkPropertyConfiguration "Do you want to enable the usage of a STUN server" "mediaserver.stun-server.activate" "false"
+        checkPropertyConfiguration "Enter the IP of the STUN server" "mediaserver.stun-server.address" ""
+        checkPropertyConfiguration "Enter the port of the STUN server" "mediaserver.stun-server.port" ""
+    fi
+    if askForConfiguration "Do you want to configure a TURN server?"; then
+        checkPropertyConfiguration "Do you want to enable the usage of a TURN server" "mediaserver.turn-server.activate" "false"
+        checkPropertyConfiguration "Enter the URL of the TURN server" "mediaserver.turn-server.url" ""
+        checkPropertyConfiguration "Enter the username to authorize against the TURN server" "mediaserver.turn-server.username" ""
+        checkPropertyConfiguration "Enter the password to authorize against the TURN server" "mediaserver.turn-server.password" ""
+    fi
+    echo
+    echo "NFVO configuration"
+    checkPropertyConfiguration "Enter the username to authorize against the Orchestrator" "nfvo.username" "admin"
+    checkPropertyConfiguration "Enter the password to authorize against the Orchestrator" "nfvo.password" ""
+    echo
+    echo "AutoScaling configuration"
+
+    if askForConfiguration "Do you want to configure the pool mechanism?"; then
+        checkPropertyConfiguration "Do you want to enable the pool mechanism for auto scaling?" "autoscaling.pool.activate" "false"
+        checkPropertyConfiguration "Enter the pool size that should be created in advance" "autoscaling.pool.size" "1"
+        checkPropertyConfiguration "Enter the period of checking the policies" "autoscaling.pool.period" "30"
+        checkPropertyConfiguration "Should the pool be created in advance?" "autoscaling.pool.prepare" "false"
+    fi
+    checkPropertyConfiguration "Do you want to enable termination rules when sclaing-in?" "autoscaling.termination-rule.activate" "false"
+}
+
+askForConfiguration () {
+   echo "$1"
+   echo "1) Yes"
+   echo "2) No (default)"
+   read -p "Your choice: " choice
+   case $choice in
+       1) return 0;;
+       2) return 1;;
+       *) return 1;;
+   esac
+
+}
+
+##################
+#### database ####
+##################
+
+configureDatabase () {
+    echo "Do you wish to use MySQL?"
+    echo "1) Yes"
+    echo "2) No (default)"
+    read -p "Your choice: " choice
+    case $choice in
+        1) installMySql
+        configureMySql;;
+        2) return 0;;
+        *) return 0;;
+    esac
+}
+
+###############
+#### MySQL ####
+###############
+
+installMySql () {
+    checkBinary mysql-server; _error=$(($_error + $?))
+    if [ "0" != "$_error" ]; then
+        log_warning_msg "MySQL is not yet installed. Start installation ..."
+        $_ex 'apt-get -y install mysql-server'
+    fi
+}
+
+#requests the MySQL root password
+#additionally, it checks if the root password is valid
+#if not, it is asked again for the right password
+getMySqlRootPw () {
+    stty -echo
+    read -p "Please, provide the password of the root user of mysql: " rootpasswd; echo
+    stty echo
+    #for empty passwords it is also allowed
+    #if [ -z "${rootpasswd}" ]; then
+    #    log_failure_msg "You have to provide the root password of MySQL..."
+    #    getMySqlRootPw
+    #    return 0
+    #fi
+    #check if root password is correct
+    mysql -uroot -p${rootpasswd} -e exit
+    if [ $? -eq 0 ]; then
+        log_success_msg "MySQL root password validated"
+    else
+        log_failure_msg "MySQL root password is wrong ..."
+        getMySqlRootPw
+        return 0
+    fi
+}
+
+#creates a new MySQL user
+#should always work since it is checked before that the user does not exist
+createMySqlUser () {
+    mysql -uroot -p${rootpasswd} -e "CREATE USER ${sqlUser}@localhost IDENTIFIED BY "'"${sqlpassword}"'";"
+    if [ $? -eq 0 ]; then
+        log_success_msg "Created user"
+    else
+        log_failure_msg "Failed to create new MySQL user ${sqlUser}"
         exit 1
     fi
-    popd
 }
 
-function startMSVNFM {
-    echo "starting the MS-VNFM"
-    pushd ${_ms_vnfm}
-    ./ms-vnfm.sh start
-    popd
+#Checks if the database exists already
+#if not, it is created a new
+#if yes, it can be decided to keep the database or drop it and create a new one
+createMySqlDatabase () {
+    exist=`mysql -uroot -p*4root# -e "show databases;" | grep "\b${_DATABASE_NAME}\b" | wc -l`
+    if [ ${exist} -eq 1 ]; then
+        echo "MySQL database ${_DATABASE_NAME} exists already"
+        echo "How to proceed?"
+        echo "1) Keep it (default)"
+        echo "2) Drop it"
+        read -p "Your choice: " choice
+        case $choice in
+            1) return 0;;
+            2) mysql -uroot -p*4root# -e "drop database ${_DATABASE_NAME};"
+            log_success_msg "Dropped database ${_DATABASE_NAME}"
+            createMySqlDatabase;;
+            *) return 0;;
+        esac
+    else
+        mysql -uroot -p${rootpasswd} -e "CREATE DATABASE ${_DATABASE_NAME} /*\!40100 DEFAULT CHARACTER SET utf8 */;"
+        log_success_msg "Created new database ${_DATABASE_NAME}"
+    fi
 }
 
-function deployMSVNFM {
-    compileMSVNFM
-    startMSVNFM
+#configures the database table for the given user
+assignMySqlDatabaseRights () {
+    mysql -uroot -p${rootpasswd} -e "GRANT ALL ON ${_DATABASE_NAME}.* TO '${sqlUser}'@'localhost';"
+    log_success_msg "Granted rights to user ${sqlUser}"
+    mysql -uroot -p${rootpasswd} -e "FLUSH PRIVILEGES;"
+    log_success_msg "Flushed privileges"
+    mysql -uroot -p${rootpasswd} -e "USE ${_DATABASE_NAME};"
+    log_success_msg "Changed to database ${_DATABASE_NAME}"
 }
 
-function promptSetProperties {
-  export brokerIp
-  read -p "Enter the rabbitmq broker ip [localhost]: " brokerIp
-  if [[ $brokerIp != "" ]]; then
-     $_ex 'sed -i "s/vnfm.rabbitmq.brokerIp=localhost/vnfm.rabbitmq.brokerIp = $brokerIp/g" /etc/nubomedia/msvnfm.properties'
-  fi
-
-  export nfvoIp
-  read -p "Enter the Orchestrator ip [localhost]: " nfvoIp
-  if [[ $nfvoIp != "" ]]; then
-     $_ex 'sed -i "s/nfvo.ip=localhost/nfvo.ip=$nfvoIp/g" /etc/nubomedia/msvnfm.properties'
-  fi
-
-  export nfvoPort
-    read -p "Enter the Orchestrator ip [8080]: " nfvoPort
-    if [[ $nfvoPort != "" ]]; then
-     $_ex 'sed -i "s/nfvo.port=8080/nfvo.port=$nfvoPort/g" /etc/nubomedia/msvnfm.properties'
+#checks if the user exists and credentials are valid
+#if the user exist but the password is wrong it goes back to enter the credentials
+#if the user doesn't exist, it is created a new one
+checkIfMySqlUserExist () {
+    echo "Checking if user already exists ..."
+    exist=`mysql -uroot -p${rootpasswd} -e "select * from mysql.user;" | grep "\b${sqlUser}\b" | wc -l`
+    if [ ${exist} -eq 1 ]; then
+        echo "MySQL user ${sqlUser} exists already. Checking password..."
+        mysql -u${sqlUser} -p${sqlPassword} -e exit
+        if [ $? -eq 0 ]; then
+            log_success_msg "MySQL password for user ${sqlUser} validated"
+            return 0
+        else
+            log_failure_msg "MySQL password for user ${sqlUser} is wrong ..."
+            requestMySqlUser
+        fi
+    else
+        echo "Creating a new MySQL user with name ${sqlUser} ..."
+        createMySqlUser
+        return 0
     fi
 
-  export nfvoUsername
-  read -p "Enter the username to authenticate to the NFVO []: " nfvoUsername
-  if [[ $nfvoUsername != "" ]]; then
-     $_ex 'sed -i "s/nfvo.username=/nfvo.username=$nfvoUsername/g" /etc/nubomedia/msvnfm.properties'
-  fi
+}
 
-  export nfvoPassword
-  read -p "Enter the password to authenticate against the NFVO []: " nfvoPassword
-  if [[ $nfvoPassword != "" ]]; then
-     $_ex 'sed -i "s/nfvo.password=/nfvo.password=$nfvoPassword/g" /etc/nubomedia/msvnfm.properties'
-  fi
+#reqeusts the user that should be used for MySQL
+#additionally, it will be checked if the user exists and can login
+requestMySqlUser () {
+    read -p "Please, enter the name of the mysql user you would like ${_PROJECT_NAME} to use [admin]: " sqlUser
+    if [ -z "$sqlUser" ]; then
+        sqlUser=admin
+    fi
+    # Turning echo on and off between password reading
+    stty -echo
+    read -p "Please, provide the password for this user [changeme]: " sqlPassword; echo
+    if [ -z "$sqlPassword" ]; then
+        sqlPassword=changeme
+    fi
+    stty echo
+    checkIfMySqlUserExist
+}
 
-  export mediaServerCapacityMax
-  read -p "Enter MediaServer maximal Capacity [100]: " mediaServerCapacityMax
-  if [[ $mediaServerCapacityMax != "" ]]; then
-     $_ex 'sed -i "s/mediaserver.capacity.max=100/mediaserver.capacity.max=$mediaServerCapacityMax/g" /etc/nubomedia/msvnfm.properties'
-  fi
+#configuring MySQL in the properties file
+#Enabling MySQL, disabling HSQL
+configureMySql () {
+    echo "Configuring MySQL for $_PROJECT_NAME ..."
+    # Request MySQL root password to configure a new user for MySQL
+    getMySqlRootPw
+    # Request MySQL to use for this project
+    requestMySqlUser
+    # Create the Database
+    createMySqlDatabase
+    assignMySqlDatabaseRights
+    $_ex 'sed -i "s/^spring.jpa.hibernate.ddl-auto=create-drop/spring.jpa.hibernate.ddl-auto=update/g" '"$_PROJECT_PROPERTIES_FILE"
+    $_ex 'sed -i "s/^#spring.datasource.validationQuery=SELECT 1/spring.datasource.validationQuery=SELECT 1/g" '"$_PROJECT_PROPERTIES_FILE"
+    $_ex 'sed -i "s/^#spring.datasource.url=.*/spring.datasource.url=jdbc:mysql:\/\/localhost:3306\/'"$_DATABASE_NAME"'/g" '"$_PROJECT_PROPERTIES_FILE"
+    $_ex 'sed -i "s/^#spring.datasource.driver-class-name=com.mysql.jdbc.Driver/spring.datasource.driver-class-name=com.mysql.jdbc.Driver/g" '"$_PROJECT_PROPERTIES_FILE"
+    $_ex 'sed -i "s/^#spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect/spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect/g" '"$_PROJECT_PROPERTIES_FILE"
+    $_ex 'sed -i "s/^spring.datasource.username=.*/spring.datasource.username=${sqlUser}/g" '"$_PROJECT_PROPERTIES_FILE"
+    $_ex 'sed -i "s/^spring.datasource.password=.*/spring.datasource.password=${sqlPassword}/g" '"$_PROJECT_PROPERTIES_FILE"
+    log_success_msg "Enabled MySQL"
+    $_ex 'sed -i "s/^spring.datasource.url=jdbc:hsqldb:file:\(.*\)/#spring.datasource.url=jdbc:hsqldb:file:\1/g" '"$_PROJECT_PROPERTIES_FILE"
+    $_ex 'sed -i "s/^spring.datasource.driver-class-name=org.hsqldb.jdbc.JDBCDriver/# spring.datasource.driver-class-name=org.hsqldb.jdbc.JDBCDriver/g" '"$_PROJECT_PROPERTIES_FILE"
+    $_ex 'sed -i "s/^spring.jpa.database-platform=org.hibernate.dialect.HSQLDialect/# spring.jpa.database-platform=org.hibernate.dialect.HSQLDialect/g" '"$_PROJECT_PROPERTIES_FILE"
+    log_success_msg "Disabled HSQL"
+}
 
-  export mediaServerMonitorURL
-  read -p "Enter MediaServer Monitoring URL [localhost]: " mediaServerMonitorURL
-  if [[ $mediaServerMonitorURL != "" ]]; then
-     $_ex 'sed -i "s/mediaserver.monitor.url=localhost/mediaserver.monitor.url=$mediaServerMonitorURL/g" /etc/nubomedia/msvnfm.properties'
-  fi
+##################
+#### RabbitMQ ####
+##################
 
-  export mediaServerTurnServerActivate
-  read -p "Activate usage of TURN-Server by default [false]: " mediaServerTurnServerActivate
-  if [[ $mediaServerTurnServerActivate != "" ]]; then
-     $_ex 'sed -i "s/mediaserver.turn-server.activate=false/mediaserver.turn-server.activate=$mediaServerTurnServerActivate/g" /etc/nubomedia/msvnfm.properties'
-  fi
+configureRabbitMQ () {
+    checkPropertyConfiguration "Enter the host address where the RabbitMQ server is running" "rabbitmq.host" "localhost"
+    checkPropertyConfiguration "Enter the username used to authorize against the RabbitMQ server" "rabbitmq.username" ""
+    checkPropertyConfiguration "Enter the password used to authorize against the RabbitMQ server" "rabbitmq.password" ""
+}
 
-  export mediaServerTurnServerURL
-  read -p "Enter MediaServer TURN-Server URL [localhost:3487]: " mediaServerTurnServerURL
-  if [[ $mediaServerTurnServerURL != "" ]]; then
-     $_ex 'sed -i "s/mediaserver.turn-server.url=localhost:3487/mediaserver.turn-server.url=$mediaServerTurnServerURL/g" /etc/nubomedia/msvnfm.properties'
-  fi
+######################
+#### Using DEBIAN ####
+######################
 
-  export mediaServerTurnServerUsername
-  read -p "Enter username used to authenticate to the TURN-Server [username]: " mediaServerTurnServerUsername
-  if [[ $mediaServerTurnServerUsername != "" ]]; then
-     $_ex 'sed -i "s/mediaserver.turn-server.username=username/mediaserver.turn-server.username=$mediaServerTurnServerUsername/g" /etc/nubomedia/msvnfm.properties'
-  fi
+#adding apt repository
+#1. add key
+#2. add repo
+#3. update repositories
+addAptRepository () {
+    if [ -z "$_APT_KEY_SERVER_KEY" ] && [ -z "$_APT_KEY_SERVER" ]; then
+        log_warning_msg "Either the key server or key for the key server was not defined. Continue with adding the apt repository"
+    else
+        echo "Adding key server and key..."
+        $_ex 'apt-key adv --keyserver '"$_APT_KEY_SERVER"' --recv-keys '"$_APT_KEY_SERVER_KEY"
+    fi
+    if [ -n "$_APT_REPOSITORY" ]; then
+        echo "Adding apt repository..."
+        $_ex 'add-apt-repository '"\"$_APT_REPOSITORY\""
+    else
+        log_error_msg "apt repository is null. Please provide"
+    fi
+    $_ex 'apt-get update -y'
+}
 
-  export mediaServerTurnServerPassword
-  read -p "Enter password used to authenticate against the TURNfa-Server [password]: " mediaServerTurnServerPassword
-  if [[ $mediaServerTurnServerPassword != "" ]]; then
-     $_ex 'sed -i "s/mediaserver.turn-server.password=password/mediaserver.turn-server.password=$mediaServerTurnServerPassword/g" /etc/nubomedia/msvnfm.properties'
-  fi
+#isntalls the project
+installProject () {
+    $_ex 'apt-get install -y '"$_PROJECT_NAME"
+}
 
-  export mediaServerStunServerActivate
-  read -p "Activate usage of STUN-Server by default [false]: " mediaServerStunServerActivate
-  if [[ $mediaServerStunServerActivate != "" ]]; then
-     $_ex 'sed -i "s/mediaserver.stun-server.activate=false/mediaserver.stun-server.activate=$mediaServerStunServerActivate/g" /etc/nubomedia/msvnfm.properties'
-  fi
-
-  export mediaServerStunServerAddress
-  read -p "Enter MediaServer STUN-Server IP [localhost]: " mediaServerStunServerAddress
-  if [[ $mediaServerStunServerAddress != "" ]]; then
-     $_ex 'sed -i "s/mediaserver.stun-server.address=localhost/mediaserver.stun-server.address=$mediaServerStunServerAddress/g" /etc/nubomedia/msvnfm.properties'
-  fi
-
-  export mediaServerStunServerPort
-  read -p "Enter MediaServer STUN-Server port [3478]: " mediaServerStunServerPort
-  if [[ $mediaServerStunServerPort != "" ]]; then
-     $_ex 'sed -i "s/mediaserver.stun-server.port=3478/mediaserver.stun-server.port=$mediaServerStunServerPort/g" /etc/nubomedia/msvnfm.properties'
-  fi
-
-  export applicationHeartbeatActivate
-  read -p "Enable Application Heartbeat mechanism [true]: " applicationHeartbeatActivate
-  if [[ $applicationHeartbeatActivate != "" ]]; then
-     $_ex 'sed -i "s/application.heartbeat.activate=true/application.heartbeat.activate=$applicationHeartbeatActivate/g" /etc/nubomedia/msvnfm.properties'
-  fi
-
-  if [[ $applicationHeartbeatActivate == "true" ]] || [[ $applicationHeartbeatActivate == "" ]]; then
-      export applicationHeartbeatPeriod
-      read -p "Enter Application Heartbeat Period [30]: " applicationHeartbeatPeriod
-      if [[ $applicationHeartbeatPeriod != "" ]]; then
-         $_ex 'sed -i "s/application.heartbeat.period=30/application.heartbeat.period=$applicationHeartbeatPeriod/g" /etc/nubomedia/msvnfm.properties'
-      fi
-
-      export applicationHeartbeatRetryMax
-      read -p "Enter Application Heartbeat max retries [3]: " applicationHeartbeatRetryMax
-      if [[ $applicationHeartbeatRetryMax != "" ]]; then
-         $_ex 'sed -i "s/application.heartbeat.retry.max=3/application.heartbeat.retry.max=$applicationHeartbeatRetryMax/g" /etc/nubomedia/msvnfm.properties'
-      fi
-
-      export applicationHeartbeatRetryTimeout
-      read -p "Enter Application Heartbeat max timeout [90]: " applicationHeartbeatRetryTimeout
-      if [[ $applicationHeartbeatRetryTimeout != "" ]]; then
-         $_ex 'sed -i "s/application.heartbeat.retry.timeout=90/application.heartbeat.retry.timeout=$applicationHeartbeatRetryTimeout/g" /etc/nubomedia/msvnfm.properties'
-      fi
-  fi
-
-  export autoscalingTerminationRuleActivate
-  read -p "Enable AutoScaling TerminationRule [false]: " autoscalingTerminationRuleActivate
-  if [[ $autoscalingTerminationRuleActivate != "" ]]; then
-     $_ex 'sed -i "s/autoscaling.termination-rule.activate=false/autoscaling.termination-rule.activate=$autoscalingTerminationRuleActivate/g" /etc/nubomedia/msvnfm.properties'
-  fi
-
-  export autoscalingPoolActivate
-  read -p "Activate AutoScaling pool mechanism [true]: " autoscalingPoolActivate
-  if [[ $autoscalingPoolActivate != "" ]]; then
-     $_ex 'sed -i "s/autoscaling.pool.activate=true/autoscaling.pool.activate=$autoscalingPoolActivate/g" /etc/nubomedia/msvnfm.properties'
-  fi
-
-  if [[ $autoscalingPoolActivate == "true" ]] || [[ $autoscalingPoolActivate == "" ]]; then
-     export autoscalingPoolSize
-     read -p "Enter AutoScaling Pool Size [2]: " autoscalingPoolSize
-     if [[ $autoscalingPoolSize != "" ]]; then
-        $_ex 'sed -i "s/autoscaling.pool.size=2/autoscaling.pool.size=$autoscalingPoolSize/g" /etc/nubomedia/msvnfm.properties'
-     fi
-  fi
+#debian re-start of the project
+restartProject () {
+    instance=$(ps aux | grep -v grep | grep "$_PROJECT_NAME" | grep jar | wc -l)
+    if [ ${instance} -ne 0 ] ; then
+        echo "restarting $_PROJECT_NAME ..."
+        "$_PROJECT_NAME" restart
+    else
+        echo "starting $_PROJECT_NAME ..."
+        "$_PROJECT_NAME" start
+    fi
 
 }
 
-function bootstrap {
-    # checkout OpenBaton
-    checkoutMSVNFM
-    # prompting properties
-    promptSetProperties
-    # deploy and compile MS-VNFM
-    deployMSVNFM
-    echo "MS-VNFM is up and running now. Check screen -r nubomedia..."
+#########################################
+########## Using source code ############
+#########################################
 
+prereq () {
+  $_ex 'apt-get update; apt-get -y install openjdk-7-jdk screen git rabbitmq-server'
+  log_success_msg "Installed required software"
+}
+
+checkEnvironment () {
+  _error=0
+  echo "Checking environment..."
+  checkBinary java; _error=$(($_error + $?))
+  checkBinary javac; _error=$(($_error + $?))
+  checkBinary curl; _error=$(($_error + $?))
+  checkBinary screen; _error=$(($_error + $?))
+  checkBinary wget; _error=$(($_error + $?))
+  if [ "0" != "$_error" ]; then
+    log_failure_msg "FAILED. Please install the above mentioned binaries."
+    exit 1
+  fi
+}
+
+configureRabbitMq () {
+    # Allow the use of the .deb package to install Open Baton with Docker (because of issues when installing and configuring RabbitMQ during a docker image build)
+    # See documentation for more info
+    echo "Creating RabbitMQ user \"${_PROJECT_NAME}\""
+    result=`$_ex 'rabbitmqctl list_users' | grep '^'"$_PROJECT_NAME" | wc -l`
+    if [ ${result} -eq 0 ]; then
+        rabbitMqPassword=`< /dev/urandom tr -dc A-Z-a-z-0-9 | head -c${1:-32};echo;`
+        $_ex 'rabbitmqctl add_user '"$_PROJECT_NAME"' '"$rabbitMqPassword"
+        log_success_msg "Created RabbitMQ user \"${_PROJECT_NAME}\""
+    else
+        log_warning_msg "User \"${_PROJECT_NAME}\" exists already"
+        rabbitMqPassword=`< /dev/urandom tr -dc A-Z-a-z-0-9 | head -c${1:-32};echo;`
+        $_ex 'rabbitmqctl change_password '"$_PROJECT_NAME"' '"$rabbitMqPassword"
+        log_success_msg "Changed password of RabbitMQ user \"${_PROJECT_NAME}\""
+    fi
+    $_ex 'rabbitmqctl set_user_tags '"$_PROJECT_NAME"' administrator'
+    $_ex 'rabbitmqctl set_permissions -p / '"$_PROJECT_NAME"' ".*" ".*" ".*"'
+    $_ex 'sed -i "s/^rabbitmq.username=.*/rabbitmq.username='"$_PROJECT_NAME"'/g" '"$_PROJECT_PROPERTIES_FILE"
+    $_ex 'sed -i "s/^rabbitmq.password=.*/rabbitmq.password='"$rabbitMqPassword"'/g" '"$_PROJECT_PROPERTIES_FILE"
+    log_success_msg "Changed RabbitMQ user in ${_PROJECT_PROPERTIES_FILE}"
+    #### Workaround to enable rabbitmq management plugin ####
+    #$_ex 'rabbitmq-plugins enable rabbitmq_management'
+    if [ -f /etc/rabbitmq/enabled_plugins ]; then
+        result=$(grep /etc/rabbitmq/enabled_plugins -e "[rabbitmq_management].")
+        if [ "${result}" != "[rabbitmq_management]." ]; then
+            $_ex 'echo "[rabbitmq_management]." >> /etc/rabbitmq/enabled_plugins'
+        fi
+    else
+        $_ex 'echo "[rabbitmq_management]." > /etc/rabbitmq/enabled_plugins'
+    fi
+    ##########################################################
+    $_ex 'service rabbitmq-server restart'
+    if [ "$?" != "0" ]; then
+        log_failure_msg "rabbitmq is not running properly (check the problem in /var/log/rabbitmq)"
+        exit 1
+    fi
+}
+
+#create the base where the project is cloned to
+createBase () {
+    echo "Creating the ${_PROJECT_NAME} root base folder \"${_PROJECT_ROOT_BASE}\""
+    if [ -d "${_PROJECT_ROOT_BASE}" ]; then
+        if [ -d "${_PROJECT_BASE}" ]; then
+            echo "Base folder \"${_PROJECT_BASE}\" exists already"
+            echo "How to proceed?"
+            echo "1) Keep it"
+            echo "2) Remove it (default)"
+            read -p "Your choice: " choice
+            case $choice in
+                1) return 0;;
+                2) $_ex 'rm -rf '"$_PROJECT_BASE"
+                log_success_msg "Removed old base folder";;
+                *) $_ex 'rm -rf '"$_PROJECT_BASE"
+                log_success_msg "Removed old base folder";;
+            esac
+        fi
+    else
+       $_ex 'mkdir -p '"$_PROJECT_ROOT_BASE"
+       log_success_msg "Created root base folder \"${_PROJECT_ROOT_BASE}\""
+    fi
+    $_ex 'chown -R '"$_USER $_PROJECT_ROOT_BASE"
+    log_success_msg "Configured permissions of root base folder \"${_PROJECT_ROOT_BASE}\""
+}
+
+createLogFolder () {
+    # create log folder and give permission
+    if [ -d "${_PROJECT_LOG_FOLDER}" ]; then
+        echo "Log folder \"${_PROJECT_LOG_FOLDER}\" exists already"
+        echo "How to proceed?"
+        echo "1) Keep it (default)"
+        echo "2) Remove it"
+        read -p "Your choice: " choice
+        case $choice in
+            1) return 0;;
+            2) $_ex 'rm -rf '"$_PROJECT_LOG_FOLDER"
+            log_success_msg "Removed log folder \"${_PROJECT_LOG_FOLDER}\""
+            $_ex 'mkdir -p '"$_PROJECT_LOG_FOLDER"
+            log_success_msg "Created log folder \"${_PROJECT_LOG_FOLDER}\"";;
+            *) return 0;;
+        esac
+    fi
+    $_ex 'chown -R '"$_USER $_PROJECT_LOG_FOLDER"
+    log_success_msg "Configured permissions of log folder \"${_PROJECT_LOG_FOLDER}\""
+}
+
+setPassword () {
+    stty -echo
+    read -p "Provide the new password of admin user of $_PROJECT_NAME: " password ; echo
+    stty echo
+    if [ "${password}" != "" ]; then
+        export password=${password}
+        stty -echo
+        read -p "Repeat the password: " password2 ; echo
+        stty echo
+        export password2=${password2}
+        if [ "${password}" = "${password2}" ]; then
+            $_ex 'sed -i "s/paas.security.admin.password=.*/paas.security.admin.password='"$password"'/g" '"${_PROJECT_PROPERTIES_FILE}"
+            log_success_msg "Set admin password"
+        else
+            log_failure_msg "Passwords didn't match. Try again ..."
+            setPassword
+        fi
+    else
+        log_warning_msg "Admin password must be provided ..."
+        setPassword
+    fi
+}
+
+cloneProject () {
+    echo "Cloning ${_PROJECT_NAME} to ${_PROJECT_BASE} ..."
+    oldpath=`pwd`
+    cd "${_PROJECT_ROOT_BASE}"
+    git clone --recursive "${_PROJECT_REPO}"
+    cd $oldpath
+}
+
+checkoutVersion () {
+    echo "Choose version:"
+    echo "1) ${_TAG} (default)"
+    echo "2) master"
+    echo "3) develop"
+    read -p "Your choice: " choice
+    case $choice in
+        1) version=${_TAG};;
+        2) version=master;;
+        3) version=develop;;
+        *) version=${_TAG};;
+    esac
+    oldpath=`pwd`
+    cd "${_PROJECT_BASE}"
+    git checkout ${version}
+    cd $oldpath
+}
+
+copyConfigFiles () {
+    if [ ! -d "${_PROJECT_PROPERTIES_FOLDER}" ]; then
+        $_ex 'mkdir -p '"${_PROJECT_PROPERTIES_FOLDER}"
+        log_success_msg "created properties folder"
+    else
+        log_warning_msg "Properties folder \"${_PROJECT_PROPERTIES_FOLDER}\" exists already"    
+    fi
+    $_ex 'cp '"${_DEFAULT_PROPERTIES_FILE} ${_PROJECT_PROPERTIES_FILE}"
+    log_success_msg "Copied default configuration file \"${_DEFAULT_PROPERTIES_FILE}\" to \"${_PROJECT_PROPERTIES_FOLDER}\""
+    if [ -d "${_PROJECT_BASE}/etc" ]; then
+        $_ex 'cp '"${_PROJECT_BASE}/etc/* ${_PROJECT_PROPERTIES_FOLDER}"
+        log_success_msg "Copied files from \"${_PROJECT_BASE}/etc\" to \"${_PROJECT_PROPERTIES_FOLDER}\""
+    fi
+}
+
+compileProject () {
+    echo "Compiling ${_PROJECT_NAME}"
+    oldpath=`pwd`
+    cd "${_PROJECT_BASE}"
+    ./${_SCRIPT_NAME} compile
+    if [ $? -ne 0 ]; then
+        echo "ERROR: The compilation of ${_PROJECT_NAME} failed"
+        exit 1
+    fi
+    cd $oldpath
+}
+
+startProject () {
+    echo "Starting ${_PROJECT_NAME}"
+    oldpath=`pwd`
+    cd ${_PROJECT_BASE}
+    ./${_SCRIPT_NAME} start
+    cd $oldpath
+}
+
+#################
+### INSTALLER ###
+#################
+
+useDebian () {
+    #Add apt repository
+    addAptRepository
+    #Install project
+    installProject
+    #ask/configure mysql
+    configureDatabase
+    #configure properties
+    configureProperties
+    #start or restart project
+    restartProject
+}
+
+useSourceCode () {
+    prereq
+    checkEnvironment
+    createBase
+    createLogFolder
+    cloneProject
+    checkoutVersion
+    copyConfigFiles
+    #setPassword #not needed
+    configureRabbitMq
+    configureDatabase
+    configureProperties
+    compileProject
+    startProject
+}
+
+bootstrap () {
+    echo "How to install ${_PROJECT_NAME}?"
+    echo "1) debian (default)"
+    echo "2) source code via git"
+    read -p "Your choice: " choice
+    case $choice in
+        1) useDebian;;
+        2) useSourceCode;;
+        *) useDebian;;
+    esac
+    echo "$_PROJECT_NAME is up and running now..."
 }
 
 bootstrap
