@@ -7,7 +7,7 @@
 . /lib/lsb/init-functions
 
 #general configuration
-_PROJECT_NAME="ms-vnfm"
+_PROJECT_NAME="nubomedia-msvnfm"
 _BASE="/opt"
 _PROJECT_ROOT_BASE="${_BASE}/nubomedia"
 _PROJECT_BASE="${_PROJECT_ROOT_BASE}/${_PROJECT_NAME}"
@@ -25,7 +25,7 @@ _APT_REPOSITORY="deb http://repository.nubomedia.eu/ trusty main"
 
 #git configuration
 _PROJECT_REPO="https://github.com/tub-nubomedia/ms-vnfm.git"
-_SCRIPT_NAME="nubomedia-paas.sh"
+_SCRIPT_NAME="ms-vnfm.sh"
 _TAG="develop"
 #_TAG="tags/1.1"
 
@@ -117,7 +117,7 @@ configureProperties () {
         checkPropertyConfiguration "Enter the period of checking the policies" "autoscaling.pool.period" "30"
         checkPropertyConfiguration "Should the pool be created in advance?" "autoscaling.pool.prepare" "false"
     fi
-    checkPropertyConfiguration "Do you want to enable termination rules when sclaing-in?" "autoscaling.termination-rule.activate" "false"
+    checkPropertyConfiguration "Do you want to enable termination rules when scaling-in?" "autoscaling.termination-rule.activate" "false"
 }
 
 askForConfiguration () {
@@ -286,15 +286,15 @@ configureMySql () {
     assignMySqlDatabaseRights
     $_ex 'sed -i "s/^spring.jpa.hibernate.ddl-auto=create-drop/spring.jpa.hibernate.ddl-auto=update/g" '"$_PROJECT_PROPERTIES_FILE"
     $_ex 'sed -i "s/^#spring.datasource.validationQuery=SELECT 1/spring.datasource.validationQuery=SELECT 1/g" '"$_PROJECT_PROPERTIES_FILE"
-    $_ex 'sed -i "s/^#spring.datasource.url=.*/spring.datasource.url=jdbc:mysql:\/\/localhost:3306\/'"$_DATABASE_NAME"'/g" '"$_PROJECT_PROPERTIES_FILE"
+    $_ex 'sed -i "s/^#spring.datasource.url=jdbc:mysql:.*/spring.datasource.url=jdbc:mysql:\/\/localhost:3306\/'"$_DATABASE_NAME"'/g" '"$_PROJECT_PROPERTIES_FILE"
     $_ex 'sed -i "s/^#spring.datasource.driver-class-name=com.mysql.jdbc.Driver/spring.datasource.driver-class-name=com.mysql.jdbc.Driver/g" '"$_PROJECT_PROPERTIES_FILE"
     $_ex 'sed -i "s/^#spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect/spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect/g" '"$_PROJECT_PROPERTIES_FILE"
     $_ex 'sed -i "s/^spring.datasource.username=.*/spring.datasource.username=${sqlUser}/g" '"$_PROJECT_PROPERTIES_FILE"
     $_ex 'sed -i "s/^spring.datasource.password=.*/spring.datasource.password=${sqlPassword}/g" '"$_PROJECT_PROPERTIES_FILE"
     log_success_msg "Enabled MySQL"
     $_ex 'sed -i "s/^spring.datasource.url=jdbc:hsqldb:file:\(.*\)/#spring.datasource.url=jdbc:hsqldb:file:\1/g" '"$_PROJECT_PROPERTIES_FILE"
-    $_ex 'sed -i "s/^spring.datasource.driver-class-name=org.hsqldb.jdbc.JDBCDriver/# spring.datasource.driver-class-name=org.hsqldb.jdbc.JDBCDriver/g" '"$_PROJECT_PROPERTIES_FILE"
-    $_ex 'sed -i "s/^spring.jpa.database-platform=org.hibernate.dialect.HSQLDialect/# spring.jpa.database-platform=org.hibernate.dialect.HSQLDialect/g" '"$_PROJECT_PROPERTIES_FILE"
+    $_ex 'sed -i "s/^spring.datasource.driver-class-name=org.hsqldb.jdbc.JDBCDriver/#spring.datasource.driver-class-name=org.hsqldb.jdbc.JDBCDriver/g" '"$_PROJECT_PROPERTIES_FILE"
+    $_ex 'sed -i "s/^spring.jpa.database-platform=org.hibernate.dialect.HSQLDialect/#spring.jpa.database-platform=org.hibernate.dialect.HSQLDialect/g" '"$_PROJECT_PROPERTIES_FILE"
     log_success_msg "Disabled HSQL"
 }
 
@@ -439,7 +439,7 @@ createBase () {
 
 createLogFolder () {
     # create log folder and give permission
-    if [ -d "${_PROJECT_LOG_FOLDER}" ]; then
+    if [ ! -d "${_PROJECT_LOG_FOLDER}" ]; then
         echo "Log folder \"${_PROJECT_LOG_FOLDER}\" exists already"
         echo "How to proceed?"
         echo "1) Keep it (default)"
@@ -456,29 +456,6 @@ createLogFolder () {
     fi
     $_ex 'chown -R '"$_USER $_PROJECT_LOG_FOLDER"
     log_success_msg "Configured permissions of log folder \"${_PROJECT_LOG_FOLDER}\""
-}
-
-setPassword () {
-    stty -echo
-    read -p "Provide the new password of admin user of $_PROJECT_NAME: " password ; echo
-    stty echo
-    if [ "${password}" != "" ]; then
-        export password=${password}
-        stty -echo
-        read -p "Repeat the password: " password2 ; echo
-        stty echo
-        export password2=${password2}
-        if [ "${password}" = "${password2}" ]; then
-            $_ex 'sed -i "s/paas.security.admin.password=.*/paas.security.admin.password='"$password"'/g" '"${_PROJECT_PROPERTIES_FILE}"
-            log_success_msg "Set admin password"
-        else
-            log_failure_msg "Passwords didn't match. Try again ..."
-            setPassword
-        fi
-    else
-        log_warning_msg "Admin password must be provided ..."
-        setPassword
-    fi
 }
 
 cloneProject () {
