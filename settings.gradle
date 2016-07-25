@@ -19,7 +19,7 @@
 //
 //apply from: 'openbaton-libs/vnfm-sdk/gradle/gradle/settings-parent-vnfm-vim.gradle'
 
-rootProject.name = 'ms-vnfm'
+rootProject.name = 'nubomedia-msvnfm'
 
 include 'api'
 include 'repository'

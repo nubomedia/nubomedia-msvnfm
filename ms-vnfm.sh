@@ -46,9 +46,9 @@ function check_mysql {
 }
 
 function check_already_running {
-        result=$(screen -ls | grep ms-vnfm | wc -l);
+        result=$(screen -ls | grep nubomedia-msvnfm | wc -l);
         if [ "${result}" -ne "0" ]; then
-                echo "ms-vnfm is already running.."
+                echo "nubomedia-msvnfm is already running.."
 		exit;
         fi
 }
@@ -67,13 +67,13 @@ function start {
         #then
 	    #screen -X eval "chdir $PWD"
 	#screen -c screenrc -d -m -S ms-vnfm -t ms-vnfm java -jar "build/libs/ms-vnfm-$_version.jar"
-	screen -c screenrc -d -m -S nubomedia -t ms-vnfm java -jar "build/libs/ms-vnfm-$_version.jar" --spring.config.location=file:${_msvnfm_config_file}
+	screen -c screenrc -d -m -S nubomedia -t ms-vnfm java -jar "build/libs/nubomedia-msvnfm-$_version.jar" --spring.config.location=file:${_msvnfm_config_file}
 	    #screen -c screenrc -r -p 0
     #fi
 }
 
 function stop {
-    if screen -list | grep "nubomedia"; then
+    if screen -list | grep "nubomedia-msvnfm"; then
 	    screen -S nubomedia -p 0 -X stuff "exit$(printf \\r)"
     fi
 }
@@ -85,7 +85,7 @@ function restart {
 
 
 function kill {
-    if screen -list | grep "nubomedia"; then
+    if screen -list | grep "nubomedia-msvnfm"; then
 	    screen -ls | grep nubomedia | cut -d. -f1 | awk '{print $1}' | xargs kill
     fi
 }
