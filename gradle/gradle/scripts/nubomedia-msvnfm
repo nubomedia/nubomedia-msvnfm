@@ -69,7 +69,11 @@ stop () {
     echo "Stopping $_PROJECT_NAME ..."
     $_ex 'start-stop-daemon --stop --pidfile '"$_PID_FILE"
     log_end_msg $?
-    $_ex 'rm -rf '"$_PID_FILE"
+}
+
+kill () {
+    $_ex 'kill -9 `cat '"${_PID_FILE}"'`'
+    log_end_msg $?
 }
 
 restart () {
@@ -80,7 +84,7 @@ restart () {
 
 usage () {
     echo "$_PROJECT_NAME"
-    echo "Usage:\n\t [$_PROJECT_NAME start|stop|restart] | [service $_PROJECT_NAME start|stop|restart] | [start|stop $_PROJECT_NAME]"
+    echo "Usage:\n\t [$_PROJECT_NAME start|stop|restart|kill] | [service $_PROJECT_NAME start|stop|restart|kill] | [start|stop $_PROJECT_NAME]"
 }
 
 
@@ -103,7 +107,9 @@ do
             stop ;;
         "restart" )
             restart ;;
-         *)   
+        "kill" )
+            kill ;;
+         *)
 	        usage;;
     esac
     if [ ${?} -ne 0 ];
