@@ -1,5 +1,7 @@
 plugins {
     id 'net.researchgate.release' version '2.1.2'
+    id "nebula.os-package" version "2.2.6"
+    //id 'com.github.sherter.google-java-format' version '0.3.2'
 }
 
 apply from: 'gradle/gradle/git.release.gradle'
@@ -9,7 +11,6 @@ apply plugin: 'maven'
 
 apply plugin: "jacoco"
 test { finalizedBy jacocoTestReport }
-
 
 project.ext {
     //------------------------------------------------//
@@ -23,13 +24,15 @@ project.ext {
     /**
      * Application Related Version
      */
-    applicationVersion = "0.4-alpha"
+    applicationDate = new Date()
+    applicationVersion = version
     applicationVersionDebian = "1";
+    applicationVersionFull = "${applicationVersion}"
 
     /**
      * Open Baton Related Version
      */
-    openbatonVersion = "2.0.6"
+    openbatonVersion = "2.0.2"
 
     //------------------------------------------------//
     /**
@@ -77,3 +80,5 @@ task wrapper(type: Wrapper) {
     gradleVersion = '2.4'
 }
 // end::wrapper[]
+
+apply from: 'gradle/gradle/packaging.project.debian.gradle'
