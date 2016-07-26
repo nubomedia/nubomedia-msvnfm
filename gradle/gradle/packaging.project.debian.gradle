@@ -31,7 +31,7 @@ task makedeb(type: Deb, dependsOn: [jar, build]) {
     maintainer = 'NUBOMEDIA Team'
     vendor = 'Open Source (Implemented by Fraunhofer FOKUS and TUB)'
     license = 'Apache 2.0 License'
-    url = 'https://github.com/fhg-fokus-nubomedia/nubomedia-paas'
+    url = 'https://raw.githubusercontent.com/nubomedia/nubomedia-msvnfm'
     summary = 'NUBOMEDIA MediaServer VNF Manager (EMM)'
     packageDescription = 'The NUBOMEDIA MediaServer VNF Manager (EMM) is one of the most important components of the NUBOMEDIA controller.'
 
