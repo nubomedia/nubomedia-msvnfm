@@ -27,7 +27,7 @@ This repository contains a [bootstrap](boostrap) script to install and start the
 In order to install and start the ms-vnfm you can run the following command:
 
 ```bash
-bash <(curl -fSskL https://raw.githubusercontent.com/tub-nubomedia/ms-vnfm/master/bootstrap)
+bash <(curl -fSskL https://raw.githubusercontent.com/nubomedia/nubomedia-msvnfm/master/bootstrap)
 ```
 
 During the bootstrap process you are requested for setting default configurations. A list of configuration parameters and their meaning can be found [here](#configuration)
