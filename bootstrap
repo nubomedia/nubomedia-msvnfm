@@ -84,7 +84,7 @@ checkPropertyConfiguration () {
 # $1: configuration property (mandatory)
 # $2: configuration property value (mandatory)
 setProperty () {
-    $_ex 'sed -i "s/^'"$1"'=.*/'"$1"'="'$2'"/g" '"$_PROJECT_PROPERTIES_FILE"
+    $_ex 'sed -i "s|^'"$1"'=.*|'"$1"'="'$2'"|g" '"$_PROJECT_PROPERTIES_FILE"
 }
 
 #property configuration
