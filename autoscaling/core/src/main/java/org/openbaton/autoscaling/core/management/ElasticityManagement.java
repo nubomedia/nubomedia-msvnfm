@@ -26,6 +26,7 @@ import org.openbaton.autoscaling.utils.Utils;
 import org.openbaton.catalogue.nfvo.Action;
 import org.openbaton.catalogue.nfvo.EndpointType;
 import org.openbaton.catalogue.nfvo.EventEndpoint;
+import org.openbaton.catalogue.security.Project;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.exceptions.VimException;
 import org.openbaton.sdk.NFVORequestor;
@@ -84,7 +85,40 @@ public class ElasticityManagement {
 
     @PostConstruct
     public void init() throws SDKException {
-        this.nfvoRequestor = new NFVORequestor(nfvoProperties.getUsername(), nfvoProperties.getPassword(), nfvoProperties.getIp(), nfvoProperties.getPort(), "1");
+        this.nfvoRequestor =
+                new NFVORequestor(
+                        nfvoProperties.getUsername(),
+                        nfvoProperties.getPassword(),
+                        "*",
+                        false,
+                        nfvoProperties.getIp(),
+                        nfvoProperties.getPort(),
+                        "1");
+        try {
+            log.info("Finding NUBOMEDIA project");
+            boolean found = false;
+            for (Project project : nfvoRequestor.getProjectAgent().findAll()) {
+                if (project.getName().equals(nfvoProperties.getProject().getName())) {
+                    found = true;
+                    nfvoRequestor.setProjectId(project.getId());
+                    log.info("Found NUBOMEDIA project");
+                }
+            }
+            if (!found) {
+                log.info("Not found NUBOMEDIA project");
+                log.info("Creating NUBOMEDIA project");
+                Project project = new Project();
+                project.setDescription("NUBOMEDIA project");
+                project.setName(nfvoProperties.getProject().getName());
+                project = nfvoRequestor.getProjectAgent().create(project);
+                nfvoRequestor.setProjectId(project.getId());
+                log.info("Created NUBOMEDIA project " + project);
+            }
+        } catch (SDKException e) {
+            throw new SDKException(e.getMessage());
+        } catch (ClassNotFoundException e) {
+            throw new SDKException(e.getMessage());
+        }
 //        detectionManagment.init(properties);
 //        decisionManagement.init(properties);
 //        executionManagement.init(properties);
@@ -110,7 +144,7 @@ public class ElasticityManagement {
         //destroyPlugins();
     }
 
-    public void activate(String nsr_id) throws NotFoundException, VimException {
+    public void activate(String nsr_id) throws NotFoundException, VimException, SDKException {
         log.debug("Activating Elasticity for NSR with id: " + nsr_id);
         if (autoScalingProperties.getPool().isActivate()) {
             log.debug("Activating pool mechanism");
@@ -122,7 +156,7 @@ public class ElasticityManagement {
         log.info("Activated Elasticity for NSR with id: " + nsr_id);
     }
     
-    public void activate(String nsr_id, String vnfr_id) throws NotFoundException, VimException {
+    public void activate(String nsr_id, String vnfr_id) throws NotFoundException, VimException, SDKException {
         log.debug("Activating Elasticity for NSR with id: " + nsr_id);
         if (autoScalingProperties.getPool().isActivate()) {
             log.debug("Activating pool mechanism");

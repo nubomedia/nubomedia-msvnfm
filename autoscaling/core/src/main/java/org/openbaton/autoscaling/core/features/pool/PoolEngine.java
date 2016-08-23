@@ -25,6 +25,7 @@ import org.openbaton.catalogue.mano.record.NetworkServiceRecord;
 import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.openbaton.catalogue.nfvo.VimInstance;
+import org.openbaton.catalogue.security.Project;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.exceptions.VimException;
 import org.openbaton.sdk.NFVORequestor;
@@ -76,11 +77,44 @@ public class PoolEngine {
 //    }
 
     @PostConstruct
-    public void init() {
+    public void init() throws SDKException {
         poolManagement = context.getBean(PoolManagement.class);
         mediaServerResourceManagement = context.getBean(MediaServerResourceManagement.class);
         //this.resourceManagement = (ResourceManagement) context.getBean("openstackVIM", "15672");
-        this.nfvoRequestor = new NFVORequestor(nfvoProperties.getUsername(), nfvoProperties.getPassword(), nfvoProperties.getIp(), nfvoProperties.getPort(), "1");    }
+        this.nfvoRequestor =
+                new NFVORequestor(
+                        nfvoProperties.getUsername(),
+                        nfvoProperties.getPassword(),
+                        "*",
+                        false,
+                        nfvoProperties.getIp(),
+                        nfvoProperties.getPort(),
+                        "1");
+        try {
+            log.info("Finding NUBOMEDIA project");
+            boolean found = false;
+            for (Project project : nfvoRequestor.getProjectAgent().findAll()) {
+                if (project.getName().equals(nfvoProperties.getProject().getName())) {
+                    found = true;
+                    nfvoRequestor.setProjectId(project.getId());
+                    log.info("Found NUBOMEDIA project");
+                }
+            }
+            if (!found) {
+                log.info("Not found NUBOMEDIA project");
+                log.info("Creating NUBOMEDIA project");
+                Project project = new Project();
+                project.setDescription("NUBOMEDIA project");
+                project.setName(nfvoProperties.getProject().getName());
+                project = nfvoRequestor.getProjectAgent().create(project);
+                nfvoRequestor.setProjectId(project.getId());
+                log.info("Created NUBOMEDIA project " + project);
+            }
+        } catch (SDKException e) {
+            throw new SDKException(e.getMessage());
+        } catch (ClassNotFoundException e) {
+            throw new SDKException(e.getMessage());
+        }    }
 
     public Set<VNFCInstance> allocateNewInstance(String nsr_id, String vnfr_id, String vdu_id, int numberOfInstances) throws NotFoundException {
         VirtualNetworkFunctionRecord vnfr = null;

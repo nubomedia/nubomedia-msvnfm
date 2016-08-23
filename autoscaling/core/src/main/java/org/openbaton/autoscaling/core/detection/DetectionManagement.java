@@ -26,6 +26,7 @@ import org.openbaton.catalogue.mano.record.NetworkServiceRecord;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 
 
+import org.openbaton.catalogue.security.Project;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.sdk.NFVORequestor;
 import org.openbaton.sdk.api.exception.SDKException;
@@ -73,9 +74,42 @@ public class DetectionManagement {
     private NfvoProperties nfvoProperties;
 
     @PostConstruct
-    public void init() {
+    public void init() throws SDKException {
         this.actionMonitor = new ActionMonitor();
-        this.nfvoRequestor = new NFVORequestor(nfvoProperties.getUsername(), nfvoProperties.getPassword(), nfvoProperties.getIp(), nfvoProperties.getPort(), "1");
+        this.nfvoRequestor =
+                new NFVORequestor(
+                        nfvoProperties.getUsername(),
+                        nfvoProperties.getPassword(),
+                        "*",
+                        false,
+                        nfvoProperties.getIp(),
+                        nfvoProperties.getPort(),
+                        "1");
+        try {
+            log.info("Finding NUBOMEDIA project");
+            boolean found = false;
+            for (Project project : nfvoRequestor.getProjectAgent().findAll()) {
+                if (project.getName().equals(nfvoProperties.getProject().getName())) {
+                    found = true;
+                    nfvoRequestor.setProjectId(project.getId());
+                    log.info("Found NUBOMEDIA project");
+                }
+            }
+            if (!found) {
+                log.info("Not found NUBOMEDIA project");
+                log.info("Creating NUBOMEDIA project");
+                Project project = new Project();
+                project.setDescription("NUBOMEDIA project");
+                project.setName(nfvoProperties.getProject().getName());
+                project = nfvoRequestor.getProjectAgent().create(project);
+                nfvoRequestor.setProjectId(project.getId());
+                log.info("Created NUBOMEDIA project " + project);
+            }
+        } catch (SDKException e) {
+            throw new SDKException(e.getMessage());
+        } catch (ClassNotFoundException e) {
+            throw new SDKException(e.getMessage());
+        }
         this.detectionTasks = new HashMap<>();
         this.taskScheduler = new ThreadPoolTaskScheduler();
         this.taskScheduler.setPoolSize(10);
@@ -92,7 +126,7 @@ public class DetectionManagement {
         this.taskScheduler.initialize();
     }
 
-    public void start(String nsr_id) throws NotFoundException {
+    public void start(String nsr_id) throws NotFoundException, SDKException {
         log.debug("Activating Alarm Detection for NSR with id: " + nsr_id);
         NetworkServiceRecord nsr = null;
         try {
@@ -113,7 +147,7 @@ public class DetectionManagement {
         log.info("Activated Alarm Detection for NSR with id: " + nsr_id);
     }
 
-    public void start(String nsr_id, String vnfr_id) throws NotFoundException {
+    public void start(String nsr_id, String vnfr_id) throws NotFoundException, SDKException {
         log.debug("Activating Alarm Detection for VNFR " + vnfr_id + " of NSR with id: " + nsr_id);
         VirtualNetworkFunctionRecord vnfr = null;
         try {
@@ -132,7 +166,7 @@ public class DetectionManagement {
         log.debug("Activated Alarm Detection for VNFR " + vnfr_id + " of NSR with id: " + nsr_id);
     }
 
-    public void start(String nsr_id, String vnfr_id, AutoScalePolicy autoScalePolicy) throws NotFoundException {
+    public void start(String nsr_id, String vnfr_id, AutoScalePolicy autoScalePolicy) throws NotFoundException, SDKException {
         log.debug("Activating Alarm Detection for AutoScalePolicy with id: " + autoScalePolicy.getId() + " of VNFR " + vnfr_id + " of NSR with id: " + nsr_id);
         if (actionMonitor.requestAction(autoScalePolicy.getId(), Action.INACTIVE)) {
             if (!detectionTasks.containsKey(nsr_id)) {

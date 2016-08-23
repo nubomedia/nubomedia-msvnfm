@@ -28,6 +28,7 @@ import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.openbaton.catalogue.nfvo.Action;
 import org.openbaton.catalogue.nfvo.VimInstance;
 import org.openbaton.catalogue.nfvo.messages.Interfaces.NFVMessage;
+import org.openbaton.catalogue.security.Project;
 import org.openbaton.common.vnfm_sdk.amqp.AbstractVnfmSpringAmqp;
 import org.openbaton.common.vnfm_sdk.utils.VnfmUtils;
 import org.openbaton.exceptions.NotFoundException;
@@ -106,8 +107,41 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
     /**
      * Vim must be initialized only after the registry is up and plugin registered
      */
-    private void initilize() {
-        this.nfvoRequestor = new NFVORequestor(nfvoProperties.getUsername(), nfvoProperties.getPassword(), nfvoProperties.getIp(), nfvoProperties.getPort(), "1");
+    private void initilize() throws SDKException {
+        this.nfvoRequestor =
+                new NFVORequestor(
+                        nfvoProperties.getUsername(),
+                        nfvoProperties.getPassword(),
+                        "*",
+                        false,
+                        nfvoProperties.getIp(),
+                        nfvoProperties.getPort(),
+                        "1");
+        try {
+            log.info("Finding NUBOMEDIA project");
+            boolean found = false;
+            for (Project project : nfvoRequestor.getProjectAgent().findAll()) {
+                if (project.getName().equals(nfvoProperties.getProject().getName())) {
+                    found = true;
+                    nfvoRequestor.setProjectId(project.getId());
+                    log.info("Found NUBOMEDIA project");
+                }
+            }
+            if (!found) {
+                log.info("Not found NUBOMEDIA project");
+                log.info("Creating NUBOMEDIA project");
+                Project project = new Project();
+                project.setDescription("NUBOMEDIA project");
+                project.setName(nfvoProperties.getProject().getName());
+                project = nfvoRequestor.getProjectAgent().create(project);
+                nfvoRequestor.setProjectId(project.getId());
+                log.info("Created NUBOMEDIA project " + project);
+            }
+        } catch (SDKException e) {
+            throw new SDKException(e.getMessage());
+        } catch (ClassNotFoundException e) {
+            throw new SDKException(e.getMessage());
+        }
         this.mediaServerResourceManagement.initializeClient();
         //resourceManagement = (ResourceManagement) context.getBean("openstackVIM", "15672");
     }
@@ -289,7 +323,7 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
     }
 
     @Override
-    public VirtualNetworkFunctionRecord start(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
+    public VirtualNetworkFunctionRecord start(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) throws SDKException {
         ManagedVNFR managedVnfr = managedVnfrRepository.findByVnfrId(virtualNetworkFunctionRecord.getId()).iterator().next();
         managedVnfr.setTask(Action.START);
         managedVnfrRepository.save(managedVnfr);
@@ -372,7 +406,7 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp implements Applic
     }
 
     @PostConstruct
-    private void init() {
+    private void init() throws SDKException {
         if (!Utils.isNfvoStarted(nfvoProperties.getIp(), nfvoProperties.getPort())) {
             log.error("NFVO is not available");
             System.exit(1);

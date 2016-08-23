@@ -24,6 +24,7 @@ import org.openbaton.catalogue.mano.common.AutoScalePolicy;
 import org.openbaton.catalogue.mano.common.ScalingAlarm;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.openbaton.catalogue.nfvo.Item;
+import org.openbaton.catalogue.security.Project;
 import org.openbaton.exceptions.MonitoringException;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.sdk.NFVORequestor;
@@ -68,14 +69,47 @@ public class DetectionTask implements Runnable {
 
     private boolean fired;
 
-    public DetectionTask(String nsr_id, String vnfr_id, AutoScalePolicy autoScalePolicy, DetectionEngine detectionEngine, NfvoProperties nfvoProperties, ActionMonitor actionMonitor) throws NotFoundException {
+    public DetectionTask(String nsr_id, String vnfr_id, AutoScalePolicy autoScalePolicy, DetectionEngine detectionEngine, NfvoProperties nfvoProperties, ActionMonitor actionMonitor) throws NotFoundException, SDKException {
         this.nsr_id = nsr_id;
         this.vnfr_id = vnfr_id;
         this.autoScalePolicy = autoScalePolicy;
         this.detectionEngine = detectionEngine;
         this.actionMonitor = actionMonitor;
 
-        this.nfvoRequestor = new NFVORequestor(nfvoProperties.getUsername(), nfvoProperties.getPassword(), nfvoProperties.getIp(), nfvoProperties.getPort(), "1");
+        this.nfvoRequestor =
+                new NFVORequestor(
+                        nfvoProperties.getUsername(),
+                        nfvoProperties.getPassword(),
+                        "*",
+                        false,
+                        nfvoProperties.getIp(),
+                        nfvoProperties.getPort(),
+                        "1");
+        try {
+            log.info("Finding NUBOMEDIA project");
+            boolean found = false;
+            for (Project project : nfvoRequestor.getProjectAgent().findAll()) {
+                if (project.getName().equals(nfvoProperties.getProject().getName())) {
+                    found = true;
+                    nfvoRequestor.setProjectId(project.getId());
+                    log.info("Found NUBOMEDIA project");
+                }
+            }
+            if (!found) {
+                log.info("Not found NUBOMEDIA project");
+                log.info("Creating NUBOMEDIA project");
+                Project project = new Project();
+                project.setDescription("NUBOMEDIA project");
+                project.setName(nfvoProperties.getProject().getName());
+                project = nfvoRequestor.getProjectAgent().create(project);
+                nfvoRequestor.setProjectId(project.getId());
+                log.info("Created NUBOMEDIA project " + project);
+            }
+        } catch (SDKException e) {
+            throw new SDKException(e.getMessage());
+        } catch (ClassNotFoundException e) {
+            throw new SDKException(e.getMessage());
+        }
         this.name = "DetectionTask#" + nsr_id + ":" + vnfr_id;
         this.first_time = true;
         this.fired = false;
