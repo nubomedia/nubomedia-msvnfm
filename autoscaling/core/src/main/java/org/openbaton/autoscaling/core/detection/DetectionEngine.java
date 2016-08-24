@@ -29,6 +29,8 @@ import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.openbaton.catalogue.nfvo.Item;
 import org.openbaton.exceptions.MonitoringException;
 import org.openbaton.monitoring.interfaces.VirtualisedResourcesPerformanceManagement;
+import org.openbaton.sdk.NFVORequestor;
+import org.openbaton.sdk.api.exception.SDKException;
 import org.openbaton.vnfm.configuration.ApplicationProperties;
 import org.openbaton.vnfm.configuration.AutoScalingProperties;
 import org.slf4j.Logger;
@@ -56,6 +58,9 @@ import java.util.*;
 public class DetectionEngine {
 
     protected Logger log = LoggerFactory.getLogger(this.getClass());
+
+    @Autowired
+    private NFVORequestor nfvoRequestor;
 
     @Autowired
     private ConfigurableApplicationContext context;
@@ -192,6 +197,17 @@ public class DetectionEngine {
         log.info("Alarm fired for VNFR with id: " + vnfr_id);
         detectionManagement.sendAlarm(nsr_id, vnfr_id, autoScalePolicy);
     }
+
+    public VirtualNetworkFunctionRecord getVNFR(String nsr_id, String vnfr_id) throws SDKException {
+        try {
+            VirtualNetworkFunctionRecord vnfr = nfvoRequestor.getNetworkServiceRecordAgent().getVirtualNetworkFunctionRecord(nsr_id, vnfr_id);
+            return vnfr;
+        } catch (SDKException e) {
+            log.error(e.getMessage(), e);
+            throw e;
+        }
+    }
+
 }
 
 class EmmMonitor implements VirtualisedResourcesPerformanceManagement{

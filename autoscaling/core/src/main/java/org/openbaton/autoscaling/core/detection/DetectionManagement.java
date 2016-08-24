@@ -60,6 +60,7 @@ public class DetectionManagement {
 
     private Map<String, Map<String, Map<String, ScheduledFuture>>> detectionTasks;
 
+    @Autowired
     private NFVORequestor nfvoRequestor;
 
     @Autowired
@@ -70,46 +71,9 @@ public class DetectionManagement {
 
     private ActionMonitor actionMonitor;
 
-    @Autowired
-    private NfvoProperties nfvoProperties;
-
     @PostConstruct
     public void init() throws SDKException {
         this.actionMonitor = new ActionMonitor();
-        this.nfvoRequestor =
-                new NFVORequestor(
-                        nfvoProperties.getUsername(),
-                        nfvoProperties.getPassword(),
-                        "*",
-                        false,
-                        nfvoProperties.getIp(),
-                        nfvoProperties.getPort(),
-                        "1");
-        try {
-            log.info("Finding NUBOMEDIA project");
-            boolean found = false;
-            for (Project project : nfvoRequestor.getProjectAgent().findAll()) {
-                if (project.getName().equals(nfvoProperties.getProject().getName())) {
-                    found = true;
-                    nfvoRequestor.setProjectId(project.getId());
-                    log.info("Found NUBOMEDIA project");
-                }
-            }
-            if (!found) {
-                log.info("Not found NUBOMEDIA project");
-                log.info("Creating NUBOMEDIA project");
-                Project project = new Project();
-                project.setDescription("NUBOMEDIA project");
-                project.setName(nfvoProperties.getProject().getName());
-                project = nfvoRequestor.getProjectAgent().create(project);
-                nfvoRequestor.setProjectId(project.getId());
-                log.info("Created NUBOMEDIA project " + project);
-            }
-        } catch (SDKException e) {
-            throw new SDKException(e.getMessage());
-        } catch (ClassNotFoundException e) {
-            throw new SDKException(e.getMessage());
-        }
         this.detectionTasks = new HashMap<>();
         this.taskScheduler = new ThreadPoolTaskScheduler();
         this.taskScheduler.setPoolSize(10);
@@ -180,7 +144,7 @@ public class DetectionManagement {
                 detectionTasks.get(nsr_id).get(vnfr_id).get(autoScalePolicy.getId()).cancel(false);
             }
             log.debug("Creating new DetectionTask for AutoScalingPolicy " + autoScalePolicy.getName() + " with id: " + autoScalePolicy.getId() + " of VNFR with id: " + vnfr_id);
-            DetectionTask detectionTask = new DetectionTask(nsr_id, vnfr_id, autoScalePolicy, detectionEngine, nfvoProperties, actionMonitor);
+            DetectionTask detectionTask = new DetectionTask(nsr_id, vnfr_id, autoScalePolicy, detectionEngine, actionMonitor);
             ScheduledFuture scheduledFuture = taskScheduler.scheduleAtFixedRate(detectionTask, autoScalePolicy.getPeriod() * 1000);
             detectionTasks.get(nsr_id).get(vnfr_id).put(autoScalePolicy.getId(), scheduledFuture);
             log.info("Activated Alarm Detection for AutoScalePolicy with id: " + autoScalePolicy.getId() + " of VNFR " + vnfr_id + " of NSR with id: " + nsr_id);

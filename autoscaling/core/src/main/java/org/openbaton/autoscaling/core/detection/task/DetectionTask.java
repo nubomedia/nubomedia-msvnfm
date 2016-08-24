@@ -49,13 +49,11 @@ public class DetectionTask implements Runnable {
 
     protected Logger log = LoggerFactory.getLogger(this.getClass());
 
-    private NFVORequestor nfvoRequestor;
+//    private NFVORequestor nfvoRequestor;
 
     private DetectionEngine detectionEngine;
 
     private ActionMonitor actionMonitor;
-
-    private Properties properties;
 
     private String nsr_id;
 
@@ -69,47 +67,12 @@ public class DetectionTask implements Runnable {
 
     private boolean fired;
 
-    public DetectionTask(String nsr_id, String vnfr_id, AutoScalePolicy autoScalePolicy, DetectionEngine detectionEngine, NfvoProperties nfvoProperties, ActionMonitor actionMonitor) throws NotFoundException, SDKException {
+    public DetectionTask(String nsr_id, String vnfr_id, AutoScalePolicy autoScalePolicy, DetectionEngine detectionEngine, ActionMonitor actionMonitor) throws NotFoundException, SDKException {
         this.nsr_id = nsr_id;
         this.vnfr_id = vnfr_id;
         this.autoScalePolicy = autoScalePolicy;
         this.detectionEngine = detectionEngine;
         this.actionMonitor = actionMonitor;
-
-        this.nfvoRequestor =
-                new NFVORequestor(
-                        nfvoProperties.getUsername(),
-                        nfvoProperties.getPassword(),
-                        "*",
-                        false,
-                        nfvoProperties.getIp(),
-                        nfvoProperties.getPort(),
-                        "1");
-        try {
-            log.info("Finding NUBOMEDIA project");
-            boolean found = false;
-            for (Project project : nfvoRequestor.getProjectAgent().findAll()) {
-                if (project.getName().equals(nfvoProperties.getProject().getName())) {
-                    found = true;
-                    nfvoRequestor.setProjectId(project.getId());
-                    log.info("Found NUBOMEDIA project");
-                }
-            }
-            if (!found) {
-                log.info("Not found NUBOMEDIA project");
-                log.info("Creating NUBOMEDIA project");
-                Project project = new Project();
-                project.setDescription("NUBOMEDIA project");
-                project.setName(nfvoProperties.getProject().getName());
-                project = nfvoRequestor.getProjectAgent().create(project);
-                nfvoRequestor.setProjectId(project.getId());
-                log.info("Created NUBOMEDIA project " + project);
-            }
-        } catch (SDKException e) {
-            throw new SDKException(e.getMessage());
-        } catch (ClassNotFoundException e) {
-            throw new SDKException(e.getMessage());
-        }
         this.name = "DetectionTask#" + nsr_id + ":" + vnfr_id;
         this.first_time = true;
         this.fired = false;
@@ -144,7 +107,7 @@ public class DetectionTask implements Runnable {
         log.debug("DetectionTask: Checking AutoScalingPolicy " + autoScalePolicy.getName() + " with id: " + autoScalePolicy.getId() + " VNFR with id: " + vnfr_id);
         VirtualNetworkFunctionRecord vnfr = null;
         try {
-            vnfr = nfvoRequestor.getNetworkServiceRecordAgent().getVirtualNetworkFunctionRecord(nsr_id, vnfr_id);
+            vnfr = detectionEngine.getVNFR(nsr_id, vnfr_id);
         } catch (SDKException e) {
             log.error(e.getMessage());
         }

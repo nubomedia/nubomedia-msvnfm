@@ -24,10 +24,19 @@ import org.openbaton.autoscaling.core.detection.DetectionManagement;
 import org.openbaton.autoscaling.core.execution.ExecutionEngine;
 import org.openbaton.autoscaling.core.execution.ExecutionManagement;
 import org.openbaton.autoscaling.core.management.ElasticityManagement;
+import org.openbaton.catalogue.security.Project;
+import org.openbaton.sdk.NFVORequestor;
+import org.openbaton.sdk.api.exception.SDKException;
 import org.openbaton.vnfm.configuration.MediaServerProperties;
+import org.openbaton.vnfm.configuration.NfvoProperties;
 import org.openbaton.vnfm.core.HistoryManagement;
 import org.openbaton.vnfm.core.MediaServerResourceManagement;
+import org.openbaton.vnfm.utils.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -38,7 +47,13 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @Configuration
 @EnableAsync
 @EnableScheduling
+@ComponentScan("org.openbaton.vnfm")
 public class MSBeanConfiguration {
+
+    private static Logger logger = LoggerFactory.getLogger(MSBeanConfiguration.class);
+
+    @Autowired
+    private NfvoProperties nfvoProperties;
 
     @Bean
     public MediaServerResourceManagement mediaServerResourceManagement() {
@@ -55,5 +70,50 @@ public class MSBeanConfiguration {
         return new HistoryManagement();
     }
 
+    @Bean
+    public NFVORequestor getNFVORequestor() throws SDKException {
+        if (!Utils.isNfvoStarted(nfvoProperties.getIp(), nfvoProperties.getPort())) {
+            logger.error("NFVO is not available");
+            System.exit(1);
+        }
+        NFVORequestor nfvoRequestor =
+                new NFVORequestor(
+                        nfvoProperties.getUsername(),
+                        nfvoProperties.getPassword(),
+                        "*",
+                        false,
+                        nfvoProperties.getIp(),
+                        nfvoProperties.getPort(),
+                        "1");
+        this.logger.info("Starting the Open Baton Manager Bean");
+
+        try {
+            logger.info("Finding NUBOMEDIA project");
+            boolean found = false;
+            for (Project project : nfvoRequestor.getProjectAgent().findAll()) {
+                if (project.getName().equals(nfvoProperties.getProject().getName())) {
+                    found = true;
+                    nfvoRequestor.setProjectId(project.getId());
+                    logger.info("Found NUBOMEDIA project");
+                }
+            }
+            if (!found) {
+                logger.info("Not found NUBOMEDIA project");
+                logger.info("Creating NUBOMEDIA project");
+                Project project = new Project();
+                project.setDescription("NUBOMEDIA project");
+                project.setName(nfvoProperties.getProject().getName());
+                project = nfvoRequestor.getProjectAgent().create(project);
+                nfvoRequestor.setProjectId(project.getId());
+                logger.info("Created NUBOMEDIA project " + project);
+            }
+        } catch (SDKException e) {
+            logger.warn("Not able to connect to NFVO. Please check the credentials you provided ...");
+            return getNFVORequestor();
+        } catch (ClassNotFoundException e) {
+            throw new SDKException(e.getMessage());
+        }
+        return nfvoRequestor;
+    }
 }
 

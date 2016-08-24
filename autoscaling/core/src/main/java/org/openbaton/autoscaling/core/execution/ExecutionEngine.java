@@ -71,26 +71,20 @@ public class ExecutionEngine {
     @Autowired
     private ConfigurableApplicationContext context;
 
+    @Autowired
     private NFVORequestor nfvoRequestor;
 
-    //@Autowired
     private MediaServerResourceManagement mediaServerResourceManagement;
 
-    //@Autowired
     private ExecutionManagement executionManagement;
 
-    //@Autowired
     private PoolManagement poolManagement;
 
     private ActionMonitor actionMonitor;
 
     private VnfmHelper vnfmHelper;
 
-    //@Autowired
     private MediaServerManagement mediaServerManagement;
-
-    @Autowired
-    private NfvoProperties nfvoProperties;
 
     @Autowired
     private AutoScalingProperties autoScalingProperties;
@@ -106,53 +100,12 @@ public class ExecutionEngine {
     @Autowired
     private MediaServerProperties mediaServerProperties;
 
-
-//    public ExecutionEngine(Properties properties) {
-//        this.properties = properties;
-//        this.nfvoRequestor = new NFVORequestor(properties.getProperty("openbaton-username"), properties.getProperty("openbaton-password"), properties.getProperty("openbaton-url"), properties.getProperty("openbaton-port"), "1");
-//        resourceManagement = (ResourceManagement) context.getBean("openstackVIM", "15672");
-//    }
-
     @PostConstruct
     public void init() throws SDKException {
         this.mediaServerResourceManagement = context.getBean(MediaServerResourceManagement.class);
         this.mediaServerManagement = context.getBean(MediaServerManagement.class);
         this.executionManagement = context.getBean(ExecutionManagement.class);
         this.poolManagement = context.getBean(PoolManagement.class);
-        this.nfvoRequestor =
-                new NFVORequestor(
-                        nfvoProperties.getUsername(),
-                        nfvoProperties.getPassword(),
-                        "*",
-                        false,
-                        nfvoProperties.getIp(),
-                        nfvoProperties.getPort(),
-                        "1");
-        try {
-            log.info("Finding NUBOMEDIA project");
-            boolean found = false;
-            for (Project project : nfvoRequestor.getProjectAgent().findAll()) {
-                if (project.getName().equals(nfvoProperties.getProject().getName())) {
-                    found = true;
-                    nfvoRequestor.setProjectId(project.getId());
-                    log.info("Found NUBOMEDIA project");
-                }
-            }
-            if (!found) {
-                log.info("Not found NUBOMEDIA project");
-                log.info("Creating NUBOMEDIA project");
-                Project project = new Project();
-                project.setDescription("NUBOMEDIA project");
-                project.setName(nfvoProperties.getProject().getName());
-                project = nfvoRequestor.getProjectAgent().create(project);
-                nfvoRequestor.setProjectId(project.getId());
-                log.info("Created NUBOMEDIA project " + project);
-            }
-        } catch (SDKException e) {
-            throw new SDKException(e.getMessage());
-        } catch (ClassNotFoundException e) {
-            throw new SDKException(e.getMessage());
-        }
         //this.resourceManagement = (ResourceManagement) context.getBean("openstackVIM", "15672");
         this.vnfmHelper = (VnfmHelper) context.getBean("vnfmSpringHelperRabbit");
     }
@@ -382,23 +335,12 @@ public class ExecutionEngine {
         vnfrIds.add(vnfr_id);
 
         executionManagement.executeCooldown(nsr_id, vnfr_id, cooldown);
-//        List<String> vnfrIds = new ArrayList<>();
-//        vnfrIds.add(vnfr_id);
-//        try {
-//            vnfrMonitor.startCooldown(vnfrIds);
-//            log.debug("Starting cooldown period (" + cooldown + "s) for VNFR: " + vnfr_id);
-//            Thread.sleep(cooldown * 1000);
-//            log.debug("Finished cooldown period (" + cooldown + "s) for VNFR: " + vnfr_id);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
     }
 
     public VirtualNetworkFunctionRecord updateVNFRStatus(String nsr_id, String vnfr_id, Status status) throws SDKException {
         VirtualNetworkFunctionRecord vnfr = nfvoRequestor.getNetworkServiceRecordAgent().getVirtualNetworkFunctionRecord(nsr_id, vnfr_id);
         vnfr.setStatus(status);
         return updateVNFR(vnfr);
-        //nfvoRequestor.getNetworkServiceRecordAgent().updateVNFR(nsr_id, vnfr_id, vnfr);
     }
 
     public VirtualNetworkFunctionRecord updateVNFR(VirtualNetworkFunctionRecord vnfr) {
@@ -407,7 +349,6 @@ public class ExecutionEngine {
         try {
             response = (OrVnfmGenericMessage) vnfmHelper.sendAndReceive(VnfmUtils.getNfvMessage(Action.UPDATEVNFR, vnfr));
             log.debug("Updated VNFR on NFVO: " + vnfr.getId());
-            //response = (OrVnfmGenericMessage) vnfmHelper.sendToNfvo(VnfmUtils.getNfvMessage(Action.UPDATEVNFR, vnfr));
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }

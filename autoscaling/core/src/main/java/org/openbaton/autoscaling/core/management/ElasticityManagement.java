@@ -73,6 +73,7 @@ public class ElasticityManagement {
     @Autowired
     private PoolManagement poolManagement;
 
+    @Autowired
     private NFVORequestor nfvoRequestor;
 
     private List<String> subscriptionIds;
@@ -85,63 +86,11 @@ public class ElasticityManagement {
 
     @PostConstruct
     public void init() throws SDKException {
-        this.nfvoRequestor =
-                new NFVORequestor(
-                        nfvoProperties.getUsername(),
-                        nfvoProperties.getPassword(),
-                        "*",
-                        false,
-                        nfvoProperties.getIp(),
-                        nfvoProperties.getPort(),
-                        "1");
-        try {
-            log.info("Finding NUBOMEDIA project");
-            boolean found = false;
-            for (Project project : nfvoRequestor.getProjectAgent().findAll()) {
-                if (project.getName().equals(nfvoProperties.getProject().getName())) {
-                    found = true;
-                    nfvoRequestor.setProjectId(project.getId());
-                    log.info("Found NUBOMEDIA project");
-                }
-            }
-            if (!found) {
-                log.info("Not found NUBOMEDIA project");
-                log.info("Creating NUBOMEDIA project");
-                Project project = new Project();
-                project.setDescription("NUBOMEDIA project");
-                project.setName(nfvoProperties.getProject().getName());
-                project = nfvoRequestor.getProjectAgent().create(project);
-                nfvoRequestor.setProjectId(project.getId());
-                log.info("Created NUBOMEDIA project " + project);
-            }
-        } catch (SDKException e) {
-            throw new SDKException(e.getMessage());
-        } catch (ClassNotFoundException e) {
-            throw new SDKException(e.getMessage());
-        }
-//        detectionManagment.init(properties);
-//        decisionManagement.init(properties);
-//        executionManagement.init(properties);
-//        if (properties.getProperty("pool_activated").equals(true)) {
-//            poolManagement = new PoolManagement();
-//            poolManagement.init(properties);
-//        }
-
         subscriptionIds = new ArrayList<>();
-        //startPlugins();
-
-        //waitForNfvo();
-        //subscribe(Action.INSTANTIATE_FINISH);
-        //subscribe(Action.RELEASE_RESOURCES_FINISH);
-        //subscribe(Action.ERROR);
-
-        //fetchNSRsFromNFVO();
     }
 
     @PreDestroy
     private void exit() throws SDKException {
-        //unsubscribe();
-        //destroyPlugins();
     }
 
     public void activate(String nsr_id) throws NotFoundException, VimException, SDKException {
