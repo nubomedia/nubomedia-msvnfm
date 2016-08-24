@@ -26,7 +26,6 @@ import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.openbaton.catalogue.nfvo.*;
 import org.openbaton.catalogue.security.Key;
-import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.exceptions.VimDriverException;
 import org.openbaton.exceptions.VimException;
 import org.openbaton.plugin.utils.RabbitPluginBroker;
@@ -41,12 +40,10 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
-import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
 import utils.Utils;
 
 import javax.annotation.PostConstruct;
-import java.rmi.RemoteException;
 import java.util.*;
 import java.util.concurrent.Future;
 

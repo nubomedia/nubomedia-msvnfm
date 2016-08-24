@@ -28,21 +28,15 @@ dependencies {
     compile 'org.openbaton:vim-drivers:' + openbatonVersion
     compile 'org.openbaton:vim-int:' + openbatonVersion
     compile 'org.openbaton:vim-impl:' + openbatonVersion
-//    compile project(':vnfm-sdk-amqp')
-//    compile project(':vim-drivers')
-//    compile project(':vim-int')
-//    compile project(':core-int')
+
     compile project(':core')
-    //compile project(':monitoring')
+
     compile project(':repository')
     compile project(':vnfm-catalogue')
     compile project(':api')
 
     compile project(':as-core')
     compile project(':configuration')
-
-//    runtime project(':vim-impl')
-//    runtime project(':core-impl')
 
     compile 'net.sourceforge.jeval:jeval:0.9.4'
 

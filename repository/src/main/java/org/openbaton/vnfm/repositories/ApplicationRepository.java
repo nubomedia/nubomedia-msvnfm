@@ -17,7 +17,6 @@
 
 package org.openbaton.vnfm.repositories;
 
-import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.openbaton.vnfm.catalogue.Application;
 import org.springframework.data.repository.CrudRepository;
 

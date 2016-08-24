@@ -18,7 +18,6 @@
 package org.openbaton.vnfm;
 
 import org.openbaton.autoscaling.core.management.ElasticityManagement;
-import org.openbaton.catalogue.mano.common.DeploymentFlavour;
 import org.openbaton.catalogue.mano.descriptor.VNFComponent;
 import org.openbaton.catalogue.mano.descriptor.VirtualDeploymentUnit;
 import org.openbaton.catalogue.mano.record.Status;
@@ -28,7 +27,6 @@ import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.openbaton.catalogue.nfvo.Action;
 import org.openbaton.catalogue.nfvo.VimInstance;
 import org.openbaton.catalogue.nfvo.messages.Interfaces.NFVMessage;
-import org.openbaton.catalogue.security.Project;
 import org.openbaton.common.vnfm_sdk.amqp.AbstractVnfmSpringAmqp;
 import org.openbaton.common.vnfm_sdk.utils.VnfmUtils;
 import org.openbaton.exceptions.NotFoundException;
@@ -36,8 +34,8 @@ import org.openbaton.exceptions.VimException;
 import org.openbaton.plugin.utils.PluginStartup;
 import org.openbaton.sdk.NFVORequestor;
 import org.openbaton.sdk.api.exception.SDKException;
-import org.openbaton.vnfm.catalogue.*;
 import org.openbaton.vnfm.catalogue.Application;
+import org.openbaton.vnfm.catalogue.ManagedVNFR;
 import org.openbaton.vnfm.configuration.*;
 import org.openbaton.vnfm.core.ApplicationManagement;
 import org.openbaton.vnfm.core.MediaServerManagement;
@@ -58,7 +56,10 @@ import org.springframework.test.context.support.AnnotationConfigContextLoader;
 import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Created by lto on 27/05/15.

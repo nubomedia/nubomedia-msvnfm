@@ -22,13 +22,13 @@ import org.openbaton.autoscaling.core.features.pool.PoolEngine;
 import org.openbaton.autoscaling.core.management.ActionMonitor;
 import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.exceptions.NotFoundException;
-import org.openbaton.exceptions.VimException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Created by mpa on 27.10.15.

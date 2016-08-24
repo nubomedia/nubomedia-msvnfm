@@ -19,8 +19,8 @@ package org.openbaton.vnfm.core;
 
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.vnfm.catalogue.Application;
-import org.openbaton.vnfm.catalogue.Status;
 import org.openbaton.vnfm.catalogue.MediaServer;
+import org.openbaton.vnfm.catalogue.Status;
 import org.openbaton.vnfm.configuration.ApplicationProperties;
 import org.openbaton.vnfm.repositories.ApplicationRepository;
 import org.slf4j.Logger;
@@ -31,7 +31,10 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
-import java.util.*;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 
 /**

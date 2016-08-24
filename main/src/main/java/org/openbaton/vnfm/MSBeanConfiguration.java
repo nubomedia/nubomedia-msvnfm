@@ -17,17 +17,10 @@
 
 package org.openbaton.vnfm;
 
-import org.openbaton.autoscaling.core.decision.DecisionEngine;
-import org.openbaton.autoscaling.core.decision.DecisionManagement;
-import org.openbaton.autoscaling.core.detection.DetectionEngine;
-import org.openbaton.autoscaling.core.detection.DetectionManagement;
-import org.openbaton.autoscaling.core.execution.ExecutionEngine;
-import org.openbaton.autoscaling.core.execution.ExecutionManagement;
 import org.openbaton.autoscaling.core.management.ElasticityManagement;
 import org.openbaton.catalogue.security.Project;
 import org.openbaton.sdk.NFVORequestor;
 import org.openbaton.sdk.api.exception.SDKException;
-import org.openbaton.vnfm.configuration.MediaServerProperties;
 import org.openbaton.vnfm.configuration.NfvoProperties;
 import org.openbaton.vnfm.core.HistoryManagement;
 import org.openbaton.vnfm.core.MediaServerResourceManagement;

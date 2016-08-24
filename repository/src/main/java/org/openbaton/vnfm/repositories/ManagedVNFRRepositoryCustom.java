@@ -20,8 +20,6 @@ package org.openbaton.vnfm.repositories;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.vnfm.catalogue.ManagedVNFR;
 
-import java.util.Set;
-
 /**
  * Created by lto on 06/05/15.
  */

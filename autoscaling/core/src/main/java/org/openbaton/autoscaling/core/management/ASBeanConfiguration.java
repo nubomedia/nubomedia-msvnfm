@@ -23,8 +23,6 @@ import org.openbaton.autoscaling.core.detection.DetectionEngine;
 import org.openbaton.autoscaling.core.detection.DetectionManagement;
 import org.openbaton.autoscaling.core.execution.ExecutionEngine;
 import org.openbaton.autoscaling.core.execution.ExecutionManagement;
-import org.openbaton.autoscaling.core.management.ElasticityManagement;
-import org.openbaton.vnfm.core.MediaServerResourceManagement;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;

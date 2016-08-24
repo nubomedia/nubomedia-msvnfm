@@ -18,7 +18,6 @@
 package org.openbaton.vnfm.core;
 
 import org.apache.commons.collections4.queue.CircularFifoQueue;
-import org.openbaton.catalogue.util.IdGenerator;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.vnfm.catalogue.ManagedVNFR;
 import org.openbaton.vnfm.catalogue.MediaServer;
@@ -33,11 +32,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
-import javax.persistence.Id;
-import javax.persistence.Version;
 import java.awt.*;
 import java.io.Serializable;
 import java.util.*;
+import java.util.Queue;
 
 /**
  * Created by mpa on 01.10.15.

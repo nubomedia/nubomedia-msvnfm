@@ -17,11 +17,9 @@
 
 package org.openbaton.vnfm.catalogue;
 
-import javax.persistence.*;
-
-import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.catalogue.util.IdGenerator;
 
+import javax.persistence.*;
 import java.io.Serializable;
 
 /**

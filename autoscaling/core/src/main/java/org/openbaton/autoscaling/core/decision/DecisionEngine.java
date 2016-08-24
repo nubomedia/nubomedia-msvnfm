@@ -18,12 +18,9 @@
 package org.openbaton.autoscaling.core.decision;
 
 import org.openbaton.autoscaling.core.execution.ExecutionManagement;
-import org.openbaton.autoscaling.utils.Utils;
-import org.openbaton.catalogue.mano.common.AutoScalePolicy;
 import org.openbaton.catalogue.mano.common.ScalingAction;
 import org.openbaton.catalogue.mano.record.Status;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
-import org.openbaton.catalogue.security.Project;
 import org.openbaton.sdk.NFVORequestor;
 import org.openbaton.sdk.api.exception.SDKException;
 import org.openbaton.vnfm.configuration.NfvoProperties;
@@ -35,7 +32,8 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
-import java.util.*;
+import java.util.Date;
+import java.util.Set;
 
 /**
  * Created by mpa on 27.10.15.
