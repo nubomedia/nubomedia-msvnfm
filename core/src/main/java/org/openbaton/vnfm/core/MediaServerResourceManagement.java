@@ -245,7 +245,7 @@ public class MediaServerResourceManagement {
               + vnfcInstance.getVc_id()
               + " from VimInstance "
               + vimInstance.getName());
-      } catch (VimDriverException e) {
+    } catch (VimDriverException e) {
       try {
         Thread.sleep(1000);
       } catch (InterruptedException e1) {

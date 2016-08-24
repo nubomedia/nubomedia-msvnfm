@@ -31,5 +31,4 @@ public class RestDetectionInterface {
   private Logger log = LoggerFactory.getLogger(this.getClass());
 
   @Autowired private DetectionManagement detectionManagement;
-
 }

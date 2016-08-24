@@ -31,5 +31,4 @@ public class RestDecisionInterface {
   private Logger log = LoggerFactory.getLogger(this.getClass());
 
   @Autowired private DecisionManagement decisionManagement;
-
 }
