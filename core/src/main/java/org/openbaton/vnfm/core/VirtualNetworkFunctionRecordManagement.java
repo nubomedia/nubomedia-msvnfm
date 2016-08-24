@@ -17,7 +17,6 @@
 
 package org.openbaton.vnfm.core;
 
-
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.vnfm.catalogue.ManagedVNFR;
 import org.openbaton.vnfm.repositories.ManagedVNFRRepository;
@@ -36,32 +35,31 @@ import java.util.Set;
 @Scope
 public class VirtualNetworkFunctionRecordManagement {
 
-    @Autowired
-    private ManagedVNFRRepository managedVNFRRepository;
+  @Autowired private ManagedVNFRRepository managedVNFRRepository;
 
-    public Set<ManagedVNFR> query() throws NotFoundException {
-        Iterable<ManagedVNFR> managedVNFRs = managedVNFRRepository.findAll();
-        if (!managedVNFRs.iterator().hasNext()) {
-            throw new NotFoundException("Not found any VNFR managed by this VNFM");
-        }
-        return fromIterbaleToSet(managedVNFRs);
+  public Set<ManagedVNFR> query() throws NotFoundException {
+    Iterable<ManagedVNFR> managedVNFRs = managedVNFRRepository.findAll();
+    if (!managedVNFRs.iterator().hasNext()) {
+      throw new NotFoundException("Not found any VNFR managed by this VNFM");
     }
+    return fromIterbaleToSet(managedVNFRs);
+  }
 
-    public Set<ManagedVNFR> query(String vnfrId) throws NotFoundException {
-        Iterable<ManagedVNFR> managedVNFRsIterbale = managedVNFRRepository.findByVnfrId(vnfrId);
-        if (!managedVNFRsIterbale.iterator().hasNext()) {
-            throw new NotFoundException("Not found any VNFR with id: " + vnfrId + " managed by this VNFM");
-        }
-        return fromIterbaleToSet(managedVNFRsIterbale);
+  public Set<ManagedVNFR> query(String vnfrId) throws NotFoundException {
+    Iterable<ManagedVNFR> managedVNFRsIterbale = managedVNFRRepository.findByVnfrId(vnfrId);
+    if (!managedVNFRsIterbale.iterator().hasNext()) {
+      throw new NotFoundException(
+          "Not found any VNFR with id: " + vnfrId + " managed by this VNFM");
     }
+    return fromIterbaleToSet(managedVNFRsIterbale);
+  }
 
-    private Set fromIterbaleToSet(Iterable iterable){
-        Set set = new HashSet();
-        Iterator iterator = iterable.iterator();
-        while (iterator.hasNext()) {
-            set.add(iterator.next());
-        }
-        return set;
+  private Set fromIterbaleToSet(Iterable iterable) {
+    Set set = new HashSet();
+    Iterator iterator = iterable.iterator();
+    while (iterator.hasNext()) {
+      set.add(iterator.next());
     }
-
+    return set;
+  }
 }

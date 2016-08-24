@@ -44,167 +44,166 @@ import java.util.Queue;
 @Scope
 public class HistoryManagement {
 
-    protected Logger log = LoggerFactory.getLogger(this.getClass());
+  protected Logger log = LoggerFactory.getLogger(this.getClass());
 
-    @Autowired
-    private MediaServerRepository mediaServerRepository;
+  @Autowired private MediaServerRepository mediaServerRepository;
 
-    @Autowired
-    private ManagedVNFRRepository managedVNFRRepository;
+  @Autowired private ManagedVNFRRepository managedVNFRRepository;
 
-    @Autowired
-    private MediaServerProperties mediaServerProperties;
+  @Autowired private MediaServerProperties mediaServerProperties;
 
-    private HashMap<String, Queue> numberHistory;
+  private HashMap<String, Queue> numberHistory;
 
-    private HashMap<String, Queue> loadHistory;
+  private HashMap<String, Queue> loadHistory;
 
-    @PostConstruct
-    private void init() {
-        loadHistory = new HashMap<>();
-        numberHistory = new HashMap<>();
+  @PostConstruct
+  private void init() {
+    loadHistory = new HashMap<>();
+    numberHistory = new HashMap<>();
+  }
 
+  public HashMap<String, Queue> getNumberHistory() {
+    return numberHistory;
+  }
+
+  public Queue getNumberHistory(String vnfrId) throws NotFoundException {
+    if (numberHistory.containsKey(vnfrId)) {
+      return numberHistory.get(vnfrId);
+    } else {
+      throw new NotFoundException(
+          "Not Found History Entry (number of instances) for VNFR " + vnfrId);
     }
+  }
 
-    public HashMap<String, Queue> getNumberHistory() {
-        return numberHistory;
+  public void deleteNumberHistory(String vnfrId) throws NotFoundException {
+    if (numberHistory.containsKey(vnfrId)) {
+      numberHistory.remove(vnfrId);
+    } else {
+      throw new NotFoundException(
+          "Not Found History Entry (number of instances) for VNFR " + vnfrId);
     }
+  }
 
-    public Queue getNumberHistory(String vnfrId) throws NotFoundException {
-        if (numberHistory.containsKey(vnfrId)) {
-            return numberHistory.get(vnfrId);
-        } else {
-            throw new NotFoundException("Not Found History Entry (number of instances) for VNFR " + vnfrId);
-        }
+  public HashMap<String, Queue> getLoadHistory() {
+    return loadHistory;
+  }
+
+  public void deleteLoadHistory(String vnfrId) throws NotFoundException {
+    if (loadHistory.containsKey(vnfrId)) {
+      loadHistory.remove(vnfrId);
+    } else {
+      throw new NotFoundException("Not Found History Entry (averaged load) for VNFR " + vnfrId);
     }
+  }
 
-    public void deleteNumberHistory(String vnfrId) throws NotFoundException {
-        if (numberHistory.containsKey(vnfrId)) {
-            numberHistory.remove(vnfrId);
-        } else {
-            throw new NotFoundException("Not Found History Entry (number of instances) for VNFR " + vnfrId);
-        }
+  public Queue getLoadHistory(String vnfrId) throws NotFoundException {
+    if (loadHistory.containsKey(vnfrId)) {
+      return loadHistory.get(vnfrId);
+    } else {
+      throw new NotFoundException("Not Found History Entry (averaged load) for VNFR " + vnfrId);
     }
+  }
 
-    public HashMap<String, Queue> getLoadHistory() {
-        return loadHistory;
+  @Scheduled(initialDelay = 1000, fixedRate = 5000)
+  private void collectLoadHistory() {
+    Long timestamp = new Date().getTime();
+    log.debug("Collecting history of averaged load at timestamp " + timestamp);
+    for (ManagedVNFR managedVNFR : managedVNFRRepository.findAll()) {
+      log.debug("Collecting history for VNFR " + managedVNFR.getVnfrId());
+      double sum = 0;
+      int size = 0;
+      for (MediaServer mediaServer :
+          mediaServerRepository.findAllByVnrfId(managedVNFR.getVnfrId())) {
+        sum = sum + mediaServer.getUsedPoints();
+        size++;
+      }
+      double averageValue;
+      if (size > 0) {
+        averageValue = sum / size;
+      } else {
+        averageValue = -1;
+      }
+      HistoryEntry entry = new HistoryEntry(timestamp, averageValue);
+
+      if (!loadHistory.containsKey(managedVNFR.getVnfrId())) {
+        loadHistory.put(
+            managedVNFR.getVnfrId(),
+            new CircularFifoQueue<Point>(mediaServerProperties.getHistory().getLength()));
+      }
+      loadHistory.get(managedVNFR.getVnfrId()).add(entry);
     }
+  }
 
-    public void deleteLoadHistory(String vnfrId) throws NotFoundException {
-        if (loadHistory.containsKey(vnfrId)) {
-            loadHistory.remove(vnfrId);
-        } else {
-            throw new NotFoundException("Not Found History Entry (averaged load) for VNFR " + vnfrId);
-        }
+  @Scheduled(initialDelay = 1000, fixedRate = 5000)
+  private void collectNumberOfInstancesHistory() {
+    Long timestamp = new Date().getTime();
+    log.debug("Collecting history of number of instances at timestamp " + timestamp);
+    for (ManagedVNFR managedVNFR : managedVNFRRepository.findAll()) {
+      log.debug("Collecting history for VNFR " + managedVNFR.getVnfrId());
+      int size = 0;
+      for (MediaServer mediaServer :
+          mediaServerRepository.findAllByVnrfId(managedVNFR.getVnfrId())) {
+        size++;
+      }
+      HistoryEntry entry = new HistoryEntry(timestamp, size);
+
+      if (!numberHistory.containsKey(managedVNFR.getVnfrId())) {
+        numberHistory.put(
+            managedVNFR.getVnfrId(),
+            new CircularFifoQueue<Point>(mediaServerProperties.getHistory().getLength()));
+      }
+      numberHistory.get(managedVNFR.getVnfrId()).add(entry);
     }
+  }
 
-    public Queue getLoadHistory(String vnfrId) throws NotFoundException {
-        if (loadHistory.containsKey(vnfrId)) {
-            return loadHistory.get(vnfrId);
-        } else {
-            throw new NotFoundException("Not Found History Entry (averaged load) for VNFR " + vnfrId);
-        }
+  @Scheduled(initialDelay = 1000, fixedRate = 60000)
+  private void clean() {
+    Set<String> vnfrIds = new HashSet<>();
+    for (ManagedVNFR managedVNFR : managedVNFRRepository.findAll()) {
+      vnfrIds.add(managedVNFR.getVnfrId());
     }
-
-    @Scheduled(initialDelay=1000, fixedRate=5000)
-    private void collectLoadHistory() {
-        Long timestamp = new Date().getTime();
-        log.debug("Collecting history of averaged load at timestamp " + timestamp);
-        for (ManagedVNFR managedVNFR : managedVNFRRepository.findAll()) {
-            log.debug("Collecting history for VNFR " + managedVNFR.getVnfrId());
-            double sum = 0;
-            int size = 0;
-            for (MediaServer mediaServer : mediaServerRepository.findAllByVnrfId(managedVNFR.getVnfrId())) {
-                sum = sum + mediaServer.getUsedPoints();
-                size++;
-            }
-            double averageValue;
-            if (size > 0) {
-                averageValue = sum / size;
-            } else {
-                averageValue = -1;
-            }
-            HistoryEntry entry = new HistoryEntry(timestamp, averageValue);
-
-            if (! loadHistory.containsKey(managedVNFR.getVnfrId())) {
-                loadHistory.put(managedVNFR.getVnfrId(), new CircularFifoQueue<Point>(mediaServerProperties.getHistory().getLength()));
-            }
-            loadHistory.get(managedVNFR.getVnfrId()).add(entry);
-        }
+    for (String vnfrId : loadHistory.keySet()) {
+      if (!vnfrIds.contains(vnfrId)) {
+        loadHistory.remove(vnfrId);
+      }
     }
-
-    @Scheduled(initialDelay=1000, fixedRate=5000)
-    private void collectNumberOfInstancesHistory() {
-        Long timestamp = new Date().getTime();
-        log.debug("Collecting history of number of instances at timestamp " + timestamp);
-        for (ManagedVNFR managedVNFR : managedVNFRRepository.findAll()) {
-            log.debug("Collecting history for VNFR " + managedVNFR.getVnfrId());
-            int size = 0;
-            for (MediaServer mediaServer : mediaServerRepository.findAllByVnrfId(managedVNFR.getVnfrId())) {
-                size++;
-            }
-            HistoryEntry entry = new HistoryEntry(timestamp, size);
-
-            if (! numberHistory.containsKey(managedVNFR.getVnfrId())) {
-                numberHistory.put(managedVNFR.getVnfrId(), new CircularFifoQueue<Point>(mediaServerProperties.getHistory().getLength()));
-            }
-            numberHistory.get(managedVNFR.getVnfrId()).add(entry);
-        }
+    for (String vnfrId : numberHistory.keySet()) {
+      if (!vnfrIds.contains(vnfrId)) {
+        numberHistory.remove(vnfrId);
+      }
     }
-
-    @Scheduled(initialDelay=1000, fixedRate=60000)
-    private void clean() {
-        Set<String> vnfrIds = new HashSet<>();
-        for (ManagedVNFR managedVNFR : managedVNFRRepository.findAll()) {
-            vnfrIds.add(managedVNFR.getVnfrId());
-        }
-        for (String vnfrId : loadHistory.keySet()) {
-            if (!vnfrIds.contains(vnfrId)) {
-                loadHistory.remove(vnfrId);
-            }
-        }
-        for (String vnfrId : numberHistory.keySet()) {
-            if (!vnfrIds.contains(vnfrId)) {
-                numberHistory.remove(vnfrId);
-            }
-        }
-    }
-
-
+  }
 }
 
 class HistoryEntry implements Serializable {
 
-    private long timestamp;
+  private long timestamp;
 
-    private double value;
+  private double value;
 
-    public HistoryEntry(long timestamp, double value) {
-        this.timestamp = timestamp;
-        this.value = value;
-    }
+  public HistoryEntry(long timestamp, double value) {
+    this.timestamp = timestamp;
+    this.value = value;
+  }
 
-    public long getTimestamp() {
-        return timestamp;
-    }
+  public long getTimestamp() {
+    return timestamp;
+  }
 
-    public void setTimestamp(long timestamp) {
-        this.timestamp = timestamp;
-    }
+  public void setTimestamp(long timestamp) {
+    this.timestamp = timestamp;
+  }
 
-    public double getValue() {
-        return value;
-    }
+  public double getValue() {
+    return value;
+  }
 
-    public void setValue(double value) {
-        this.value = value;
-    }
+  public void setValue(double value) {
+    this.value = value;
+  }
 
-    @Override
-    public String toString() {
-        return "HistoryEntry{" +
-                "timestamp=" + timestamp +
-                ", value=" + value +
-                '}';
-    }
+  @Override
+  public String toString() {
+    return "HistoryEntry{" + "timestamp=" + timestamp + ", value=" + value + '}';
+  }
 }

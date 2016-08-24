@@ -29,28 +29,27 @@ import java.util.Set;
  */
 public class ManagedVNFRRepositoryImpl implements ManagedVNFRRepositoryCustom {
 
-    @Autowired
-    private org.openbaton.vnfm.repositories.ManagedVNFRRepository managedVNFRRepository;
+  @Autowired private org.openbaton.vnfm.repositories.ManagedVNFRRepository managedVNFRRepository;
 
-    @Override
-    public Iterable findByVnfrId(String vnfrId) {
-        Set<ManagedVNFR> entities = new HashSet<ManagedVNFR>();
-        Iterable<ManagedVNFR> allEntities = managedVNFRRepository.findAll();
-        for (ManagedVNFR managedVNFR : allEntities) {
-            if (managedVNFR.getVnfrId().equals(vnfrId)) {
-                entities.add(managedVNFR);
-            }
-        }
-        return (Iterable) entities;
+  @Override
+  public Iterable findByVnfrId(String vnfrId) {
+    Set<ManagedVNFR> entities = new HashSet<ManagedVNFR>();
+    Iterable<ManagedVNFR> allEntities = managedVNFRRepository.findAll();
+    for (ManagedVNFR managedVNFR : allEntities) {
+      if (managedVNFR.getVnfrId().equals(vnfrId)) {
+        entities.add(managedVNFR);
+      }
     }
+    return (Iterable) entities;
+  }
 
-    @Override
-    public void deleteByVnfrId(String vnfrId) throws NotFoundException {
-        Iterable<ManagedVNFR> entities = findByVnfrId(vnfrId);
-        if (!entities.iterator().hasNext()) {
-            throw new NotFoundException("Not found any VNFR with id: " + vnfrId + "managed by this VNFM");
-        } else {
-            managedVNFRRepository.delete(entities);
-        }
+  @Override
+  public void deleteByVnfrId(String vnfrId) throws NotFoundException {
+    Iterable<ManagedVNFR> entities = findByVnfrId(vnfrId);
+    if (!entities.iterator().hasNext()) {
+      throw new NotFoundException("Not found any VNFR with id: " + vnfrId + "managed by this VNFM");
+    } else {
+      managedVNFRRepository.delete(entities);
     }
+  }
 }

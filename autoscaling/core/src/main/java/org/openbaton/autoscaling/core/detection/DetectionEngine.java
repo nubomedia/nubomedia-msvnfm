@@ -56,240 +56,270 @@ import java.util.List;
 @Scope("singleton")
 public class DetectionEngine {
 
-    protected Logger log = LoggerFactory.getLogger(this.getClass());
+  protected Logger log = LoggerFactory.getLogger(this.getClass());
 
-    @Autowired
-    private NFVORequestor nfvoRequestor;
+  @Autowired private NFVORequestor nfvoRequestor;
 
-    @Autowired
-    private ConfigurableApplicationContext context;
+  @Autowired private ConfigurableApplicationContext context;
 
-    private VirtualisedResourcesPerformanceManagement monitor;
+  private VirtualisedResourcesPerformanceManagement monitor;
 
-    //@Autowired
-    private DetectionManagement detectionManagement;
+  //@Autowired
+  private DetectionManagement detectionManagement;
 
-    @Autowired
-    private AutoScalingProperties autoScalingProperties;
+  @Autowired private AutoScalingProperties autoScalingProperties;
 
-    @PostConstruct
-    public void init() {
-        this.detectionManagement = context.getBean(DetectionManagement.class);
-        this.monitor = new EmmMonitor(autoScalingProperties.getMonitor().getUrl());
-        if (monitor == null) {
-            log.warn("DetectionTask: Monitor was not found. Cannot start Autoscaling...");
-        }
+  @PostConstruct
+  public void init() {
+    this.detectionManagement = context.getBean(DetectionManagement.class);
+    this.monitor = new EmmMonitor(autoScalingProperties.getMonitor().getUrl());
+    if (monitor == null) {
+      log.warn("DetectionTask: Monitor was not found. Cannot start Autoscaling...");
     }
+  }
 
-//    public void waitForState(String nsrId, String vnfrId, Set<Status> states) {
-//        try {
-//            Thread.sleep(15000);
-//        } catch (InterruptedException e) {
-//            log.error(e.getMessage(), e);
-//        }
-//        VirtualNetworkFunctionRecord vnfr = getVnfr(nsrId, vnfrId);
-//        while (!states.contains(vnfr.getStatus())) {
-//            log.debug("DetectionTask: Waiting until status of VNFR with id: " + vnfrId + " goes back to " + states);
-//            try {
-//                Thread.sleep(10000);
-//            } catch (InterruptedException e) {
-//                log.error(e.getMessage(), e);
-//            }
-//            vnfr = getVnfr(nsrId, vnfrId);
-//        }
-//    }
-//
-//    public VirtualNetworkFunctionRecord getVnfr(String nsrId, String vnfrId) {
-//        try {
-//            return nfvoRequestor.getNetworkServiceRecordAgent().getVirtualNetworkFunctionRecord(nsrId, vnfrId);
-//        } catch (SDKException e) {
-//            log.error(e.getMessage(), e);
-//        }
-//        return null;
-//    }
+  //    public void waitForState(String nsrId, String vnfrId, Set<Status> states) {
+  //        try {
+  //            Thread.sleep(15000);
+  //        } catch (InterruptedException e) {
+  //            log.error(e.getMessage(), e);
+  //        }
+  //        VirtualNetworkFunctionRecord vnfr = getVnfr(nsrId, vnfrId);
+  //        while (!states.contains(vnfr.getStatus())) {
+  //            log.debug("DetectionTask: Waiting until status of VNFR with id: " + vnfrId + " goes back to " + states);
+  //            try {
+  //                Thread.sleep(10000);
+  //            } catch (InterruptedException e) {
+  //                log.error(e.getMessage(), e);
+  //            }
+  //            vnfr = getVnfr(nsrId, vnfrId);
+  //        }
+  //    }
+  //
+  //    public VirtualNetworkFunctionRecord getVnfr(String nsrId, String vnfrId) {
+  //        try {
+  //            return nfvoRequestor.getNetworkServiceRecordAgent().getVirtualNetworkFunctionRecord(nsrId, vnfrId);
+  //        } catch (SDKException e) {
+  //            log.error(e.getMessage(), e);
+  //        }
+  //        return null;
+  //    }
 
-    public List<Item> getRawMeasurementResults(VirtualNetworkFunctionRecord vnfr, String metric, String period) throws MonitoringException {
-        ArrayList<Item> measurementResults = new ArrayList<Item>();
-        ArrayList<String> hostnames = new ArrayList<String>();
-        ArrayList<String> metrics = new ArrayList<String>();
-        metrics.add(metric);
-        log.debug("Getting all measurement results for vnfr " + vnfr.getId() + " on metric " + metric + ".");
-        for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
-            for (VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
-                hostnames.add(vnfcInstance.getHostname());
-            }
-        }
-        log.trace("Getting all measurement results for hostnames " + hostnames + " on metric " + metric + ".");
-        measurementResults.addAll(monitor.queryPMJob(hostnames, metrics, period));
-        log.debug("Got all measurement results for vnfr " + vnfr.getId() + " on metric " + metric + " -> " + measurementResults + ".");
-        return measurementResults;
+  public List<Item> getRawMeasurementResults(
+      VirtualNetworkFunctionRecord vnfr, String metric, String period) throws MonitoringException {
+    ArrayList<Item> measurementResults = new ArrayList<Item>();
+    ArrayList<String> hostnames = new ArrayList<String>();
+    ArrayList<String> metrics = new ArrayList<String>();
+    metrics.add(metric);
+    log.debug(
+        "Getting all measurement results for vnfr " + vnfr.getId() + " on metric " + metric + ".");
+    for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
+      for (VNFCInstance vnfcInstance : vdu.getVnfc_instance()) {
+        hostnames.add(vnfcInstance.getHostname());
+      }
     }
+    log.trace(
+        "Getting all measurement results for hostnames "
+            + hostnames
+            + " on metric "
+            + metric
+            + ".");
+    measurementResults.addAll(monitor.queryPMJob(hostnames, metrics, period));
+    log.debug(
+        "Got all measurement results for vnfr "
+            + vnfr.getId()
+            + " on metric "
+            + metric
+            + " -> "
+            + measurementResults
+            + ".");
+    return measurementResults;
+  }
 
-    public double calculateMeasurementResult(ScalingAlarm alarm, List<Item> measurementResults) {
-        log.debug("Calculating final measurement result ...");
-        double result;
-        List<Double> consideredResults = new ArrayList<>();
-        for (Item measurementResult : measurementResults) {
-            consideredResults.add(Double.parseDouble(measurementResult.getValue()));
-        }
-        switch (alarm.getStatistic()) {
-            case "avg":
-                double sum = 0;
-                for (Double consideredResult : consideredResults) {
-                    sum += consideredResult;
-                }
-                result = sum / measurementResults.size();
-                break;
-            case "min":
-                result = Collections.min(consideredResults);
-                break;
-            case "max":
-                result = Collections.max(consideredResults);
-                break;
-            default:
-                result = -1;
-                break;
-        }
-        return result;
+  public double calculateMeasurementResult(ScalingAlarm alarm, List<Item> measurementResults) {
+    log.debug("Calculating final measurement result ...");
+    double result;
+    List<Double> consideredResults = new ArrayList<>();
+    for (Item measurementResult : measurementResults) {
+      consideredResults.add(Double.parseDouble(measurementResult.getValue()));
     }
-
-    public boolean checkThreshold(String comparisonOperator, double threshold, double result) {
-        log.debug("Checking Threshold ...");
-        switch (comparisonOperator) {
-            case ">":
-                if (result > threshold) {
-                    return true;
-                }
-                break;
-            case ">=":
-                if (result >= threshold) {
-                    return true;
-                }
-                break;
-            case "<":
-                if (result < threshold) {
-                    return true;
-                }
-                break;
-            case "<=":
-                if (result <= threshold) {
-                    return true;
-                }
-                break;
-            case "=":
-                if (result == threshold) {
-                    return true;
-                }
-                break;
-            case "!=":
-                if (result != threshold) {
-                    return true;
-                }
-                break;
-            default:
-                return false;
+    switch (alarm.getStatistic()) {
+      case "avg":
+        double sum = 0;
+        for (Double consideredResult : consideredResults) {
+          sum += consideredResult;
         }
+        result = sum / measurementResults.size();
+        break;
+      case "min":
+        result = Collections.min(consideredResults);
+        break;
+      case "max":
+        result = Collections.max(consideredResults);
+        break;
+      default:
+        result = -1;
+        break;
+    }
+    return result;
+  }
+
+  public boolean checkThreshold(String comparisonOperator, double threshold, double result) {
+    log.debug("Checking Threshold ...");
+    switch (comparisonOperator) {
+      case ">":
+        if (result > threshold) {
+          return true;
+        }
+        break;
+      case ">=":
+        if (result >= threshold) {
+          return true;
+        }
+        break;
+      case "<":
+        if (result < threshold) {
+          return true;
+        }
+        break;
+      case "<=":
+        if (result <= threshold) {
+          return true;
+        }
+        break;
+      case "=":
+        if (result == threshold) {
+          return true;
+        }
+        break;
+      case "!=":
+        if (result != threshold) {
+          return true;
+        }
+        break;
+      default:
         return false;
     }
+    return false;
+  }
 
-    public void sendAlarm(String nsr_id, String vnfr_id, AutoScalePolicy autoScalePolicy) {
-        log.info("Alarm fired for VNFR with id: " + vnfr_id);
-        detectionManagement.sendAlarm(nsr_id, vnfr_id, autoScalePolicy);
+  public void sendAlarm(String nsr_id, String vnfr_id, AutoScalePolicy autoScalePolicy) {
+    log.info("Alarm fired for VNFR with id: " + vnfr_id);
+    detectionManagement.sendAlarm(nsr_id, vnfr_id, autoScalePolicy);
+  }
+
+  public VirtualNetworkFunctionRecord getVNFR(String nsr_id, String vnfr_id) throws SDKException {
+    try {
+      VirtualNetworkFunctionRecord vnfr =
+          nfvoRequestor
+              .getNetworkServiceRecordAgent()
+              .getVirtualNetworkFunctionRecord(nsr_id, vnfr_id);
+      return vnfr;
+    } catch (SDKException e) {
+      log.error(e.getMessage(), e);
+      throw e;
     }
-
-    public VirtualNetworkFunctionRecord getVNFR(String nsr_id, String vnfr_id) throws SDKException {
-        try {
-            VirtualNetworkFunctionRecord vnfr = nfvoRequestor.getNetworkServiceRecordAgent().getVirtualNetworkFunctionRecord(nsr_id, vnfr_id);
-            return vnfr;
-        } catch (SDKException e) {
-            log.error(e.getMessage(), e);
-            throw e;
-        }
-    }
-
+  }
 }
 
-class EmmMonitor implements VirtualisedResourcesPerformanceManagement{
+class EmmMonitor implements VirtualisedResourcesPerformanceManagement {
 
-    protected Logger log = LoggerFactory.getLogger(this.getClass());
+  protected Logger log = LoggerFactory.getLogger(this.getClass());
 
-    private String monitorUrl;
+  private String monitorUrl;
 
-    public EmmMonitor(String url) {
-        this.monitorUrl = url;
-    }
+  public EmmMonitor(String url) {
+    this.monitorUrl = url;
+  }
 
-    @Override
-    public String createPMJob(ObjectSelection resourceSelector, List<String> performanceMetric, List<String> performanceMetricGroup, Integer collectionPeriod, Integer reportingPeriod) throws MonitoringException {
-        return null;
-    }
+  @Override
+  public String createPMJob(
+      ObjectSelection resourceSelector,
+      List<String> performanceMetric,
+      List<String> performanceMetricGroup,
+      Integer collectionPeriod,
+      Integer reportingPeriod)
+      throws MonitoringException {
+    return null;
+  }
 
-    @Override
-    public List<String> deletePMJob(List<String> itemIdsToDelete) throws MonitoringException {
-        return null;
-    }
+  @Override
+  public List<String> deletePMJob(List<String> itemIdsToDelete) throws MonitoringException {
+    return null;
+  }
 
-    @Override
-    public List<Item> queryPMJob(List<String> hostnames, List<String> metrics, String period) throws MonitoringException {
-        log.debug("Requesting measurement results for hosts: " + hostnames + " on metrics: " + metrics + " (period: " + period + ")");
-        List<Item> items = new ArrayList<>();
-        for (String metric : metrics) {
-            for (String hostName : hostnames) {
-                try {
-                    URL url = new URL("http://" + monitorUrl + "/monitor/" + hostName + "/" + metric);
-                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                    conn.setRequestMethod("GET");
-                    conn.setRequestProperty("Accept", "application/json");
-                    if (conn.getResponseCode() != 200) {
-                        throw new RuntimeException("Failed : HTTP error code : "
-                                + conn.getResponseCode());
-                    }
-                    BufferedReader br = new BufferedReader(new InputStreamReader((conn.getInputStream())));
-                    String output;
-                    while ((output = br.readLine()) != null) {
-                        log.debug("Measurement result for host " + hostName + " on metric " + metric + " is " + output);
-                        Item item = new Item();
-                        item.setHostname(hostName);
-                        item.setHostId(hostName);
-                        item.setLastValue(output);
-                        item.setValue(output);
-                        item.setMetric(metric);
-                        items.add(item);
-                    }
-                    conn.disconnect();
-                } catch (MalformedURLException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+  @Override
+  public List<Item> queryPMJob(List<String> hostnames, List<String> metrics, String period)
+      throws MonitoringException {
+    log.debug(
+        "Requesting measurement results for hosts: "
+            + hostnames
+            + " on metrics: "
+            + metrics
+            + " (period: "
+            + period
+            + ")");
+    List<Item> items = new ArrayList<>();
+    for (String metric : metrics) {
+      for (String hostName : hostnames) {
+        try {
+          URL url = new URL("http://" + monitorUrl + "/monitor/" + hostName + "/" + metric);
+          HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+          conn.setRequestMethod("GET");
+          conn.setRequestProperty("Accept", "application/json");
+          if (conn.getResponseCode() != 200) {
+            throw new RuntimeException("Failed : HTTP error code : " + conn.getResponseCode());
+          }
+          BufferedReader br = new BufferedReader(new InputStreamReader((conn.getInputStream())));
+          String output;
+          while ((output = br.readLine()) != null) {
+            log.debug(
+                "Measurement result for host "
+                    + hostName
+                    + " on metric "
+                    + metric
+                    + " is "
+                    + output);
+            Item item = new Item();
+            item.setHostname(hostName);
+            item.setHostId(hostName);
+            item.setLastValue(output);
+            item.setValue(output);
+            item.setMetric(metric);
+            items.add(item);
+          }
+          conn.disconnect();
+        } catch (MalformedURLException e) {
+          e.printStackTrace();
+        } catch (IOException e) {
+          e.printStackTrace();
         }
-        return items;
+      }
     }
+    return items;
+  }
 
-    @Override
-    public void subscribe() {
+  @Override
+  public void subscribe() {}
 
-    }
+  @Override
+  public void notifyInfo() {}
 
-    @Override
-    public void notifyInfo() {
+  @Override
+  public String createThreshold(
+      ObjectSelection objectSelector,
+      String performanceMetric,
+      ThresholdType thresholdType,
+      ThresholdDetails thresholdDetails)
+      throws MonitoringException {
+    return null;
+  }
 
-    }
+  @Override
+  public List<String> deleteThreshold(List<String> thresholdIds) throws MonitoringException {
+    return null;
+  }
 
-    @Override
-    public String createThreshold(ObjectSelection objectSelector, String performanceMetric, ThresholdType thresholdType, ThresholdDetails thresholdDetails) throws MonitoringException {
-        return null;
-    }
-
-    @Override
-    public List<String> deleteThreshold(List<String> thresholdIds) throws MonitoringException {
-        return null;
-    }
-
-    @Override
-    public void queryThreshold(String queryFilter) {
-
-    }
-
+  @Override
+  public void queryThreshold(String queryFilter) {}
 }

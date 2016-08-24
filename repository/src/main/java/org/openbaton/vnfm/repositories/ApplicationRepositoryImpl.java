@@ -29,52 +29,50 @@ import java.util.Set;
  */
 public class ApplicationRepositoryImpl implements ApplicationRepositoryCustom {
 
-    @Autowired
-    private ApplicationRepository applicationRepository;
+  @Autowired private ApplicationRepository applicationRepository;
 
-    @Override
-    public Iterable findAppByVnfrId(String vnfrId) {
-        Set<Application> entities = new HashSet<>();
-        Iterable<Application> allEntitites = applicationRepository.findAll();
-        for (Application application : allEntitites) {
-            if (application.getVnfr_id().equals(vnfrId)) {
-                entities.add(application);
-            }
-        }
-        return (Iterable) entities;
-
+  @Override
+  public Iterable findAppByVnfrId(String vnfrId) {
+    Set<Application> entities = new HashSet<>();
+    Iterable<Application> allEntitites = applicationRepository.findAll();
+    for (Application application : allEntitites) {
+      if (application.getVnfr_id().equals(vnfrId)) {
+        entities.add(application);
+      }
     }
+    return (Iterable) entities;
+  }
 
-    @Override
-    public Iterable<Application> findAppByMediaServerId(String msId) {
-        Set<Application> entities = new HashSet<>();
-        Iterable<Application> allEntitites = applicationRepository.findAll();
-        for (Application application : allEntitites) {
-            if (application.getMediaServerId().equals(msId)) {
-                entities.add(application);
-            }
-        }
-        return (Iterable) entities;
+  @Override
+  public Iterable<Application> findAppByMediaServerId(String msId) {
+    Set<Application> entities = new HashSet<>();
+    Iterable<Application> allEntitites = applicationRepository.findAll();
+    for (Application application : allEntitites) {
+      if (application.getMediaServerId().equals(msId)) {
+        entities.add(application);
+      }
     }
+    return (Iterable) entities;
+  }
 
-    @Override
-    public Application findAppByExtAppId(String extAppId) {
-        Iterable<Application> allEntitites = applicationRepository.findAll();
-        for (Application application : allEntitites) {
-            if (application.getExtAppId() != null && application.getExtAppId().equals(extAppId)) {
-                return application;
-            }
-        }
-        return null;
+  @Override
+  public Application findAppByExtAppId(String extAppId) {
+    Iterable<Application> allEntitites = applicationRepository.findAll();
+    for (Application application : allEntitites) {
+      if (application.getExtAppId() != null && application.getExtAppId().equals(extAppId)) {
+        return application;
+      }
     }
+    return null;
+  }
 
-    @Override
-    public void deleteAppsByVnfrId(String vnfrId) throws NotFoundException {
-        Iterable<Application> entities = findAppByVnfrId(vnfrId);
-        if (!entities.iterator().hasNext()) {
-            throw new NotFoundException("Not Found any Applications running on VNFR with id: " + vnfrId);
-        } else {
-            applicationRepository.delete(entities);
-        }
+  @Override
+  public void deleteAppsByVnfrId(String vnfrId) throws NotFoundException {
+    Iterable<Application> entities = findAppByVnfrId(vnfrId);
+    if (!entities.iterator().hasNext()) {
+      throw new NotFoundException("Not Found any Applications running on VNFR with id: " + vnfrId);
+    } else {
+      applicationRepository.delete(entities);
     }
+  }
 }

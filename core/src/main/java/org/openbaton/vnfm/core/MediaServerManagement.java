@@ -42,158 +42,175 @@ import java.util.Set;
 @Scope
 public class MediaServerManagement {
 
-    protected Logger log = LoggerFactory.getLogger(this.getClass());
+  protected Logger log = LoggerFactory.getLogger(this.getClass());
 
-    @Autowired
-    private ApplicationRepository applicationRepository;
+  @Autowired private ApplicationRepository applicationRepository;
 
-    @Autowired
-    private MediaServerRepository mediaServerRepository;
+  @Autowired private MediaServerRepository mediaServerRepository;
 
-    @Autowired
-    private MediaServerProperties mediaServerProperties;
+  @Autowired private MediaServerProperties mediaServerProperties;
 
-    public MediaServer add(MediaServer mediaServer) {
-        if (mediaServer.getStatus() == null)
-            mediaServer.setStatus(Status.IDLE);
-        if (mediaServer.getVnfcInstanceId() == null)
-            log.error("Not defined VNFCInstanceId of newly created MediaServer");
-        if (mediaServer.getVnfrId() == null)
-            log.error("Not defined VnfrId of newly created MediaServer");
-        if (mediaServer.getIp() == null)
-            log.warn("Not defined IP of newly created MediaServer");
-        mediaServerRepository.save(mediaServer);
-        return mediaServer;
+  public MediaServer add(MediaServer mediaServer) {
+    if (mediaServer.getStatus() == null) mediaServer.setStatus(Status.IDLE);
+    if (mediaServer.getVnfcInstanceId() == null)
+      log.error("Not defined VNFCInstanceId of newly created MediaServer");
+    if (mediaServer.getVnfrId() == null)
+      log.error("Not defined VnfrId of newly created MediaServer");
+    if (mediaServer.getIp() == null) log.warn("Not defined IP of newly created MediaServer");
+    mediaServerRepository.save(mediaServer);
+    return mediaServer;
+  }
+
+  public MediaServer add(String vnfrId, VNFCInstance vnfcInstance, int maxCapacity) {
+    MediaServer mediaServer = new MediaServer();
+    mediaServer.setVnfrId(vnfrId);
+    mediaServer.setVnfcInstanceId(vnfcInstance.getId());
+    mediaServer.setHostName(vnfcInstance.getHostname());
+    mediaServer.setMaxCapacity(maxCapacity);
+    //TODO choose the right network
+    if (vnfcInstance.getFloatingIps().size() > 0) {
+      mediaServer.setIp(vnfcInstance.getFloatingIps().iterator().next().getIp());
+    } else {
+      log.warn("No FLoating Ip available! Using private ip...");
+      if (vnfcInstance.getIps().size() > 0) {
+        mediaServer.setIp(vnfcInstance.getIps().iterator().next().getIp());
+      } else {
+        log.warn("Even not private IP is available!");
+      }
     }
-
-    public MediaServer add(String vnfrId, VNFCInstance vnfcInstance, int maxCapacity) {
-        MediaServer mediaServer = new MediaServer();
-        mediaServer.setVnfrId(vnfrId);
-        mediaServer.setVnfcInstanceId(vnfcInstance.getId());
-        mediaServer.setHostName(vnfcInstance.getHostname());
-        mediaServer.setMaxCapacity(maxCapacity);
-        //TODO choose the right network
-        if (vnfcInstance.getFloatingIps().size() > 0) {
-            mediaServer.setIp(vnfcInstance.getFloatingIps().iterator().next().getIp());
-        } else {
-            log.warn("No FLoating Ip available! Using private ip...");
-            if (vnfcInstance.getIps().size() > 0) {
-                mediaServer.setIp(vnfcInstance.getIps().iterator().next().getIp());
-            } else {
-                log.warn("Even not private IP is available!");
-            }
-        }
-        try {
-            mediaServer = add(mediaServer);
-        } catch (Exception e) {
-            log.error(e.getMessage());
-        }
-        log.debug("Created Nubomedia MediaServer: " + mediaServer);
-        return mediaServer;
+    try {
+      mediaServer = add(mediaServer);
+    } catch (Exception e) {
+      log.error(e.getMessage());
     }
+    log.debug("Created Nubomedia MediaServer: " + mediaServer);
+    return mediaServer;
+  }
 
-    public void delete(String vnfrId, String hostname) throws NotFoundException {
-        log.debug("Removing MediaServer with hostname: " + hostname);
-        MediaServer mediaServer = mediaServerRepository.findByHostName(vnfrId, hostname);
-        if (mediaServer == null) {
-            throw new NotFoundException("Not found MediaServer with hostname: " + hostname + " on VNFR with id: " + vnfrId);
-        }
-        Iterable<Application> appsIterable = applicationRepository.findAppByMediaServerId(mediaServer.getId());
-        if (appsIterable.iterator().hasNext()) {
-            log.warn("Removing MediaServer with hostname: " + hostname + " but there are still running Applications: " + fromIterbaleToSet(appsIterable));
-            applicationRepository.delete(appsIterable);
-        }
-        mediaServerRepository.delete(mediaServer);
-        log.debug("Removed MediaServer with hostname: " + hostname);
+  public void delete(String vnfrId, String hostname) throws NotFoundException {
+    log.debug("Removing MediaServer with hostname: " + hostname);
+    MediaServer mediaServer = mediaServerRepository.findByHostName(vnfrId, hostname);
+    if (mediaServer == null) {
+      throw new NotFoundException(
+          "Not found MediaServer with hostname: " + hostname + " on VNFR with id: " + vnfrId);
     }
-
-    public void delete(String mediaServerId) throws NotFoundException {
-        log.debug("Removing MediaServer with id: " + mediaServerId);
-        MediaServer mediaServer = mediaServerRepository.findOne(mediaServerId);
-        if (mediaServer == null) {
-            throw new NotFoundException("Not found MediaServer with id: " + mediaServerId);
-        }
-        Iterable<Application> appsIterable = applicationRepository.findAppByMediaServerId(mediaServerId);
-        if (appsIterable.iterator().hasNext()) {
-            log.warn("Removing MediaServer with id: " + mediaServerId + " but there are still running Applications: " + fromIterbaleToSet(appsIterable));
-            applicationRepository.delete(appsIterable);
-        } else {
-            mediaServerRepository.delete(mediaServer);
-            log.debug("Removed MediaServer with id: " + mediaServerId);
-        }
+    Iterable<Application> appsIterable =
+        applicationRepository.findAppByMediaServerId(mediaServer.getId());
+    if (appsIterable.iterator().hasNext()) {
+      log.warn(
+          "Removing MediaServer with hostname: "
+              + hostname
+              + " but there are still running Applications: "
+              + fromIterbaleToSet(appsIterable));
+      applicationRepository.delete(appsIterable);
     }
+    mediaServerRepository.delete(mediaServer);
+    log.debug("Removed MediaServer with hostname: " + hostname);
+  }
 
-    public void deleteByVnfrId(String vnfrId) throws NotFoundException {
-        log.debug("Removing all MediaServers running on VNFR with id: " + vnfrId);
-        Iterable<MediaServer> mediaServersIterable = mediaServerRepository.findAllByVnrfId(vnfrId);
-        if (!mediaServersIterable.iterator().hasNext()) {
-            log.warn("Not found any MediaServer for VNFR with id: " + vnfrId);
-            return;
-        }
-        Iterator<MediaServer> iterator = mediaServersIterable.iterator();
-        while (iterator.hasNext()) {
-            delete(iterator.next().getId());
-        }
-        log.info("Removed all MediaServers running on VNFR with id: " + vnfrId);
+  public void delete(String mediaServerId) throws NotFoundException {
+    log.debug("Removing MediaServer with id: " + mediaServerId);
+    MediaServer mediaServer = mediaServerRepository.findOne(mediaServerId);
+    if (mediaServer == null) {
+      throw new NotFoundException("Not found MediaServer with id: " + mediaServerId);
     }
-
-    public Iterable<MediaServer> query() {
-        return mediaServerRepository.findAll();
+    Iterable<Application> appsIterable =
+        applicationRepository.findAppByMediaServerId(mediaServerId);
+    if (appsIterable.iterator().hasNext()) {
+      log.warn(
+          "Removing MediaServer with id: "
+              + mediaServerId
+              + " but there are still running Applications: "
+              + fromIterbaleToSet(appsIterable));
+      applicationRepository.delete(appsIterable);
+    } else {
+      mediaServerRepository.delete(mediaServer);
+      log.debug("Removed MediaServer with id: " + mediaServerId);
     }
+  }
 
-    public MediaServer query(String id) {
-        return mediaServerRepository.findOne(id);
+  public void deleteByVnfrId(String vnfrId) throws NotFoundException {
+    log.debug("Removing all MediaServers running on VNFR with id: " + vnfrId);
+    Iterable<MediaServer> mediaServersIterable = mediaServerRepository.findAllByVnrfId(vnfrId);
+    if (!mediaServersIterable.iterator().hasNext()) {
+      log.warn("Not found any MediaServer for VNFR with id: " + vnfrId);
+      return;
     }
-
-    public Set<MediaServer> queryByVnrfId(String vnfr_id) {
-        return fromIterbaleToSet(mediaServerRepository.findAllByVnrfId(vnfr_id));
+    Iterator<MediaServer> iterator = mediaServersIterable.iterator();
+    while (iterator.hasNext()) {
+      delete(iterator.next().getId());
     }
+    log.info("Removed all MediaServers running on VNFR with id: " + vnfrId);
+  }
 
-    public MediaServer queryByHostName(String hostName) {
-        return mediaServerRepository.findByHostName(hostName);
+  public Iterable<MediaServer> query() {
+    return mediaServerRepository.findAll();
+  }
+
+  public MediaServer query(String id) {
+    return mediaServerRepository.findOne(id);
+  }
+
+  public Set<MediaServer> queryByVnrfId(String vnfr_id) {
+    return fromIterbaleToSet(mediaServerRepository.findAllByVnrfId(vnfr_id));
+  }
+
+  public MediaServer queryByHostName(String hostName) {
+    return mediaServerRepository.findByHostName(hostName);
+  }
+
+  public MediaServer queryBestMediaServerByVnfrId(String vnfr_id, int points)
+      throws NotFoundException {
+    MediaServer bestMediaServer = null;
+    Set<MediaServer> mediaServers = queryByVnrfId(vnfr_id);
+    if (mediaServers.size() == 0) {
+      throw new NotFoundException("Not found any MediaServer of VNFR with id: " + vnfr_id);
     }
-
-    public MediaServer queryBestMediaServerByVnfrId(String vnfr_id, int points) throws NotFoundException {
-        MediaServer bestMediaServer = null;
-        Set<MediaServer> mediaServers = queryByVnrfId(vnfr_id);
-        if (mediaServers.size() == 0) {
-            throw new NotFoundException("Not found any MediaServer of VNFR with id: " + vnfr_id);
-        }
-        log.trace("Searching the best MediaServer for VNFR with id: " + vnfr_id + " that requires " + points + " points");
-        for (MediaServer mediaServer : mediaServers) {
-            log.trace("Checking MediaServer -> " + mediaServer);
-            if (mediaServer.getIp() != null) {
-                if (bestMediaServer == null) {
-                    if (mediaServer.getUsedPoints() + points <= mediaServer.getMaxCapacity()) {
-                        log.trace("This is the first MediaServer found so far that has enough capacity left");
-                        bestMediaServer = mediaServer;
-                    } else {
-                        log.trace("This MediaServer has not enough capacity left");
-                    }
-                } else if (mediaServer.getUsedPoints() < bestMediaServer.getUsedPoints()) {
-                    log.trace("This is the best MediaServer so far");
-                    bestMediaServer = mediaServer;
-                }
-            } else {
-                log.warn("Not found any IP for MediaServer (VNFCInstance) with id: " + mediaServer.getVnfcInstanceId());
-            }
-        }
+    log.trace(
+        "Searching the best MediaServer for VNFR with id: "
+            + vnfr_id
+            + " that requires "
+            + points
+            + " points");
+    for (MediaServer mediaServer : mediaServers) {
+      log.trace("Checking MediaServer -> " + mediaServer);
+      if (mediaServer.getIp() != null) {
         if (bestMediaServer == null) {
-            throw new NotFoundException("Not found any MediaServer for VNFR with id: " + vnfr_id + ". At least there is no one with an IP assigned and enough capacity. Please try again later.");
+          if (mediaServer.getUsedPoints() + points <= mediaServer.getMaxCapacity()) {
+            log.trace("This is the first MediaServer found so far that has enough capacity left");
+            bestMediaServer = mediaServer;
+          } else {
+            log.trace("This MediaServer has not enough capacity left");
+          }
+        } else if (mediaServer.getUsedPoints() < bestMediaServer.getUsedPoints()) {
+          log.trace("This is the best MediaServer so far");
+          bestMediaServer = mediaServer;
         }
-        return bestMediaServer;
+      } else {
+        log.warn(
+            "Not found any IP for MediaServer (VNFCInstance) with id: "
+                + mediaServer.getVnfcInstanceId());
+      }
     }
+    if (bestMediaServer == null) {
+      throw new NotFoundException(
+          "Not found any MediaServer for VNFR with id: "
+              + vnfr_id
+              + ". At least there is no one with an IP assigned and enough capacity. Please try again later.");
+    }
+    return bestMediaServer;
+  }
 
-    public MediaServer update(MediaServer mediaServer, String id) {
-        return mediaServerRepository.save(mediaServer);
-    }
+  public MediaServer update(MediaServer mediaServer, String id) {
+    return mediaServerRepository.save(mediaServer);
+  }
 
-    private Set fromIterbaleToSet(Iterable iterable) {
-        Set set = new HashSet();
-        Iterator iterator = iterable.iterator();
-        while (iterator.hasNext()) {
-            set.add(iterator.next());
-        }
-        return set;
+  private Set fromIterbaleToSet(Iterable iterable) {
+    Set set = new HashSet();
+    Iterator iterator = iterable.iterator();
+    while (iterator.hasNext()) {
+      set.add(iterator.next());
     }
+    return set;
+  }
 }

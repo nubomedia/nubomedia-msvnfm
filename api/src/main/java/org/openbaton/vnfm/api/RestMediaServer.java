@@ -34,71 +34,69 @@ import java.util.Set;
 @RequestMapping("/vnfr/{vnfrId}/media-server")
 public class RestMediaServer {
 
-	private Logger log = LoggerFactory.getLogger(this.getClass());
+  private Logger log = LoggerFactory.getLogger(this.getClass());
 
-    @Autowired
-    private MediaServerManagement mediaServerManagement;
+  @Autowired private MediaServerManagement mediaServerManagement;
 
-    @Autowired
-    private HistoryManagement historyManagement;
+  @Autowired private HistoryManagement historyManagement;
 
-    /**
-     * Lists all the MediaServers of a specific VNFR
-     *
-     * @param vnfrId : ID of VNFR
-     */
-    @RequestMapping(value = "", method = RequestMethod.GET)
-    @ResponseStatus(HttpStatus.OK)
-    public Set<MediaServer> queryAll(@PathVariable("vnfrId") String vnfrId) throws NotFoundException {
-        return mediaServerManagement.queryByVnrfId(vnfrId);
+  /**
+   * Lists all the MediaServers of a specific VNFR
+   *
+   * @param vnfrId : ID of VNFR
+   */
+  @RequestMapping(value = "", method = RequestMethod.GET)
+  @ResponseStatus(HttpStatus.OK)
+  public Set<MediaServer> queryAll(@PathVariable("vnfrId") String vnfrId) throws NotFoundException {
+    return mediaServerManagement.queryByVnrfId(vnfrId);
+  }
+
+  /**
+   * Returns the number of MediaServers of a specific VNFR
+   *
+   * @param vnfrId : ID of VNFR
+   */
+  @RequestMapping(value = "number", method = RequestMethod.GET)
+  @ResponseStatus(HttpStatus.OK)
+  public int queryNumber(@PathVariable("vnfrId") String vnfrId) throws NotFoundException {
+    return mediaServerManagement.queryByVnrfId(vnfrId).size();
+  }
+
+  /**
+   * Returns the load over all MediaServers of a specific VNFR
+   *
+   * @param vnfrId : ID of VNFR
+   */
+  @RequestMapping(value = "load", method = RequestMethod.GET)
+  @ResponseStatus(HttpStatus.OK)
+  public double queryLoad(@PathVariable("vnfrId") String vnfrId) throws NotFoundException {
+    Set<MediaServer> mediaServers = mediaServerManagement.queryByVnrfId(vnfrId);
+    double sum = 0;
+    for (MediaServer mediaServer : mediaServers) {
+      sum = sum + mediaServer.getUsedPoints();
     }
+    return sum / mediaServers.size();
+  }
 
-    /**
-     * Returns the number of MediaServers of a specific VNFR
-     *
-     * @param vnfrId : ID of VNFR
-     */
-    @RequestMapping(value = "number", method = RequestMethod.GET)
-    @ResponseStatus(HttpStatus.OK)
-    public int queryNumber(@PathVariable("vnfrId") String vnfrId) throws NotFoundException {
-        return mediaServerManagement.queryByVnrfId(vnfrId).size();
-    }
+  /**
+   * Returns the history of number of MediaServers of a specific VNFR
+   *
+   * @param vnfrId : ID of VNFR
+   */
+  @RequestMapping(value = "number/history", method = RequestMethod.GET)
+  @ResponseStatus(HttpStatus.OK)
+  public Queue queryNumberHistory(@PathVariable("vnfrId") String vnfrId) throws NotFoundException {
+    return historyManagement.getNumberHistory(vnfrId);
+  }
 
-    /**
-     * Returns the load over all MediaServers of a specific VNFR
-     *
-     * @param vnfrId : ID of VNFR
-     */
-    @RequestMapping(value = "load", method = RequestMethod.GET)
-    @ResponseStatus(HttpStatus.OK)
-    public double queryLoad(@PathVariable("vnfrId") String vnfrId) throws NotFoundException {
-        Set<MediaServer> mediaServers = mediaServerManagement.queryByVnrfId(vnfrId);
-        double sum = 0;
-        for (MediaServer mediaServer : mediaServers) {
-            sum = sum + mediaServer.getUsedPoints();
-        }
-        return sum / mediaServers.size();
-    }
-
-    /**
-     * Returns the history of number of MediaServers of a specific VNFR
-     *
-     * @param vnfrId : ID of VNFR
-     */
-    @RequestMapping(value = "number/history", method = RequestMethod.GET)
-    @ResponseStatus(HttpStatus.OK)
-    public Queue queryNumberHistory(@PathVariable("vnfrId") String vnfrId) throws NotFoundException {
-        return historyManagement.getNumberHistory(vnfrId);
-    }
-
-    /**
-     * Returns the history of load over all MediaServers of a specific VNFR
-     *
-     * @param vnfrId : ID of VNFR
-     */
-    @RequestMapping(value = "load/history", method = RequestMethod.GET)
-    @ResponseStatus(HttpStatus.OK)
-    public Queue queryLoadHistory(@PathVariable("vnfrId") String vnfrId) throws NotFoundException {
-        return historyManagement.getLoadHistory(vnfrId);
-    }
+  /**
+   * Returns the history of load over all MediaServers of a specific VNFR
+   *
+   * @param vnfrId : ID of VNFR
+   */
+  @RequestMapping(value = "load/history", method = RequestMethod.GET)
+  @ResponseStatus(HttpStatus.OK)
+  public Queue queryLoadHistory(@PathVariable("vnfrId") String vnfrId) throws NotFoundException {
+    return historyManagement.getLoadHistory(vnfrId);
+  }
 }

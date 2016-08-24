@@ -27,66 +27,73 @@ import javax.persistence.Version;
 import java.io.Serializable;
 
 @Entity
-public class ManagedVNFR implements Serializable{
-    /**
-     * ID of the VnfrNfvoToVnfm
-     */
-    @Id
-    private String id = IdGenerator.createUUID();
-    @Version
-    private int hb_version = 0;
+public class ManagedVNFR implements Serializable {
+  /**
+   * ID of the VnfrNfvoToVnfm
+   */
+  @Id private String id = IdGenerator.createUUID();
+  @Version private int hb_version = 0;
 
-    private String vnfrId;
+  private String vnfrId;
 
-    private String nsrId;
+  private String nsrId;
 
-    private Action task;
+  private Action task;
 
-    @PrePersist
-    public void ensureId(){
-        id = IdGenerator.createUUID();
-    }
+  @PrePersist
+  public void ensureId() {
+    id = IdGenerator.createUUID();
+  }
 
-    public String getId() {
-        return id;
-    }
+  public String getId() {
+    return id;
+  }
 
-    public void setId(String id) {
-        this.id = id;
-    }
+  public void setId(String id) {
+    this.id = id;
+  }
 
-    public String getVnfrId() {
-        return vnfrId;
-    }
+  public String getVnfrId() {
+    return vnfrId;
+  }
 
-    public void setVnfrId(String vnfrId) {
-        this.vnfrId = vnfrId;
-    }
+  public void setVnfrId(String vnfrId) {
+    this.vnfrId = vnfrId;
+  }
 
-    public String getNsrId() {
-        return nsrId;
-    }
+  public String getNsrId() {
+    return nsrId;
+  }
 
-    public void setNsrId(String nsrId) {
-        this.nsrId = nsrId;
-    }
+  public void setNsrId(String nsrId) {
+    this.nsrId = nsrId;
+  }
 
-    public Action getTask() {
-        return task;
-    }
+  public Action getTask() {
+    return task;
+  }
 
-    public void setTask(Action task) {
-        this.task = task;
-    }
+  public void setTask(Action task) {
+    this.task = task;
+  }
 
-    @Override
-    public String toString() {
-        return "ManagedVNFR{" +
-                "id='" + id + '\'' +
-                ", hb_version=" + hb_version +
-                ", vnfrId='" + vnfrId + '\'' +
-                ", nsrId='" + nsrId + '\'' +
-                ", task='" + task + '\'' +
-                '}';
-    }
+  @Override
+  public String toString() {
+    return "ManagedVNFR{"
+        + "id='"
+        + id
+        + '\''
+        + ", hb_version="
+        + hb_version
+        + ", vnfrId='"
+        + vnfrId
+        + '\''
+        + ", nsrId='"
+        + nsrId
+        + '\''
+        + ", task='"
+        + task
+        + '\''
+        + '}';
+  }
 }

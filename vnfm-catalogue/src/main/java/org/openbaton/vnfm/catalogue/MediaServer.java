@@ -27,118 +27,130 @@ import java.io.Serializable;
  */
 @Entity
 public class MediaServer implements Serializable {
-    /**
-     * ID of the Application
-     */
-    @Id
-    private String id;
-    @Version
-    private int hb_version = 0;
+  /**
+   * ID of the Application
+   */
+  @Id private String id;
+  @Version private int hb_version = 0;
 
-    private String vnfrId;
+  private String vnfrId;
 
-    private String vnfcInstanceId;
+  private String vnfcInstanceId;
 
-    private String hostName;
+  private String hostName;
 
-    private String ip;
+  private String ip;
 
-    private int usedPoints;
+  private int usedPoints;
 
-    private int maxCapacity;
+  private int maxCapacity;
 
-    @Enumerated(EnumType.STRING)
-    private Status status;
+  @Enumerated(EnumType.STRING)
+  private Status status;
 
-    @PrePersist
-    public void ensureId(){
-        id = IdGenerator.createUUID();
-    }
+  @PrePersist
+  public void ensureId() {
+    id = IdGenerator.createUUID();
+  }
 
-    public String getId() {
-        return id;
-    }
+  public String getId() {
+    return id;
+  }
 
-    public void setId(String id) {
-        this.id = id;
-    }
+  public void setId(String id) {
+    this.id = id;
+  }
 
-    public int getHb_version() {
-        return hb_version;
-    }
+  public int getHb_version() {
+    return hb_version;
+  }
 
-    public void setHb_version(int hb_version) {
-        this.hb_version = hb_version;
-    }
+  public void setHb_version(int hb_version) {
+    this.hb_version = hb_version;
+  }
 
-    public String getVnfrId() {
-        return vnfrId;
-    }
+  public String getVnfrId() {
+    return vnfrId;
+  }
 
-    public void setVnfrId(String vnfrId) {
-        this.vnfrId = vnfrId;
-    }
+  public void setVnfrId(String vnfrId) {
+    this.vnfrId = vnfrId;
+  }
 
-    public String getIp() {
-        return ip;
-    }
+  public String getIp() {
+    return ip;
+  }
 
-    public void setIp(String ip) {
-        this.ip = ip;
-    }
+  public void setIp(String ip) {
+    this.ip = ip;
+  }
 
-    public int getUsedPoints() {
-        return usedPoints;
-    }
+  public int getUsedPoints() {
+    return usedPoints;
+  }
 
-    public void setUsedPoints(int usedPoints) {
-        this.usedPoints = usedPoints;
-    }
+  public void setUsedPoints(int usedPoints) {
+    this.usedPoints = usedPoints;
+  }
 
-    public Status getStatus() {
-        return status;
-    }
+  public Status getStatus() {
+    return status;
+  }
 
-    public void setStatus(Status status) {
-        this.status = status;
-    }
+  public void setStatus(Status status) {
+    this.status = status;
+  }
 
-    public String getVnfcInstanceId() {
-        return vnfcInstanceId;
-    }
+  public String getVnfcInstanceId() {
+    return vnfcInstanceId;
+  }
 
-    public void setVnfcInstanceId(String vnfcInstanceId) {
-        this.vnfcInstanceId = vnfcInstanceId;
-    }
+  public void setVnfcInstanceId(String vnfcInstanceId) {
+    this.vnfcInstanceId = vnfcInstanceId;
+  }
 
-    public String getHostName() {
-        return hostName;
-    }
+  public String getHostName() {
+    return hostName;
+  }
 
-    public void setHostName(String hostName) {
-        this.hostName = hostName;
-    }
+  public void setHostName(String hostName) {
+    this.hostName = hostName;
+  }
 
-    public int getMaxCapacity() {
-        return maxCapacity;
-    }
+  public int getMaxCapacity() {
+    return maxCapacity;
+  }
 
-    public void setMaxCapacity(int maxCapacity) {
-        this.maxCapacity = maxCapacity;
-    }
+  public void setMaxCapacity(int maxCapacity) {
+    this.maxCapacity = maxCapacity;
+  }
 
-    @Override
-    public String toString() {
-        return "MediaServer{" +
-                "id='" + id + '\'' +
-                ", hb_version=" + hb_version +
-                ", vnfrId='" + vnfrId + '\'' +
-                ", vnfcInstanceId='" + vnfcInstanceId + '\'' +
-                ", hostName='" + hostName + '\'' +
-                ", ip='" + ip + '\'' +
-                ", usedPoints=" + usedPoints +
-                ", maxCapacity=" + maxCapacity +
-                ", status=" + status +
-                '}';
-    }
+  @Override
+  public String toString() {
+    return "MediaServer{"
+        + "id='"
+        + id
+        + '\''
+        + ", hb_version="
+        + hb_version
+        + ", vnfrId='"
+        + vnfrId
+        + '\''
+        + ", vnfcInstanceId='"
+        + vnfcInstanceId
+        + '\''
+        + ", hostName='"
+        + hostName
+        + '\''
+        + ", ip='"
+        + ip
+        + '\''
+        + ", usedPoints="
+        + usedPoints
+        + ", maxCapacity="
+        + maxCapacity
+        + ", status="
+        + status
+        + '}';
+  }
 }

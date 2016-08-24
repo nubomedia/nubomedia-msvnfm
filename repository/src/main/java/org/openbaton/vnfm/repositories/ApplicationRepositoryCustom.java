@@ -25,12 +25,11 @@ import org.openbaton.vnfm.catalogue.Application;
  */
 public interface ApplicationRepositoryCustom {
 
-    public Iterable findAppByVnfrId(String vnfrId);
+  public Iterable findAppByVnfrId(String vnfrId);
 
-    public Iterable<Application> findAppByMediaServerId(String msId);
+  public Iterable<Application> findAppByMediaServerId(String msId);
 
-    public Application findAppByExtAppId(String extAppId);
+  public Application findAppByExtAppId(String extAppId);
 
-    public void deleteAppsByVnfrId(String vnfrId) throws NotFoundException;
-
+  public void deleteAppsByVnfrId(String vnfrId) throws NotFoundException;
 }

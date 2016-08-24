@@ -29,51 +29,50 @@ import java.util.Set;
  */
 public class MediaServerRepositoryImpl implements MediaServerRepositoryCustom {
 
-    @Autowired
-    private MediaServerRepository mediaServerRepository;
+  @Autowired private MediaServerRepository mediaServerRepository;
 
-    @Override
-    public Iterable findAllByVnrfId(String vnfrId) {
-        Set<MediaServer> entities = new HashSet<MediaServer>();
-        Iterable<MediaServer> allEntitites = mediaServerRepository.findAll();
-        for (MediaServer mediaServer : allEntitites) {
-            if(mediaServer.getVnfrId().equals(vnfrId)) {
-                entities.add(mediaServer);
-            }
-        }
-        return (Iterable) entities;
+  @Override
+  public Iterable findAllByVnrfId(String vnfrId) {
+    Set<MediaServer> entities = new HashSet<MediaServer>();
+    Iterable<MediaServer> allEntitites = mediaServerRepository.findAll();
+    for (MediaServer mediaServer : allEntitites) {
+      if (mediaServer.getVnfrId().equals(vnfrId)) {
+        entities.add(mediaServer);
+      }
     }
+    return (Iterable) entities;
+  }
 
-    @Override
-    public void deleteByVnfrId(String vnfrId) throws NotFoundException {
-        Iterable<MediaServer> entities = findAllByVnrfId(vnfrId);
-        if (!entities.iterator().hasNext()) {
-            throw new NotFoundException("Not found any MediaServer for VNFR with id: " + vnfrId + "managed by this VNFM");
-        } else {
-            mediaServerRepository.delete(entities);
-        }
+  @Override
+  public void deleteByVnfrId(String vnfrId) throws NotFoundException {
+    Iterable<MediaServer> entities = findAllByVnrfId(vnfrId);
+    if (!entities.iterator().hasNext()) {
+      throw new NotFoundException(
+          "Not found any MediaServer for VNFR with id: " + vnfrId + "managed by this VNFM");
+    } else {
+      mediaServerRepository.delete(entities);
     }
+  }
 
-    @Override
-    public MediaServer findByHostName(String hostName) {
-        Iterable<MediaServer> allEntitites = mediaServerRepository.findAll();
-        for (MediaServer mediaServer : allEntitites) {
-            if(mediaServer.getHostName().equals(hostName)) {
-                return mediaServer;
-            }
-        }
-        return null;
+  @Override
+  public MediaServer findByHostName(String hostName) {
+    Iterable<MediaServer> allEntitites = mediaServerRepository.findAll();
+    for (MediaServer mediaServer : allEntitites) {
+      if (mediaServer.getHostName().equals(hostName)) {
+        return mediaServer;
+      }
     }
+    return null;
+  }
 
-    @Override
-    public MediaServer findByHostName(String vnfrId, String hostName) {
-        Iterable<MediaServer> allEntitites = mediaServerRepository.findAll();
-        for (MediaServer mediaServer : allEntitites) {
-            if(mediaServer.getHostName().equals(hostName) && mediaServer.getVnfrId().equals(vnfrId)) {
-                return mediaServer;
-            }
-        }
-        return null;
+  @Override
+  public MediaServer findByHostName(String vnfrId, String hostName) {
+    Iterable<MediaServer> allEntitites = mediaServerRepository.findAll();
+    for (MediaServer mediaServer : allEntitites) {
+      if (mediaServer.getHostName().equals(hostName) && mediaServer.getVnfrId().equals(vnfrId)) {
+        return mediaServer;
+      }
     }
-
+    return null;
+  }
 }

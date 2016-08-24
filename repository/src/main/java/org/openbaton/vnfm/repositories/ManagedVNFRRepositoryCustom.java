@@ -25,7 +25,7 @@ import org.openbaton.vnfm.catalogue.ManagedVNFR;
  */
 public interface ManagedVNFRRepositoryCustom {
 
-    public Iterable<ManagedVNFR> findByVnfrId(String vnfrId);
+  public Iterable<ManagedVNFR> findByVnfrId(String vnfrId);
 
-    public void deleteByVnfrId(String vnfrId) throws NotFoundException;
+  public void deleteByVnfrId(String vnfrId) throws NotFoundException;
 }

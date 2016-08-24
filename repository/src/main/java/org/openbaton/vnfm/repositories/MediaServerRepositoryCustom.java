@@ -17,7 +17,6 @@
 
 package org.openbaton.vnfm.repositories;
 
-
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.vnfm.catalogue.MediaServer;
 
@@ -26,12 +25,11 @@ import org.openbaton.vnfm.catalogue.MediaServer;
  */
 public interface MediaServerRepositoryCustom {
 
-    public Iterable<MediaServer> findAllByVnrfId(String id);
+  public Iterable<MediaServer> findAllByVnrfId(String id);
 
-    public void deleteByVnfrId(String vnfrId) throws NotFoundException;
+  public void deleteByVnfrId(String vnfrId) throws NotFoundException;
 
-    public MediaServer findByHostName(String hostName);
+  public MediaServer findByHostName(String hostName);
 
-    public MediaServer findByHostName(String vnfrId, String hostName);
-
+  public MediaServer findByHostName(String vnfrId, String hostName);
 }

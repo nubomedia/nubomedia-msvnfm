@@ -38,75 +38,89 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/event")
 public class RestEventInterface {
 
-	private Logger log = LoggerFactory.getLogger(this.getClass());
+  private Logger log = LoggerFactory.getLogger(this.getClass());
 
-    @Autowired
-    private ElasticityManagement elasticityManagement;
+  @Autowired private ElasticityManagement elasticityManagement;
 
-    /**
-     * Activates autoscaling for the passed NSR
-     *
-     * @param msg : NSR in payload to add for autoscaling
-     */
-    @RequestMapping(value = "INSTANTIATE_FINISH", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    @ResponseStatus(HttpStatus.CREATED)
-    public void activate(@RequestBody String msg) throws NotFoundException, VimException, SDKException {
-        log.debug("========================");
-        log.debug("msg=" + msg);
-        JsonParser jsonParser = new JsonParser();
-        JsonObject json = jsonParser.parse(msg).getAsJsonObject();
-        Gson mapper = new GsonBuilder().create();
-        Action action = mapper.fromJson(json.get("action"), Action.class);
-        log.debug("ACTION=" + action);
-        NetworkServiceRecord nsr = mapper.fromJson(json.get("payload"), NetworkServiceRecord.class);
-        log.debug("NSR=" + nsr);
-        elasticityManagement.activate(nsr.getId());
-    }
+  /**
+   * Activates autoscaling for the passed NSR
+   *
+   * @param msg : NSR in payload to add for autoscaling
+   */
+  @RequestMapping(
+    value = "INSTANTIATE_FINISH",
+    method = RequestMethod.POST,
+    consumes = MediaType.APPLICATION_JSON_VALUE,
+    produces = MediaType.APPLICATION_JSON_VALUE
+  )
+  @ResponseStatus(HttpStatus.CREATED)
+  public void activate(@RequestBody String msg)
+      throws NotFoundException, VimException, SDKException {
+    log.debug("========================");
+    log.debug("msg=" + msg);
+    JsonParser jsonParser = new JsonParser();
+    JsonObject json = jsonParser.parse(msg).getAsJsonObject();
+    Gson mapper = new GsonBuilder().create();
+    Action action = mapper.fromJson(json.get("action"), Action.class);
+    log.debug("ACTION=" + action);
+    NetworkServiceRecord nsr = mapper.fromJson(json.get("payload"), NetworkServiceRecord.class);
+    log.debug("NSR=" + nsr);
+    elasticityManagement.activate(nsr.getId());
+  }
 
-    /**
-     * Deactivates autoscaling for the passed NSR
-     *
-     * @param msg : NSR in payload to add for autoscaling
-     */
-    @RequestMapping(value = "RELEASE_RESOURCES_FINISH", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    @ResponseStatus(HttpStatus.CREATED)
-    public void deactivate(@RequestBody String msg) throws NotFoundException {
-        log.debug("========================");
-        log.debug("msg=" + msg);
-        JsonParser jsonParser = new JsonParser();
-        JsonObject json = jsonParser.parse(msg).getAsJsonObject();
-        Gson mapper = new GsonBuilder().create();
-        Action action = mapper.fromJson(json.get("action"), Action.class);
-        log.debug("ACTION=" + action);
-        NetworkServiceRecord nsr = mapper.fromJson(json.get("payload"), NetworkServiceRecord.class);
-        log.debug("NSR=" + nsr);
-        elasticityManagement.deactivate(nsr.getId());
-    }
+  /**
+   * Deactivates autoscaling for the passed NSR
+   *
+   * @param msg : NSR in payload to add for autoscaling
+   */
+  @RequestMapping(
+    value = "RELEASE_RESOURCES_FINISH",
+    method = RequestMethod.POST,
+    consumes = MediaType.APPLICATION_JSON_VALUE,
+    produces = MediaType.APPLICATION_JSON_VALUE
+  )
+  @ResponseStatus(HttpStatus.CREATED)
+  public void deactivate(@RequestBody String msg) throws NotFoundException {
+    log.debug("========================");
+    log.debug("msg=" + msg);
+    JsonParser jsonParser = new JsonParser();
+    JsonObject json = jsonParser.parse(msg).getAsJsonObject();
+    Gson mapper = new GsonBuilder().create();
+    Action action = mapper.fromJson(json.get("action"), Action.class);
+    log.debug("ACTION=" + action);
+    NetworkServiceRecord nsr = mapper.fromJson(json.get("payload"), NetworkServiceRecord.class);
+    log.debug("NSR=" + nsr);
+    elasticityManagement.deactivate(nsr.getId());
+  }
 
-    /**
-     * Stops autoscaling for the passed NSR
-     *
-     * @param msg : NSR in payload to add for autoscaling
-     */
-    @RequestMapping(value = "ERROR", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    @ResponseStatus(HttpStatus.CREATED)
-    public void stop(@RequestBody String msg) throws NotFoundException {
-        log.debug("========================");
-        log.debug("msg=" + msg);
-        JsonParser jsonParser = new JsonParser();
-        JsonObject json = jsonParser.parse(msg).getAsJsonObject();
-        Gson mapper = new GsonBuilder().create();
-        Action action = mapper.fromJson(json.get("action"), Action.class);
-        log.debug("ACTION=" + action);
-//        try {
-//            NetworkServiceRecord nsr = mapper.fromJson(json.get("payload"), NetworkServiceRecord.class);
-//            log.debug("NSR=" + nsr);
-//            elasticityManagement.deactivate(nsr);
-//        } catch (NullPointerException e) {
-//            VirtualNetworkFunctionRecord vnfr = mapper.fromJson(json.get("payload"), VirtualNetworkFunctionRecord.class);
-//            log.debug("vnfr=" + vnfr);
-//            elasticityManagement.deactivate(vnfr);
-//        }
-    }
-
+  /**
+   * Stops autoscaling for the passed NSR
+   *
+   * @param msg : NSR in payload to add for autoscaling
+   */
+  @RequestMapping(
+    value = "ERROR",
+    method = RequestMethod.POST,
+    consumes = MediaType.APPLICATION_JSON_VALUE,
+    produces = MediaType.APPLICATION_JSON_VALUE
+  )
+  @ResponseStatus(HttpStatus.CREATED)
+  public void stop(@RequestBody String msg) throws NotFoundException {
+    log.debug("========================");
+    log.debug("msg=" + msg);
+    JsonParser jsonParser = new JsonParser();
+    JsonObject json = jsonParser.parse(msg).getAsJsonObject();
+    Gson mapper = new GsonBuilder().create();
+    Action action = mapper.fromJson(json.get("action"), Action.class);
+    log.debug("ACTION=" + action);
+    //        try {
+    //            NetworkServiceRecord nsr = mapper.fromJson(json.get("payload"), NetworkServiceRecord.class);
+    //            log.debug("NSR=" + nsr);
+    //            elasticityManagement.deactivate(nsr);
+    //        } catch (NullPointerException e) {
+    //            VirtualNetworkFunctionRecord vnfr = mapper.fromJson(json.get("payload"), VirtualNetworkFunctionRecord.class);
+    //            log.debug("vnfr=" + vnfr);
+    //            elasticityManagement.deactivate(vnfr);
+    //        }
+  }
 }

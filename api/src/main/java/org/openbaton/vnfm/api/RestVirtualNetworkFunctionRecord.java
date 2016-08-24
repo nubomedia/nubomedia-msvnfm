@@ -32,32 +32,32 @@ import java.util.Set;
 @RequestMapping("/vnfr")
 public class RestVirtualNetworkFunctionRecord {
 
-    //	TODO add log prints
-//	private Logger log = LoggerFactory.getLogger(this.getClass());
+  //	TODO add log prints
+  //	private Logger log = LoggerFactory.getLogger(this.getClass());
 
+  @Autowired private VirtualNetworkFunctionRecordManagement vnfrManagement;
 
-    @Autowired
-    private VirtualNetworkFunctionRecordManagement vnfrManagement;
+  /**
+   * Returns the list of the VNF software virtualNetworkFunctionDescriptors available
+   *
+   * @return List<virtualNetworkFunctionDescriptor>: The list of VNF software
+   * virtualNetworkFunctionDescriptors available
+   */
+  @RequestMapping(method = RequestMethod.GET)
+  public Iterable<ManagedVNFR> queryAll() throws NotFoundException {
+    return vnfrManagement.query();
+  }
 
-    /**
-     * Returns the list of the VNF software virtualNetworkFunctionDescriptors available
-     *
-     * @return List<virtualNetworkFunctionDescriptor>: The list of VNF software virtualNetworkFunctionDescriptors available
-     */
-    @RequestMapping(method = RequestMethod.GET)
-    public Iterable<ManagedVNFR> queryAll() throws NotFoundException {
-        return vnfrManagement.query();
-    }
-
-    /**
-     * Returns the VNF software virtualNetworkFunctionRecord selected by id
-     *
-     * @param vnfrId : The id of the VNF software virtualNetworkFunctionRecord
-     * @return virtualNetworkFunctionRecord: The VNF software virtualNetworkFunctionRecord selected
-     */
-    @RequestMapping(value = "{vnfrId}", method = RequestMethod.GET)
-    public Set<ManagedVNFR> queryById(@PathVariable("vnfrId") String vnfrId) throws NotFoundException {
-        Set<ManagedVNFR> managedVNFRs = vnfrManagement.query(vnfrId);
-        return managedVNFRs;
-    }
+  /**
+   * Returns the VNF software virtualNetworkFunctionRecord selected by id
+   *
+   * @param vnfrId : The id of the VNF software virtualNetworkFunctionRecord
+   * @return virtualNetworkFunctionRecord: The VNF software virtualNetworkFunctionRecord selected
+   */
+  @RequestMapping(value = "{vnfrId}", method = RequestMethod.GET)
+  public Set<ManagedVNFR> queryById(@PathVariable("vnfrId") String vnfrId)
+      throws NotFoundException {
+    Set<ManagedVNFR> managedVNFRs = vnfrManagement.query(vnfrId);
+    return managedVNFRs;
+  }
 }

@@ -49,120 +49,151 @@ import java.util.concurrent.Future;
 @Scope("singleton")
 public class ExecutionManagement {
 
-    protected Logger log = LoggerFactory.getLogger(this.getClass());
+  protected Logger log = LoggerFactory.getLogger(this.getClass());
 
-    private ThreadPoolTaskScheduler taskScheduler;
+  private ThreadPoolTaskScheduler taskScheduler;
 
-    @Autowired
-    private ExecutionEngine executionEngine;
+  @Autowired private ExecutionEngine executionEngine;
 
-    @Autowired
-    private NFVORequestor nfvoRequestor;
+  @Autowired private NFVORequestor nfvoRequestor;
 
-    private ActionMonitor actionMonitor;
+  private ActionMonitor actionMonitor;
 
-    @Autowired
-    private NfvoProperties nfvoProperties;
+  @Autowired private NfvoProperties nfvoProperties;
 
-    @PostConstruct
-    public void init() throws SDKException {
-        this.actionMonitor = new ActionMonitor();
-        this.executionEngine.setActionMonitor(actionMonitor);
-        this.taskScheduler = new ThreadPoolTaskScheduler();
-        this.taskScheduler.setPoolSize(10);
-        this.taskScheduler.setWaitForTasksToCompleteOnShutdown(true);
-        this.taskScheduler.setRemoveOnCancelPolicy(true);
-        this.taskScheduler.setErrorHandler(new ErrorHandler() {
-            protected Logger log = LoggerFactory.getLogger(this.getClass());
+  @PostConstruct
+  public void init() throws SDKException {
+    this.actionMonitor = new ActionMonitor();
+    this.executionEngine.setActionMonitor(actionMonitor);
+    this.taskScheduler = new ThreadPoolTaskScheduler();
+    this.taskScheduler.setPoolSize(10);
+    this.taskScheduler.setWaitForTasksToCompleteOnShutdown(true);
+    this.taskScheduler.setRemoveOnCancelPolicy(true);
+    this.taskScheduler.setErrorHandler(
+        new ErrorHandler() {
+          protected Logger log = LoggerFactory.getLogger(this.getClass());
 
-            @Override
-            public void handleError(Throwable t) {
-                log.error(t.getMessage(), t);
-            }
+          @Override
+          public void handleError(Throwable t) {
+            log.error(t.getMessage(), t);
+          }
         });
-        this.taskScheduler.initialize();
-    }
+    this.taskScheduler.initialize();
+  }
 
-    public void executeActions(String nsr_id, String vnfr_id, Set<ScalingAction> actions, long cooldown) {
-        log.info("[EXECUTOR] RECEIVED_ACTION " + new Date().getTime());
-        log.info("Processing execution request of ScalingActions: " + actions + " for VNFR with id: " + vnfr_id);
-        if (actionMonitor.requestAction(vnfr_id, Action.SCALE)) {
-            log.debug("Creating new ExecutionTask of ScalingActions: " + actions + " for VNFR with id: " + vnfr_id);
-            ExecutionTask executionTask = new ExecutionTask(nsr_id, vnfr_id, actions, cooldown, executionEngine, actionMonitor);
-            taskScheduler.execute(executionTask);
-        } else {
-            if (actionMonitor.getAction(vnfr_id) == Action.SCALE) {
-                log.debug("Processing already an execution request for VNFR with id: " + vnfr_id + ". Cannot create another ExecutionTask for VNFR with id: " + vnfr_id);
-            } else if (actionMonitor.getAction(vnfr_id) == Action.COOLDOWN) {
-                log.debug("Waiting for Cooldown for VNFR with id: " + vnfr_id + ". Cannot create another ExecutionTask for VNFR with id: " + vnfr_id);
-            } else {
-                log.warn("Problem while starting ExecutionThread. Internal Status is: " + actionMonitor.getAction(vnfr_id));
-            }
-        }
+  public void executeActions(
+      String nsr_id, String vnfr_id, Set<ScalingAction> actions, long cooldown) {
+    log.info("[EXECUTOR] RECEIVED_ACTION " + new Date().getTime());
+    log.info(
+        "Processing execution request of ScalingActions: "
+            + actions
+            + " for VNFR with id: "
+            + vnfr_id);
+    if (actionMonitor.requestAction(vnfr_id, Action.SCALE)) {
+      log.debug(
+          "Creating new ExecutionTask of ScalingActions: "
+              + actions
+              + " for VNFR with id: "
+              + vnfr_id);
+      ExecutionTask executionTask =
+          new ExecutionTask(nsr_id, vnfr_id, actions, cooldown, executionEngine, actionMonitor);
+      taskScheduler.execute(executionTask);
+    } else {
+      if (actionMonitor.getAction(vnfr_id) == Action.SCALE) {
+        log.debug(
+            "Processing already an execution request for VNFR with id: "
+                + vnfr_id
+                + ". Cannot create another ExecutionTask for VNFR with id: "
+                + vnfr_id);
+      } else if (actionMonitor.getAction(vnfr_id) == Action.COOLDOWN) {
+        log.debug(
+            "Waiting for Cooldown for VNFR with id: "
+                + vnfr_id
+                + ". Cannot create another ExecutionTask for VNFR with id: "
+                + vnfr_id);
+      } else {
+        log.warn(
+            "Problem while starting ExecutionThread. Internal Status is: "
+                + actionMonitor.getAction(vnfr_id));
+      }
     }
+  }
 
-    public void executeCooldown(String nsr_id, String vnfr_id, long cooldown) {
-        log.info("[EXECUTOR] START_COOLDOWN " + new Date().getTime());
-        if (actionMonitor.isTerminating(vnfr_id)) {
-            actionMonitor.finishedAction(vnfr_id, Action.TERMINATED);
-            return;
-        }
-        log.info("Starting CooldownTask for VNFR with id: " + vnfr_id);
-        if (actionMonitor.requestAction(vnfr_id, Action.COOLDOWN)) {
-            log.debug("Creating new CooldownTask for VNFR with id: " + vnfr_id);
-            CooldownTask cooldownTask = new CooldownTask(nsr_id, vnfr_id, cooldown, executionEngine, actionMonitor);
-            taskScheduler.execute(cooldownTask);
-        } else {
-            if (actionMonitor.getAction(vnfr_id) == Action.COOLDOWN) {
-                log.debug("Waiting already for Cooldown for VNFR with id: " + vnfr_id + ". Cannot create another ExecutionTask for VNFR with id: " + vnfr_id);
-            } else if (actionMonitor.getAction(vnfr_id) == Action.SCALE) {
-                log.debug("VNFR with id: " + vnfr_id + " is still in Scaling.");
-            } else {
-                log.debug(actionMonitor.toString());
-            }
-        }
+  public void executeCooldown(String nsr_id, String vnfr_id, long cooldown) {
+    log.info("[EXECUTOR] START_COOLDOWN " + new Date().getTime());
+    if (actionMonitor.isTerminating(vnfr_id)) {
+      actionMonitor.finishedAction(vnfr_id, Action.TERMINATED);
+      return;
     }
-
-    public void stop(String nsr_id) {
-        log.debug("Stopping ExecutionTask for all VNFRs of NSR with id: " + nsr_id);
-        NetworkServiceRecord nsr = null;
-        try {
-            nsr = nfvoRequestor.getNetworkServiceRecordAgent().findById(nsr_id);
-        } catch (SDKException e) {
-            log.error(e.getMessage(), e);
-        } catch (ClassNotFoundException e) {
-            log.error(e.getMessage(), e);
-        }
-        if (nsr != null && nsr.getVnfr() != null) {
-            for (VirtualNetworkFunctionRecord vnfr : nsr.getVnfr()) {
-                stop(nsr_id, vnfr.getId());
-            }
-        }
-        log.info("Stopped all ExecutionTasks for NSR with id: " + nsr_id);
+    log.info("Starting CooldownTask for VNFR with id: " + vnfr_id);
+    if (actionMonitor.requestAction(vnfr_id, Action.COOLDOWN)) {
+      log.debug("Creating new CooldownTask for VNFR with id: " + vnfr_id);
+      CooldownTask cooldownTask =
+          new CooldownTask(nsr_id, vnfr_id, cooldown, executionEngine, actionMonitor);
+      taskScheduler.execute(cooldownTask);
+    } else {
+      if (actionMonitor.getAction(vnfr_id) == Action.COOLDOWN) {
+        log.debug(
+            "Waiting already for Cooldown for VNFR with id: "
+                + vnfr_id
+                + ". Cannot create another ExecutionTask for VNFR with id: "
+                + vnfr_id);
+      } else if (actionMonitor.getAction(vnfr_id) == Action.SCALE) {
+        log.debug("VNFR with id: " + vnfr_id + " is still in Scaling.");
+      } else {
+        log.debug(actionMonitor.toString());
+      }
     }
+  }
 
-    @Async
-    public Future<Boolean> stop(String nsr_id, String vnfr_id) {
-        log.debug("Stopping ExecutionTask/CooldownTask for VNFR with id: " + vnfr_id);
-        int i = 60;
-        while (!actionMonitor.isTerminated(vnfr_id) && actionMonitor.getAction(vnfr_id) != Action.INACTIVE && i>=0) {
-            actionMonitor.terminate(vnfr_id);
-            log.debug("Waiting for finishing ExecutionTask/Cooldown for VNFR with id: " + vnfr_id + " (" + i + "s)");
-            log.debug(actionMonitor.toString());
-            try {
-                Thread.sleep(1_000);
-            } catch (InterruptedException e) {
-                log.error(e.getMessage(), e);
-            }
-            i--;
-            if (i <= 0) {
-                actionMonitor.removeId(vnfr_id);
-                log.error("Were not able to wait until ExecutionTask finished for VNFR with id: " + vnfr_id);
-                return new AsyncResult<>(false);
-            }
-        }
+  public void stop(String nsr_id) {
+    log.debug("Stopping ExecutionTask for all VNFRs of NSR with id: " + nsr_id);
+    NetworkServiceRecord nsr = null;
+    try {
+      nsr = nfvoRequestor.getNetworkServiceRecordAgent().findById(nsr_id);
+    } catch (SDKException e) {
+      log.error(e.getMessage(), e);
+    } catch (ClassNotFoundException e) {
+      log.error(e.getMessage(), e);
+    }
+    if (nsr != null && nsr.getVnfr() != null) {
+      for (VirtualNetworkFunctionRecord vnfr : nsr.getVnfr()) {
+        stop(nsr_id, vnfr.getId());
+      }
+    }
+    log.info("Stopped all ExecutionTasks for NSR with id: " + nsr_id);
+  }
+
+  @Async
+  public Future<Boolean> stop(String nsr_id, String vnfr_id) {
+    log.debug("Stopping ExecutionTask/CooldownTask for VNFR with id: " + vnfr_id);
+    int i = 60;
+    while (!actionMonitor.isTerminated(vnfr_id)
+        && actionMonitor.getAction(vnfr_id) != Action.INACTIVE
+        && i >= 0) {
+      actionMonitor.terminate(vnfr_id);
+      log.debug(
+          "Waiting for finishing ExecutionTask/Cooldown for VNFR with id: "
+              + vnfr_id
+              + " ("
+              + i
+              + "s)");
+      log.debug(actionMonitor.toString());
+      try {
+        Thread.sleep(1_000);
+      } catch (InterruptedException e) {
+        log.error(e.getMessage(), e);
+      }
+      i--;
+      if (i <= 0) {
         actionMonitor.removeId(vnfr_id);
-        log.info("Stopped ExecutionTask for VNFR with id: " + vnfr_id);
-        return new AsyncResult<>(true);
+        log.error(
+            "Were not able to wait until ExecutionTask finished for VNFR with id: " + vnfr_id);
+        return new AsyncResult<>(false);
+      }
     }
+    actionMonitor.removeId(vnfr_id);
+    log.info("Stopped ExecutionTask for VNFR with id: " + vnfr_id);
+    return new AsyncResult<>(true);
+  }
 }

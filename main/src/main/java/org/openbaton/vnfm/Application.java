@@ -28,9 +28,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class Application {
 
-    protected static Logger log = LoggerFactory.getLogger(Application.class);
+  protected static Logger log = LoggerFactory.getLogger(Application.class);
 
-    public static void main(String[] args) {
-        SpringApplication.run(MediaServerManager.class, args);
-    }
+  public static void main(String[] args) {
+    SpringApplication.run(MediaServerManager.class, args);
+  }
 }

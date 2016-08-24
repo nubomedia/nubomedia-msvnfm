@@ -1,7 +1,7 @@
 plugins {
     id 'net.researchgate.release' version '2.1.2'
     id "nebula.os-package" version "2.2.6"
-    //id 'com.github.sherter.google-java-format' version '0.3.2'
+    id 'com.github.sherter.google-java-format' version '0.3.2'
 }
 
 apply from: 'gradle/gradle/git.release.gradle'

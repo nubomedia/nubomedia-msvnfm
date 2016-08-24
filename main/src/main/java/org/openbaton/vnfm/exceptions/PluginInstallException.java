@@ -22,18 +22,17 @@ package org.openbaton.vnfm.exceptions;
  */
 public class PluginInstallException extends Exception {
 
-    public PluginInstallException() {
-    }
+  public PluginInstallException() {}
 
-    public PluginInstallException(String message) {
-        super(message);
-    }
+  public PluginInstallException(String message) {
+    super(message);
+  }
 
-    public PluginInstallException(String message, Throwable cause) {
-        super(message, cause);
-    }
+  public PluginInstallException(String message, Throwable cause) {
+    super(message, cause);
+  }
 
-    public PluginInstallException(Throwable e) {
-        super(e);
-    }
+  public PluginInstallException(Throwable e) {
+    super(e);
+  }
 }

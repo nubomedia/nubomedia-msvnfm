@@ -42,55 +42,58 @@ import java.util.Set;
 @Scope("singleton")
 public class DecisionEngine {
 
-    protected Logger log = LoggerFactory.getLogger(this.getClass());
+  protected Logger log = LoggerFactory.getLogger(this.getClass());
 
-    @Autowired
-    private ConfigurableApplicationContext context;
+  @Autowired private ConfigurableApplicationContext context;
 
-    //@Autowired
-    private ExecutionManagement executionManagement;
+  //@Autowired
+  private ExecutionManagement executionManagement;
 
-    @Autowired
-    private NFVORequestor nfvoRequestor;
+  @Autowired private NFVORequestor nfvoRequestor;
 
-    @Autowired
-    private NfvoProperties nfvoProperties;
+  @Autowired private NfvoProperties nfvoProperties;
 
-    @PostConstruct
-    public void init() throws SDKException {
-        this.executionManagement = context.getBean(ExecutionManagement.class);
+  @PostConstruct
+  public void init() throws SDKException {
+    this.executionManagement = context.getBean(ExecutionManagement.class);
+  }
+
+  public void sendDecision(
+      String nsr_id, String vnfr_id, Set<ScalingAction> actions, long cooldown) {
+    log.debug("Sending decision to Executor " + new Date().getTime());
+    log.info("[DECISION_MAKER] DECIDED_ABOUT_ACTIONS " + new Date().getTime());
+    executionManagement.executeActions(nsr_id, vnfr_id, actions, cooldown);
+    log.info("Sent decision to Executor " + new Date().getTime());
+  }
+
+  public Status getStatus(String nsr_id, String vnfr_id) {
+    log.debug("Check Status of VNFR with id: " + vnfr_id);
+    VirtualNetworkFunctionRecord vnfr = null;
+    try {
+      vnfr =
+          nfvoRequestor
+              .getNetworkServiceRecordAgent()
+              .getVirtualNetworkFunctionRecord(nsr_id, vnfr_id);
+    } catch (SDKException e) {
+      log.warn(e.getMessage(), e);
+      return Status.NULL;
     }
-
-    public void sendDecision(String nsr_id, String vnfr_id, Set<ScalingAction> actions, long cooldown) {
-        log.debug("Sending decision to Executor " + new Date().getTime());
-        log.info("[DECISION_MAKER] DECIDED_ABOUT_ACTIONS " + new Date().getTime());
-        executionManagement.executeActions(nsr_id, vnfr_id, actions, cooldown);
-        log.info("Sent decision to Executor " + new Date().getTime());
+    if (vnfr == null || vnfr.getStatus() == null) {
+      return Status.NULL;
     }
+    return vnfr.getStatus();
+  }
 
-    public Status getStatus(String nsr_id, String vnfr_id) {
-        log.debug("Check Status of VNFR with id: " + vnfr_id);
-        VirtualNetworkFunctionRecord vnfr = null;
-        try {
-            vnfr = nfvoRequestor.getNetworkServiceRecordAgent().getVirtualNetworkFunctionRecord(nsr_id, vnfr_id);
-        } catch (SDKException e) {
-            log.warn(e.getMessage(), e);
-            return Status.NULL;
-        }
-        if (vnfr == null || vnfr.getStatus() == null) {
-            return Status.NULL;
-        }
-        return vnfr.getStatus();
+  public VirtualNetworkFunctionRecord getVNFR(String nsr_id, String vnfr_id) throws SDKException {
+    try {
+      VirtualNetworkFunctionRecord vnfr =
+          nfvoRequestor
+              .getNetworkServiceRecordAgent()
+              .getVirtualNetworkFunctionRecord(nsr_id, vnfr_id);
+      return vnfr;
+    } catch (SDKException e) {
+      log.error(e.getMessage(), e);
+      throw e;
     }
-
-    public VirtualNetworkFunctionRecord getVNFR(String nsr_id, String vnfr_id) throws SDKException {
-        try {
-            VirtualNetworkFunctionRecord vnfr = nfvoRequestor.getNetworkServiceRecordAgent().getVirtualNetworkFunctionRecord(nsr_id, vnfr_id);
-            return vnfr;
-        } catch (SDKException e) {
-            log.error(e.getMessage(), e);
-            throw e;
-        }
-    }
-
+  }
 }

@@ -57,165 +57,160 @@ import java.util.concurrent.TimeoutException;
  */
 @Service
 @Scope("singleton")
-@ContextConfiguration(loader = AnnotationConfigContextLoader.class, classes = {ASBeanConfiguration.class})
+@ContextConfiguration(
+  loader = AnnotationConfigContextLoader.class,
+  classes = {ASBeanConfiguration.class}
+)
 public class ElasticityManagement {
 
-    protected Logger log = LoggerFactory.getLogger(this.getClass());
+  protected Logger log = LoggerFactory.getLogger(this.getClass());
 
-    @Autowired
-    private DetectionManagement detectionManagment;
+  @Autowired private DetectionManagement detectionManagment;
 
-    @Autowired
-    private DecisionManagement decisionManagement;
+  @Autowired private DecisionManagement decisionManagement;
 
-    @Autowired
-    private ExecutionManagement executionManagement;
+  @Autowired private ExecutionManagement executionManagement;
 
-    @Autowired
-    private PoolManagement poolManagement;
+  @Autowired private PoolManagement poolManagement;
 
-    @Autowired
-    private NFVORequestor nfvoRequestor;
+  @Autowired private NFVORequestor nfvoRequestor;
 
-    private List<String> subscriptionIds;
+  private List<String> subscriptionIds;
 
-    @Autowired
-    private NfvoProperties nfvoProperties;
+  @Autowired private NfvoProperties nfvoProperties;
 
-    @Autowired
-    private AutoScalingProperties autoScalingProperties;
+  @Autowired private AutoScalingProperties autoScalingProperties;
 
-    @PostConstruct
-    public void init() throws SDKException {
-        subscriptionIds = new ArrayList<>();
+  @PostConstruct
+  public void init() throws SDKException {
+    subscriptionIds = new ArrayList<>();
+  }
+
+  @PreDestroy
+  private void exit() throws SDKException {}
+
+  public void activate(String nsr_id) throws NotFoundException, VimException, SDKException {
+    log.debug("Activating Elasticity for NSR with id: " + nsr_id);
+    if (autoScalingProperties.getPool().isActivate()) {
+      log.debug("Activating pool mechanism");
+      poolManagement.activate(nsr_id);
+    } else {
+      log.debug("pool mechanism is disabled");
     }
+    detectionManagment.start(nsr_id);
+    log.info("Activated Elasticity for NSR with id: " + nsr_id);
+  }
 
-    @PreDestroy
-    private void exit() throws SDKException {
+  public void activate(String nsr_id, String vnfr_id)
+      throws NotFoundException, VimException, SDKException {
+    log.debug("Activating Elasticity for NSR with id: " + nsr_id);
+    if (autoScalingProperties.getPool().isActivate()) {
+      log.debug("Activating pool mechanism");
+      poolManagement.activate(nsr_id, vnfr_id);
+    } else {
+      log.debug("pool mechanism is disabled");
     }
+    detectionManagment.start(nsr_id, vnfr_id);
+    log.info("Activated Elasticity for NSR with id: " + nsr_id);
+  }
 
-    public void activate(String nsr_id) throws NotFoundException, VimException, SDKException {
-        log.debug("Activating Elasticity for NSR with id: " + nsr_id);
-        if (autoScalingProperties.getPool().isActivate()) {
-            log.debug("Activating pool mechanism");
-            poolManagement.activate(nsr_id);
-        } else {
-            log.debug("pool mechanism is disabled");
+  public void deactivate(String nsr_id) {
+    log.info("Deactivating Elasticity for NSR with id: " + nsr_id);
+    if (autoScalingProperties.getPool().isActivate()) {
+      try {
+        poolManagement.deactivate(nsr_id);
+      } catch (NotFoundException e) {
+        log.warn(e.getMessage());
+        if (log.isDebugEnabled()) {
+          log.error(e.getMessage(), e);
         }
-        detectionManagment.start(nsr_id);
-        log.info("Activated Elasticity for NSR with id: " + nsr_id);
-    }
-    
-    public void activate(String nsr_id, String vnfr_id) throws NotFoundException, VimException, SDKException {
-        log.debug("Activating Elasticity for NSR with id: " + nsr_id);
-        if (autoScalingProperties.getPool().isActivate()) {
-            log.debug("Activating pool mechanism");
-            poolManagement.activate(nsr_id, vnfr_id);
-        } else {
-            log.debug("pool mechanism is disabled");
+      } catch (VimException e) {
+        log.warn(e.getMessage());
+        if (log.isDebugEnabled()) {
+          log.error(e.getMessage(), e);
         }
-        detectionManagment.start(nsr_id, vnfr_id);
-        log.info("Activated Elasticity for NSR with id: " + nsr_id);
+      }
     }
+    try {
+      detectionManagment.stop(nsr_id);
+    } catch (NotFoundException e) {
+      log.warn(e.getMessage());
+      if (log.isDebugEnabled()) {
+        log.error(e.getMessage(), e);
+      }
+    }
+    decisionManagement.stop(nsr_id);
+    executionManagement.stop(nsr_id);
+    log.info("Deactivated Elasticity for NSR with id: " + nsr_id);
+  }
 
-    public void deactivate(String nsr_id) {
-        log.info("Deactivating Elasticity for NSR with id: " + nsr_id);
-        if (autoScalingProperties.getPool().isActivate()) {
-            try {
-                poolManagement.deactivate(nsr_id);
-            } catch (NotFoundException e) {
-                log.warn(e.getMessage());
-                if (log.isDebugEnabled()) {
-                    log.error(e.getMessage(), e);
-                }
-            } catch (VimException e) {
-                log.warn(e.getMessage());
-                if (log.isDebugEnabled()) {
-                    log.error(e.getMessage(), e);
-                }
-            }
+  @Async
+  public Future<Boolean> deactivate(String nsr_id, String vnfr_id) {
+    log.info("Deactivating Elasticity for NSR with id: " + nsr_id);
+    Set<Future<Boolean>> pendingTasks = new HashSet<>();
+    if (autoScalingProperties.getPool().isActivate()) {
+      try {
+        pendingTasks.add(poolManagement.deactivate(nsr_id, vnfr_id));
+      } catch (NotFoundException e) {
+        log.warn(e.getMessage());
+        if (log.isDebugEnabled()) {
+          log.error(e.getMessage(), e);
         }
-        try {
-            detectionManagment.stop(nsr_id);
-        } catch (NotFoundException e) {
-            log.warn(e.getMessage());
-            if (log.isDebugEnabled()) {
-                log.error(e.getMessage(), e);
-            }
+      } catch (VimException e) {
+        log.warn(e.getMessage());
+        if (log.isDebugEnabled()) {
+          log.error(e.getMessage(), e);
         }
-        decisionManagement.stop(nsr_id);
-        executionManagement.stop(nsr_id);
-        log.info("Deactivated Elasticity for NSR with id: " + nsr_id);
+      }
     }
-
-    @Async
-    public Future<Boolean> deactivate(String nsr_id, String vnfr_id) {
-        log.info("Deactivating Elasticity for NSR with id: " + nsr_id);
-        Set<Future<Boolean>> pendingTasks = new HashSet<>();
-        if (autoScalingProperties.getPool().isActivate()) {
-            try {
-                pendingTasks.add(poolManagement.deactivate(nsr_id, vnfr_id));
-            } catch (NotFoundException e) {
-                log.warn(e.getMessage());
-                if (log.isDebugEnabled()) {
-                    log.error(e.getMessage(), e);
-                }
-            } catch (VimException e) {
-                log.warn(e.getMessage());
-                if (log.isDebugEnabled()) {
-                    log.error(e.getMessage(), e);
-                }
-            }
-        }
-        try {
-            pendingTasks.add(detectionManagment.stop(nsr_id, vnfr_id));
-        } catch (NotFoundException e) {
-            log.error(e.getMessage(), e);
-        }
-        pendingTasks.add(decisionManagement.stop(nsr_id, vnfr_id));
-        pendingTasks.add(executionManagement.stop(nsr_id, vnfr_id));
-        for (Future<Boolean> pendingTask : pendingTasks) {
-            try {
-                pendingTask.get(60, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                if (log.isDebugEnabled()) {
-                    log.error(e.getMessage(), e);
-                }
-            } catch (ExecutionException e) {
-                if (log.isDebugEnabled()) {
-                    log.error(e.getMessage(), e);
-                }
-            } catch (TimeoutException e) {
-                if (log.isDebugEnabled()) {
-                    log.error(e.getMessage(), e);
-                }
-            }
-        }
-        log.info("Deactivated Elasticity for NSR with id: " + nsr_id);
-        return new AsyncResult<>(true);
+    try {
+      pendingTasks.add(detectionManagment.stop(nsr_id, vnfr_id));
+    } catch (NotFoundException e) {
+      log.error(e.getMessage(), e);
     }
-
-    private void subscribe(Action action) throws SDKException {
-        log.debug("Subscribing to all NSR Events with Action " + action);
-        EventEndpoint eventEndpoint = new EventEndpoint();
-        eventEndpoint.setName("Subscription:" + action);
-        eventEndpoint.setEndpoint("http://localhost:9999/event/" + action);
-        eventEndpoint.setEvent(action);
-        eventEndpoint.setType(EndpointType.REST);
-        this.subscriptionIds.add(nfvoRequestor.getEventAgent().create(eventEndpoint).getId());
-    }
-
-    private void unsubscribe() throws SDKException {
-        for (String subscriptionId : subscriptionIds) {
-            nfvoRequestor.getEventAgent().delete(subscriptionId);
+    pendingTasks.add(decisionManagement.stop(nsr_id, vnfr_id));
+    pendingTasks.add(executionManagement.stop(nsr_id, vnfr_id));
+    for (Future<Boolean> pendingTask : pendingTasks) {
+      try {
+        pendingTask.get(60, TimeUnit.SECONDS);
+      } catch (InterruptedException e) {
+        if (log.isDebugEnabled()) {
+          log.error(e.getMessage(), e);
         }
-    }
-
-    private void waitForNfvo() {
-        if (!Utils.isNfvoStarted(nfvoProperties.getIp(), nfvoProperties.getPort())) {
-            log.error("After 150 sec the Nfvo is not started yet. Is there an error?");
-            System.exit(1); // 1 stands for the error in running nfvo TODO define error codes (doing)
+      } catch (ExecutionException e) {
+        if (log.isDebugEnabled()) {
+          log.error(e.getMessage(), e);
         }
+      } catch (TimeoutException e) {
+        if (log.isDebugEnabled()) {
+          log.error(e.getMessage(), e);
+        }
+      }
     }
+    log.info("Deactivated Elasticity for NSR with id: " + nsr_id);
+    return new AsyncResult<>(true);
+  }
 
+  private void subscribe(Action action) throws SDKException {
+    log.debug("Subscribing to all NSR Events with Action " + action);
+    EventEndpoint eventEndpoint = new EventEndpoint();
+    eventEndpoint.setName("Subscription:" + action);
+    eventEndpoint.setEndpoint("http://localhost:9999/event/" + action);
+    eventEndpoint.setEvent(action);
+    eventEndpoint.setType(EndpointType.REST);
+    this.subscriptionIds.add(nfvoRequestor.getEventAgent().create(eventEndpoint).getId());
+  }
+
+  private void unsubscribe() throws SDKException {
+    for (String subscriptionId : subscriptionIds) {
+      nfvoRequestor.getEventAgent().delete(subscriptionId);
+    }
+  }
+
+  private void waitForNfvo() {
+    if (!Utils.isNfvoStarted(nfvoProperties.getIp(), nfvoProperties.getPort())) {
+      log.error("After 150 sec the Nfvo is not started yet. Is there an error?");
+      System.exit(1); // 1 stands for the error in running nfvo TODO define error codes (doing)
+    }
+  }
 }

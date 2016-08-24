@@ -17,13 +17,11 @@
 
 package org.openbaton.vnfm.repositories;
 
-
 import org.openbaton.vnfm.catalogue.MediaServer;
 import org.springframework.data.repository.CrudRepository;
 
 /**
  * Created by lto on 06/05/15.
  */
-public interface MediaServerRepository extends CrudRepository<MediaServer, String>, MediaServerRepositoryCustom {
-
-}
+public interface MediaServerRepository
+    extends CrudRepository<MediaServer, String>, MediaServerRepositoryCustom {}

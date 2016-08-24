@@ -27,121 +27,134 @@ import java.io.Serializable;
 import java.util.Date;
 
 @Entity
-public class Application implements Serializable{
-    /**
-     * ID of the Application
-     */
-    @Id
-    private String id = IdGenerator.createUUID();
-    @Version
-    private int hb_version = 0;
+public class Application implements Serializable {
+  /**
+   * ID of the Application
+   */
+  @Id private String id = IdGenerator.createUUID();
+  @Version private int hb_version = 0;
 
-    private String vnfr_id;
+  private String vnfr_id;
 
-    private int points;
+  private int points;
 
-    private String ip;
+  private String ip;
 
-    private String mediaServerId;
+  private String mediaServerId;
 
-    private String extAppId;
+  private String extAppId;
 
-    private Date created;
+  private Date created;
 
-    private Date heartbeat;
+  private Date heartbeat;
 
-    private int missedHeartbeats;
+  private int missedHeartbeats;
 
-    @PrePersist
-    public void ensureId(){
-        id = IdGenerator.createUUID();
-    }
+  @PrePersist
+  public void ensureId() {
+    id = IdGenerator.createUUID();
+  }
 
-    public String getId() {
-        return id;
-    }
+  public String getId() {
+    return id;
+  }
 
-    public void setId(String id) {
-        this.id = id;
-    }
+  public void setId(String id) {
+    this.id = id;
+  }
 
-    public String getVnfr_id() {
-        return vnfr_id;
-    }
+  public String getVnfr_id() {
+    return vnfr_id;
+  }
 
-    public void setVnfr_id(String vnfr_id) {
-        this.vnfr_id = vnfr_id;
-    }
+  public void setVnfr_id(String vnfr_id) {
+    this.vnfr_id = vnfr_id;
+  }
 
-    public int getPoints() {
-        return points;
-    }
+  public int getPoints() {
+    return points;
+  }
 
-    public void setPoints(int points) {
-        this.points = points;
-    }
+  public void setPoints(int points) {
+    this.points = points;
+  }
 
-    public String getIp() {
-        return ip;
-    }
+  public String getIp() {
+    return ip;
+  }
 
-    public void setIp(String ip) {
-        this.ip = ip;
-    }
+  public void setIp(String ip) {
+    this.ip = ip;
+  }
 
-    public String getMediaServerId() {
-        return mediaServerId;
-    }
+  public String getMediaServerId() {
+    return mediaServerId;
+  }
 
-    public void setMediaServerId(String mediaServerId) {
-        this.mediaServerId = mediaServerId;
-    }
+  public void setMediaServerId(String mediaServerId) {
+    this.mediaServerId = mediaServerId;
+  }
 
-    public String getExtAppId() {
-        return extAppId;
-    }
+  public String getExtAppId() {
+    return extAppId;
+  }
 
-    public void setExtAppId(String extAppId) {
-        this.extAppId = extAppId;
-    }
+  public void setExtAppId(String extAppId) {
+    this.extAppId = extAppId;
+  }
 
-    public Date getCreated() {
-        return created;
-    }
+  public Date getCreated() {
+    return created;
+  }
 
-    public void setCreated(Date created) {
-        this.created = created;
-    }
+  public void setCreated(Date created) {
+    this.created = created;
+  }
 
-    public Date getHeartbeat() {
-        return heartbeat;
-    }
+  public Date getHeartbeat() {
+    return heartbeat;
+  }
 
-    public void setHeartbeat(Date heartbeat) {
-        this.heartbeat = heartbeat;
-    }
+  public void setHeartbeat(Date heartbeat) {
+    this.heartbeat = heartbeat;
+  }
 
-    public int getMissedHeartbeats() {
-        return missedHeartbeats;
-    }
+  public int getMissedHeartbeats() {
+    return missedHeartbeats;
+  }
 
-    public void setMissedHeartbeats(int missedHeartbeats) {
-        this.missedHeartbeats = missedHeartbeats;
-    }
+  public void setMissedHeartbeats(int missedHeartbeats) {
+    this.missedHeartbeats = missedHeartbeats;
+  }
 
-    @Override
-    public String toString() {
-        return "Application{" +
-                "id='" + id + '\'' +
-                ", hb_version=" + hb_version +
-                ", vnfr_id='" + vnfr_id + '\'' +
-                ", points=" + points +
-                ", ip='" + ip + '\'' +
-                ", mediaServerId='" + mediaServerId + '\'' +
-                ", extAppId='" + extAppId + '\'' +
-                ", created=" + created +
-                ", heartbeat=" + heartbeat +
-                ", missedHeartbeats=" + missedHeartbeats +
-                '}';
-    }
+  @Override
+  public String toString() {
+    return "Application{"
+        + "id='"
+        + id
+        + '\''
+        + ", hb_version="
+        + hb_version
+        + ", vnfr_id='"
+        + vnfr_id
+        + '\''
+        + ", points="
+        + points
+        + ", ip='"
+        + ip
+        + '\''
+        + ", mediaServerId='"
+        + mediaServerId
+        + '\''
+        + ", extAppId='"
+        + extAppId
+        + '\''
+        + ", created="
+        + created
+        + ", heartbeat="
+        + heartbeat
+        + ", missedHeartbeats="
+        + missedHeartbeats
+        + '}';
+  }
 }

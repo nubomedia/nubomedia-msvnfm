@@ -29,8 +29,5 @@ import org.springframework.stereotype.Service;
 @Scope
 public class EventManagement {
 
-    protected Logger log = LoggerFactory.getLogger(this.getClass());
-
-
-
+  protected Logger log = LoggerFactory.getLogger(this.getClass());
 }
