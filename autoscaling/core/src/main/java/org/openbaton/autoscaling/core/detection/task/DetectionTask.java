@@ -44,8 +44,6 @@ public class DetectionTask implements Runnable {
 
   protected Logger log = LoggerFactory.getLogger(this.getClass());
 
-  //    private NFVORequestor nfvoRequestor;
-
   private DetectionEngine detectionEngine;
 
   private ActionMonitor actionMonitor;
@@ -197,9 +195,6 @@ public class DetectionTask implements Runnable {
         fired = true;
         log.info("[DETECTOR] DETECTED_ALARM " + new Date().getTime());
         detectionEngine.sendAlarm(nsr_id, vnfr_id, autoScalePolicy);
-        //} else {
-        //    log.debug("Threshold of AutoScalingPolicy with id " + autoScalePolicy.getId() + " was already crossed. So don't FIRE it again and wait for CLEARED-> " + autoScalePolicy.getThreshold() + autoScalePolicy.getComparisonOperator() + finalResult);
-        //}
       } else {
         if (fired == false) {
           log.trace(

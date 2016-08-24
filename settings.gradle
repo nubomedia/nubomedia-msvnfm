@@ -14,10 +14,6 @@
  *  *  limitations under the License.
  *
  */
-//
-//apply from: 'openbaton-libs/vnfm-sdk/gradle/gradle/settings-parent-vnfm-sdk-jms.gradle'
-//
-//apply from: 'openbaton-libs/vnfm-sdk/gradle/gradle/settings-parent-vnfm-vim.gradle'
 
 rootProject.name = 'nubomedia-msvnfm'
 
@@ -27,43 +23,17 @@ include 'vnfm-catalogue'
 include 'core'
 
 project(':core').projectDir = file('core')
-//project(':core-int').projectDir = file('core/core-int')
 
-
-//openbaton-libs
-//include 'catalogue'
-//include 'vnfm-sdk-amqp'
-//include 'vnfm-sdk'
 include 'main'
-//include 'vim-drivers'
-//include 'vim-int'
-//include 'vim-impl'
-//include 'monitoring'
-//include 'exception'
-//include 'plugin'
-//include 'utils'
 include 'configuration'
-
-//project(':catalogue').projectDir = file('openbaton-libs/catalogue')
-//project(':vnfm-sdk-amqp').projectDir = file('openbaton-libs/vnfm-sdk-amqp')
-//project(':vnfm-sdk').projectDir = file('openbaton-libs/vnfm-sdk')
-//project(':vim-drivers').projectDir = file('openbaton-libs/vim-drivers')
-//project(':vim-int').projectDir = file('openbaton-libs/vim-int')
-//project(':vim-impl').projectDir = file('openbaton-libs/vim-impl')
-//project(':monitoring').projectDir = file('openbaton-libs/monitoring')
-//project(':exception').projectDir = file('openbaton-libs/exception')
-//project(':plugin').projectDir = file('openbaton-libs/plugin')
-//project(':utils').projectDir = file('openbaton-libs/utils')
 
 //autoscaling
 include 'as-core'
 include 'as-catalogue'
 include 'as-utils'
 include 'as-api'
-//include 'sdk'
 
 project(':as-core').projectDir = file('autoscaling/core')
 project(':as-catalogue').projectDir = file('autoscaling/catalogue')
 project(':as-utils').projectDir = file('autoscaling/utils')
 project(':as-api').projectDir = file('autoscaling/api')
-//project(':sdk').projectDir = file('autoscaling/sdk/sdk')

@@ -30,32 +30,18 @@ dependencies {
     compile 'org.openbaton:vim-impl:' + openbatonVersion
     compile 'org.openbaton:vnfm-sdk-amqp:' + openbatonVersion
 
-//    compile project(':catalogue')
     compile project(':as-catalogue')
     compile project(':vnfm-catalogue')
     compile project(':as-utils')
     compile project(':repository')
-//    compile project(':monitoring')
-//    compile project(':vim-int')
-//    compile project(':core-impl')
     compile project(':core')
 
     compile project(':configuration')
-
-    //compile project(':vnfm-sdk')
-//    compile project(':vnfm-sdk-amqp')
-    //compile project(':sdk')
-//    runtime project(':vim-impl')
 
     compile ('org.openbaton:sdk:2.1.3-SNAPSHOT') {
 //    compile ('org.openbaton:sdk:' + openbatonVersion) {
         exclude module: 'catalogue'
     }
-    //compile 'org.openbaton:monitoring:0.15-SNAPSHOT'
-    //compile 'org.openbaton:vim-int:0.15'
-
-    //compile 'org.springframework.data:spring-data-jpa:1.8.2.RELEASE'
-    //compile 'org.springframework.boot:spring-boot-starter-data-jpa:' + springBootVersion
     compile 'org.springframework.boot:spring-boot:' + springBootVersion
     compile 'org.springframework:spring-test:4.2.0.RELEASE'
 }

@@ -113,14 +113,5 @@ public class RestEventInterface {
     Gson mapper = new GsonBuilder().create();
     Action action = mapper.fromJson(json.get("action"), Action.class);
     log.debug("ACTION=" + action);
-    //        try {
-    //            NetworkServiceRecord nsr = mapper.fromJson(json.get("payload"), NetworkServiceRecord.class);
-    //            log.debug("NSR=" + nsr);
-    //            elasticityManagement.deactivate(nsr);
-    //        } catch (NullPointerException e) {
-    //            VirtualNetworkFunctionRecord vnfr = mapper.fromJson(json.get("payload"), VirtualNetworkFunctionRecord.class);
-    //            log.debug("vnfr=" + vnfr);
-    //            elasticityManagement.deactivate(vnfr);
-    //        }
   }
 }

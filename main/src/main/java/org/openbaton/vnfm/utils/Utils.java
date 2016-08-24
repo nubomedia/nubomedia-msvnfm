@@ -256,13 +256,9 @@ public class Utils {
   public static String replaceVariables(String userdataRaw, Map<String, String> variables) {
     String userdata = userdataRaw;
     for (String variable : variables.keySet()) {
-      //if (!variables.get(variable).equals("")) {
       log.debug("Replace " + variable + " with value " + variables.get(variable));
       userdata = userdata.replaceAll(Pattern.quote(variable), variables.get(variable));
       log.debug("Replaced userdata: " + userdata);
-      //} else {
-      //    log.warn("Variable " + variable + " is not defined. So not replace it");
-      //}
     }
     return userdata;
   }

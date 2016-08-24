@@ -120,7 +120,6 @@ public class DetectionManagement {
       log.error(e.getMessage(), e);
     }
     if (vnfr == null) {
-      //throw new NotFoundException("Not Found VirtualNetworkFunctionRecord with id: " + vnfr_id);
       log.warn("Not Found VirtualNetworkFunctionRecord with id: " + vnfr_id);
       return;
     }
@@ -219,7 +218,6 @@ public class DetectionManagement {
       log.error(e.getMessage(), e);
     }
     if (vnfr == null) {
-      //throw new NotFoundException("Not Found VirtualNetworkFunctionRecord with id: " + vnfr_id);
       log.warn("Not Found VirtualNetworkFunctionRecord with id: " + vnfr_id);
       return new AsyncResult<>(false);
     }

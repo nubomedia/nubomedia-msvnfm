@@ -22,21 +22,11 @@ repositories {
 }
 
 dependencies {
-//    compile project(':catalogue')
-//    compile project(':exception')
-
     compile project(':repository')
     compile project(':configuration')
-//    compile project(':vim-drivers')
     compile 'org.openbaton:catalogue:' + openbatonVersion
     compile 'org.openbaton:vim-drivers:' + openbatonVersion
     compile 'org.openbaton:exception:' + openbatonVersion
-
-    //compile project(':sdk')
-
-    //compile project(':as-core')
-
-    //compile 'org.openbaton:sdk:0.6'
 
     compile 'org.apache.commons:commons-collections4:4.1'
 

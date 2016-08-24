@@ -177,23 +177,6 @@ public class Utils {
         "VimInstance with name: " + name + " was not found in the provided list of VimInstances.");
   }
 
-  //    public static VimInstance getVimInstance(String name, NFVORequestor nfvoRequestor) throws NotFoundException {
-  //        List<VimInstance> vimInstances = new ArrayList<>();
-  //        try {
-  //            vimInstances = nfvoRequestor.getVimInstanceAgent().findAll();
-  //        } catch (SDKException e) {
-  //            log.error(e.getMessage(), e);
-  //        } catch (ClassNotFoundException e) {
-  //            log.error(e.getMessage(), e);
-  //        }
-  //        for (VimInstance vimInstance : vimInstances) {
-  //            if (vimInstance.getName().equals(name)) {
-  //                return vimInstance;
-  //            }
-  //        }
-  //        throw new NotFoundException("VimInstance with name: " + name + " was not found in the provided list of VimInstances.");
-  //    }
-
   public Set<Event> listEvents(VirtualNetworkFunctionRecord vnfr) {
     Set<Event> events = new HashSet<Event>();
     for (LifecycleEvent event : vnfr.getLifecycle_event()) {
@@ -232,12 +215,9 @@ public class Utils {
   public static String replaceVariables(String userdataRaw, Map<String, String> variables) {
     String userdata = userdataRaw;
     for (String variable : variables.keySet()) {
-      //if (!variables.get(variable).equals("")) {
       log.debug("Replace " + variable + " with value " + variables.get(variable));
       userdata = userdata.replaceAll(Pattern.quote(variable), variables.get(variable));
       log.debug("Replaced userdata: " + userdata);
-      //} else {
-      //    log.warn("Variable " + variable + " is not defined. So not replace it");
       //}
     }
     return userdata;

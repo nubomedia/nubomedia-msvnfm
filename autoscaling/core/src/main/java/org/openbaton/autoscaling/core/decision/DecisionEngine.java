@@ -46,7 +46,6 @@ public class DecisionEngine {
 
   @Autowired private ConfigurableApplicationContext context;
 
-  //@Autowired
   private ExecutionManagement executionManagement;
 
   @Autowired private NFVORequestor nfvoRequestor;

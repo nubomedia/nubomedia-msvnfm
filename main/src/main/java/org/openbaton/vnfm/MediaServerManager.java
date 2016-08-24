@@ -160,11 +160,9 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp
         } catch (InterruptedException e) {
           log.error(e.getMessage());
           if (log.isDebugEnabled()) log.error(e.getMessage(), e);
-          //throw new RuntimeException(e.getMessage(), e);
         } catch (ExecutionException e) {
           log.error(e.getMessage());
           if (log.isDebugEnabled()) log.error(e.getMessage(), e);
-          //throw new RuntimeException(e.getMessage(), e);
         }
       }
     }
@@ -244,8 +242,6 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp
     }
     managedVnfr.setTask(Action.RELEASE_RESOURCES);
     managedVnfrRepository.save(managedVnfr);
-    //Set<Event> events = lifecycleManagement.listEvents(virtualNetworkFunctionRecord);
-    //if (events.contains(Event.SCALE))
     try {
       elasticityManagement
           .deactivate(
@@ -383,10 +379,6 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp
     super.setup();
     context.registerShutdownHook();
   }
-
-  //    public static void main(String[] args) {
-  //        SpringApplication.run(MediaServerManager.class, args);
-  //    }
 
   @Override
   public void NotifyChange() {

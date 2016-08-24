@@ -26,8 +26,6 @@ dependencies {
 
     compile 'org.openbaton:catalogue:' + openbatonVersion
     compile 'org.openbaton:exception:' + openbatonVersion
-//    compile project(':catalogue')
-//    compile project(':exception')
     compile project(':core')
 
     compile("mysql:mysql-connector-java:5.1.35")

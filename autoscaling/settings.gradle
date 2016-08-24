@@ -17,27 +17,11 @@ rootProject.name = 'autoscaling'
  *
  */
 
-//include 'main'
-//include 'core'
-//include 'catalogue'
-//include 'api'
-//include 'utils'
 
-//include 'openbaton-libs'
 include 'catalogue'
-//include 'sdk'
 include 'core-impl'
 
-//project(':main').projectDir = file('main')
-//project(':core').projectDir = file('core')
-//project(':catalogue').projectDir = file('catalogue')
-//project(':api').projectDir = file('api')
-//project(':utils').projectDir = file('utils')
-
-//project(':openbaton-libs').projectDir = file('../openbaton-libs')
 project(':catalogue').projectDir = file('../openbaton-libs/catalogue')
 project(':core-impl').projectDir = file('../core/core-impl')
-//project(':sdk').projectDir = file('sdk')
-//project(':sdk').projectDir = file('sdk')
 
 

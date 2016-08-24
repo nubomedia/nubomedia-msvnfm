@@ -175,7 +175,6 @@ public class ExecutionEngine {
             } catch (VimException e) {
               log.warn(e.getMessage(), e);
             }
-            //nfvoRequestor.getNetworkServiceRecordAgent().createVNFCInstance(vnfr.getParent_ns_id(), vnfr.getId(), vdu.getId(), vnfComponent_new);
           }
         } else {
           log.warn("Maximum size of VDU with id: " + vdu.getId() + " reached...");
@@ -192,12 +191,8 @@ public class ExecutionEngine {
       if (vnfcInstance == null) {
         log.warn("Not found any VDU to scale out a VNFComponent. Limits are reached.");
         return vnfr;
-        //throw new NotFoundException("Not found any VDU to scale out a VNFComponent. Limits are reached.");
       }
-      //vnfr.setStatus(Status.ACTIVE);
-      //nfvoRequestor.getNetworkServiceRecordAgent().updateVNFR(nsr_id, vnfr_id, vnfr);
       vnfr = updateVNFR(vnfr);
-      //vnfr = nfvoRequestor.getNetworkServiceRecordAgent().getVirtualNetworkFunctionRecord(nsr_id, vnfr_id);
       for (VirtualDeploymentUnit vdu : vnfr.getVdu()) {
         int cores = 1;
         try {
@@ -241,10 +236,6 @@ public class ExecutionEngine {
   public VirtualNetworkFunctionRecord scaleIn(
       VirtualNetworkFunctionRecord vnfr, int numberOfInstances)
       throws SDKException, NotFoundException, VimException {
-    //VirtualNetworkFunctionRecord vnfr = nfvoRequestor.getNetworkServiceRecordAgent().getVirtualNetworkFunctionRecord(nsr_id, vnfr_id);
-    //vnfr.setStatus(Status.SCALE);
-    //nfvoRequestor.getNetworkServiceRecordAgent().updateVNFR(nsr_id, vnfr_id, vnfr);
-    //vnfr = nfvoRequestor.getNetworkServiceRecordAgent().getVirtualNetworkFunctionRecord(nsr_id, vnfr_id);
     log.info("Executing scaling-in of VNFR with id: " + vnfr.getId());
     for (int i = 1; i <= numberOfInstances; i++) {
       VNFCInstance vnfcInstance_remove = null;
@@ -313,7 +304,6 @@ public class ExecutionEngine {
                       + mediaServer.getHostName()
                       + " since applications are still registered to");
             }
-            //nfvoRequestor.getNetworkServiceRecordAgent().deleteVNFCInstance(vnfr.getParent_ns_id(), vnfr.getId(), vdu.getId(), vnfcInstance_remove.getId());
           }
         }
         if (mediaServer_remove != null) {
@@ -345,7 +335,6 @@ public class ExecutionEngine {
       }
       if (vnfcInstance_remove == null) {
         log.warn("Not found any VDU to scale in a VNFInstance.");
-        //throw new NotFoundException("Not found any VDU to scale in a VNFComponent. Limits are reached.");
       } else {
         vnfr = updateVNFR(vnfr);
       }

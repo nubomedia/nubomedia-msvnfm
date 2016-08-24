@@ -78,33 +78,6 @@ public class DetectionEngine {
     }
   }
 
-  //    public void waitForState(String nsrId, String vnfrId, Set<Status> states) {
-  //        try {
-  //            Thread.sleep(15000);
-  //        } catch (InterruptedException e) {
-  //            log.error(e.getMessage(), e);
-  //        }
-  //        VirtualNetworkFunctionRecord vnfr = getVnfr(nsrId, vnfrId);
-  //        while (!states.contains(vnfr.getStatus())) {
-  //            log.debug("DetectionTask: Waiting until status of VNFR with id: " + vnfrId + " goes back to " + states);
-  //            try {
-  //                Thread.sleep(10000);
-  //            } catch (InterruptedException e) {
-  //                log.error(e.getMessage(), e);
-  //            }
-  //            vnfr = getVnfr(nsrId, vnfrId);
-  //        }
-  //    }
-  //
-  //    public VirtualNetworkFunctionRecord getVnfr(String nsrId, String vnfrId) {
-  //        try {
-  //            return nfvoRequestor.getNetworkServiceRecordAgent().getVirtualNetworkFunctionRecord(nsrId, vnfrId);
-  //        } catch (SDKException e) {
-  //            log.error(e.getMessage(), e);
-  //        }
-  //        return null;
-  //    }
-
   public List<Item> getRawMeasurementResults(
       VirtualNetworkFunctionRecord vnfr, String metric, String period) throws MonitoringException {
     ArrayList<Item> measurementResults = new ArrayList<Item>();
