@@ -162,15 +162,23 @@ public class HistoryManagement {
     for (ManagedVNFR managedVNFR : managedVNFRRepository.findAll()) {
       vnfrIds.add(managedVNFR.getVnfrId());
     }
+    Set<String> loadHistoryToBeRemoved = new HashSet<>();
     for (String vnfrId : loadHistory.keySet()) {
       if (!vnfrIds.contains(vnfrId)) {
-        loadHistory.remove(vnfrId);
+        loadHistoryToBeRemoved.add(vnfrId);
       }
     }
+    for (String remove : loadHistoryToBeRemoved) {
+      loadHistory.remove(remove);
+    }
+    Set<String> numberHistoryToBeRemoved = new HashSet<>();
     for (String vnfrId : numberHistory.keySet()) {
       if (!vnfrIds.contains(vnfrId)) {
-        numberHistory.remove(vnfrId);
+        numberHistoryToBeRemoved.add(vnfrId);
       }
+    }
+    for (String remove : numberHistoryToBeRemoved) {
+      numberHistory.remove(remove);
     }
   }
 }

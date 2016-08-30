@@ -1,4 +1,4 @@
-/*
+package org.openbaton.vnfm.exceptions;/*
  *
  *  * Copyright (c) 2015 Technische Universität Berlin
  *  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,24 +15,22 @@
  *
  */
 
-package org.openbaton.vnfm.exceptions;
-
 /**
  * Created by lto on 21/07/15.
  */
-public class PluginInstallException extends Exception {
+public class NoFloatingIpAvailableException extends Exception {
 
-  public PluginInstallException() {}
+  public NoFloatingIpAvailableException() {}
 
-  public PluginInstallException(String message) {
+  public NoFloatingIpAvailableException(String message) {
     super(message);
   }
 
-  public PluginInstallException(String message, Throwable cause) {
+  public NoFloatingIpAvailableException(String message, Throwable cause) {
     super(message, cause);
   }
 
-  public PluginInstallException(Throwable e) {
+  public NoFloatingIpAvailableException(Throwable e) {
     super(e);
   }
 }
