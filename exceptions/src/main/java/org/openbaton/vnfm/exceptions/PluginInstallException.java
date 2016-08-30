@@ -1,4 +1,4 @@
-package org.openbaton.vnfm.exceptions;/*
+/*
  *
  *  * Copyright (c) 2015 Technische Universität Berlin
  *  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,6 +14,8 @@ package org.openbaton.vnfm.exceptions;/*
  *  *  limitations under the License.
  *
  */
+
+package org.openbaton.vnfm.exceptions;
 
 /**
  * Created by lto on 21/07/15.
