@@ -150,6 +150,7 @@ The following list gives an overview of available configuration parameters and i
     * nfvo.port: This property defines the port of the NFVO.
     * nfvo.username: This property defines the username used for authentication to the NFVO.
     * nfvo.password: This property defines the password user for authentication against the NFVO.
+    * nfvo.project.name: This property defines the project name which is used in the NFVO.
 
 ## Logging
 

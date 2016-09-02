@@ -24,6 +24,7 @@ repositories {
 dependencies {
     compile project(':repository')
     compile project(':configuration')
+    compile project(':exceptions')
     compile 'org.openbaton:catalogue:' + openbatonVersion
     compile 'org.openbaton:vim-drivers:' + openbatonVersion
     compile 'org.openbaton:exception:' + openbatonVersion

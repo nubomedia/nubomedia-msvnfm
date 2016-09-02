@@ -15,27 +15,24 @@
  *
  */
 
-rootProject.name = 'nubomedia-msvnfm'
+package org.openbaton.vnfm.exceptions;
 
-include 'api'
-include 'repository'
-include 'vnfm-catalogue'
-include 'core'
+/**
+ * Created by lto on 21/07/15.
+ */
+public class NoFloatingIpAvailableException extends Exception {
 
-project(':core').projectDir = file('core')
+  public NoFloatingIpAvailableException() {}
 
-include 'main'
-include 'configuration'
+  public NoFloatingIpAvailableException(String message) {
+    super(message);
+  }
 
-//autoscaling
-include 'as-core'
-include 'as-catalogue'
-include 'as-utils'
-include 'as-api'
-include 'exceptions'
+  public NoFloatingIpAvailableException(String message, Throwable cause) {
+    super(message, cause);
+  }
 
-project(':as-core').projectDir = file('autoscaling/core')
-project(':as-catalogue').projectDir = file('autoscaling/catalogue')
-project(':as-utils').projectDir = file('autoscaling/utils')
-project(':as-api').projectDir = file('autoscaling/api')
-project(':exceptions').projectDir = file('exceptions')
+  public NoFloatingIpAvailableException(Throwable e) {
+    super(e);
+  }
+}
