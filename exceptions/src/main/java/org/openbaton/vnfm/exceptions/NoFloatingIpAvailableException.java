@@ -15,23 +15,24 @@
  *
  */
 
-repositories {
-    mavenCentral()
-    maven {
-        url "http://get.openbaton.org:8081/nexus/content/groups/public"
-    }
-}
+package org.openbaton.vnfm.exceptions;
 
-dependencies {
-    compile 'org.openbaton:catalogue:' + openbatonVersion
-    compile 'org.openbaton:exception:' + openbatonVersion
-    compile ('org.openbaton:sdk:2.1.3') {
-//    compile ('org.openbaton:sdk:' + openbatonVersion) {
-        exclude module: 'catalogue'
-    }
-    compile 'org.slf4j:slf4j-api:1.6.1'
+/**
+ * Created by lto on 21/07/15.
+ */
+public class NoFloatingIpAvailableException extends Exception {
 
-    compile 'org.springframework:spring-core:4.0.0.RELEASE'
+  public NoFloatingIpAvailableException() {}
 
-    testCompile group: 'junit', name: 'junit', version: '4.11'
+  public NoFloatingIpAvailableException(String message) {
+    super(message);
+  }
+
+  public NoFloatingIpAvailableException(String message, Throwable cause) {
+    super(message, cause);
+  }
+
+  public NoFloatingIpAvailableException(Throwable e) {
+    super(e);
+  }
 }
