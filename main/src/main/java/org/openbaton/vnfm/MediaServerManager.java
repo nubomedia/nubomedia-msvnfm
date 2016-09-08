@@ -366,6 +366,21 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp
   }
 
   @Override
+  public VirtualNetworkFunctionRecord stop(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) throws Exception {
+    return null;
+  }
+
+  @Override
+  public VirtualNetworkFunctionRecord startVNFCInstance(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, VNFCInstance vnfcInstance) throws Exception {
+    return null;
+  }
+
+  @Override
+  public VirtualNetworkFunctionRecord stopVNFCInstance(VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, VNFCInstance vnfcInstance) throws Exception {
+    return null;
+  }
+
+  @Override
   public VirtualNetworkFunctionRecord configure(
       VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) {
     /**
