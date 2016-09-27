@@ -38,8 +38,8 @@ dependencies {
 
     compile project(':configuration')
 
-    compile ('org.openbaton:sdk:2.1.3') {
-//    compile ('org.openbaton:sdk:' + openbatonVersion) {
+//    compile ('org.openbaton:sdk:2.1.3') {
+    compile ('org.openbaton:sdk:' + openbatonVersion) {
         exclude module: 'catalogue'
     }
     compile 'org.springframework.boot:spring-boot:' + springBootVersion
