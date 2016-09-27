@@ -218,6 +218,7 @@ public class MediaServerResourceManagement {
               + ". Caused by: "
               + e.getMessage(),
           e,
+          vdu,
           vnfcInstance);
     }
 
