@@ -25,6 +25,7 @@ import org.openbaton.catalogue.mano.record.VNFCInstance;
 import org.openbaton.catalogue.mano.record.VNFRecordDependency;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
 import org.openbaton.catalogue.nfvo.Action;
+import org.openbaton.catalogue.nfvo.Script;
 import org.openbaton.catalogue.nfvo.VimInstance;
 import org.openbaton.catalogue.nfvo.messages.Interfaces.NFVMessage;
 import org.openbaton.common.vnfm_sdk.amqp.AbstractVnfmSpringAmqp;
@@ -211,7 +212,8 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp
   }
 
   @Override
-  public void updateSoftware() {
+  public VirtualNetworkFunctionRecord updateSoftware(
+      Script script, VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) throws Exception {
     throw new UnsupportedOperationException();
   }
 
@@ -363,6 +365,25 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp
     managedVnfr.setTask(Action.SCALING);
     managedVnfrRepository.save(managedVnfr);
     return virtualNetworkFunctionRecord;
+  }
+
+  public VirtualNetworkFunctionRecord stop(
+      VirtualNetworkFunctionRecord virtualNetworkFunctionRecord) throws Exception {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public VirtualNetworkFunctionRecord startVNFCInstance(
+      VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, VNFCInstance vnfcInstance)
+      throws Exception {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public VirtualNetworkFunctionRecord stopVNFCInstance(
+      VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, VNFCInstance vnfcInstance)
+      throws Exception {
+    throw new UnsupportedOperationException();
   }
 
   @Override
