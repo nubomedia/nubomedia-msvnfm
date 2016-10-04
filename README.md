@@ -1,12 +1,8 @@
-# MS-VNFM
-<!--
-[![Build Status](https://travis-ci.org/openbaton/NFVO.svg?branch=master)](https://travis-ci.org/openbaton/NFVO)
-[![Join the chat at https://gitter.im/openbaton/NFVO](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/openbaton/NFVO?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
--->
+[![][NUBOMEDIA Logo]][NUBOMEDIA]
 
-This project is part of NUBOMEDIA project: [NUBOMEDIA][nubomedia.eu]
+Copyright © 2016 [NUBOMEDIA]. Licensed under [Apache 2.0 License].
 
-## Welcome to Elastic Media Manager's documentation!
+# Media Server VNFM (also known as Elastic Media Manager)
 
 This `VNF Manager`, called `ms-vnfm` also known as `emm`, is implemented in java using the [spring.io] framework.
 
@@ -169,14 +165,17 @@ Issues and bug reports should be posted to [GitHub Issues].
 Licensing and distribution
 --------------------------
 
-Software associated to NUBOMEDIA is provided as open source under GNU Library or
-"Lesser" General Public License, version 2.1 (LGPL-2.1). Please check the
-specific terms and conditions linked to this open source license at
-http://opensource.org/licenses/LGPL-2.1. Please note that software derived as a
-result of modifying the source code of NUBOMEDIA software in order to fix a bug
-or incorporate enhancements is considered a derivative work of the product.
-Software that merely uses or aggregates (i.e. links to) an otherwise unmodified
-version of existing software is not considered a derivative work.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+this file except in compliance with the License. You may obtain a copy of the
+License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
 
 Contribution policy
 -------------------
@@ -206,19 +205,19 @@ Support
 
 The NUBOMEDIA community provides support through the [NUBOMEDIA Public Mailing List].
 
+[Apache 2.0 License]: https://www.apache.org/licenses/LICENSE-2.0.txt
+[bootstrap]:https://raw.githubusercontent.com/tub-nubomedia/ms-vnfm/master/bootstrap
 [Development Guide]: http://nubomedia.readthedocs.org/
 [GitHub Issues]: https://github.com/tub-nubomedia/marketplace/issues
 [GitHub NUBOMEDIA Group]: https://github.com/nubomedia
-[LGPL v2.1 License]: http://www.gnu.org/licenses/lgpl-2.1.html
+[LICENSE]:./LICENSE
 [NUBOMEDIA Logo]: http://www.nubomedia.eu/sites/default/files/nubomedia_logo-small.png
 [NUBOMEDIA Twitter]: https://twitter.com/nubomedia
 [NUBOMEDIA Public Mailing list]: https://groups.google.com/forum/#!forum/nubomedia-dev
 [NUBOMEDIA]: http://www.nubomedia.eu
 [nubomedia.eu]: http://www.nubomedia.eu/
-[bootstrap]:https://raw.githubusercontent.com/tub-nubomedia/ms-vnfm/master/bootstrap
+[NFV MANO]:http://www.etsi.org/deliver/etsi_gs/NFV-MAN/001_099/001/01.01.01_60/gs_nfv-man001v010101p.pdf
 [nfvo install]:http://openbaton.github.io/documentation/nfvo-installation/
 [spring.io]:https://spring.io/
-[NFV MANO]:http://www.etsi.org/deliver/etsi_gs/NFV-MAN/001_099/001/01.01.01_60/gs_nfv-man001v010101p.pdf
-[LICENSE]:./LICENSE
-[vnfm-configuration-file]:https://github.com/tub-nubomedia/ms-vnfm/blob/master/etc/msvnfm.properties
 [spring-properties]:http://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#common-application-properties
+[vnfm-configuration-file]:https://github.com/tub-nubomedia/ms-vnfm/blob/master/etc/msvnfm.properties
