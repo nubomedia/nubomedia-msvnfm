@@ -113,7 +113,7 @@ public class ApplicationManagement {
     if (mediaServer.getUsedPoints() == 0) {
       mediaServer.setStatus(Status.IDLE);
     }
-    mediaServerManagement.update(mediaServer, mediaServer.getId());
+    mediaServerManagement.update(mediaServer);
     applicationRepository.delete(application);
     log.info("Removed Application with id: " + appId + " running on VNFR with id: " + vnfrId);
   }

@@ -41,9 +41,9 @@ public class VirtualNetworkFunctionRecordManagement {
 
   public Set<ManagedVNFR> query() throws NotFoundException {
     Iterable<ManagedVNFR> managedVNFRs = managedVNFRRepository.findAll();
-    if (!managedVNFRs.iterator().hasNext()) {
-      throw new NotFoundException("Not found any VNFR managed by this VNFM");
-    }
+    //    if (!managedVNFRs.iterator().hasNext()) {
+    //      throw new NotFoundException("Not found any VNFR managed by this VNFM");
+    //    }
     return fromIterbaleToSet(managedVNFRs);
   }
 

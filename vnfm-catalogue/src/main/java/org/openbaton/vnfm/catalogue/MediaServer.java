@@ -37,8 +37,6 @@ public class MediaServer implements Serializable {
 
   private String vnfrId;
 
-  private String vnfcInstanceId;
-
   private String hostName;
 
   private String ip;
@@ -103,14 +101,6 @@ public class MediaServer implements Serializable {
     this.status = status;
   }
 
-  public String getVnfcInstanceId() {
-    return vnfcInstanceId;
-  }
-
-  public void setVnfcInstanceId(String vnfcInstanceId) {
-    this.vnfcInstanceId = vnfcInstanceId;
-  }
-
   public String getHostName() {
     return hostName;
   }
@@ -137,9 +127,6 @@ public class MediaServer implements Serializable {
         + hb_version
         + ", vnfrId='"
         + vnfrId
-        + '\''
-        + ", vnfcInstanceId='"
-        + vnfcInstanceId
         + '\''
         + ", hostName='"
         + hostName

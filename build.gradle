@@ -65,6 +65,9 @@ apply from: 'gradle/gradle/application.java.gradle'
 repositories {
     mavenCentral()
     maven {
+        url "https://oss.sonatype.org/content/repositories/snapshots"
+    }
+    maven {
         url "http://get.openbaton.org:8081/nexus/content/groups/public"
     }
 }
@@ -84,3 +87,5 @@ task wrapper(type: Wrapper) {
 // end::wrapper[]
 
 apply from: 'gradle/gradle/packaging.project.debian.gradle'
+
+compileJava.dependsOn tasks.googleJavaFormat

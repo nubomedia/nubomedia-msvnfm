@@ -24,6 +24,7 @@ package org.openbaton.vnfm.catalogue;
  */
 public enum Status {
   ACTIVE,
+  INACTIVE,
   RELEASE,
   IDLE;
 }

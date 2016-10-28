@@ -39,6 +39,7 @@ import org.openbaton.sdk.NFVORequestor;
 import org.openbaton.sdk.api.exception.SDKException;
 import org.openbaton.vnfm.catalogue.Application;
 import org.openbaton.vnfm.catalogue.ManagedVNFR;
+import org.openbaton.vnfm.catalogue.MediaServer;
 import org.openbaton.vnfm.configuration.*;
 import org.openbaton.vnfm.core.ApplicationManagement;
 import org.openbaton.vnfm.core.MediaServerManagement;
@@ -195,7 +196,40 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp
       Object scripts,
       VNFRecordDependency dependency)
       throws Exception {
-    //TODO implement scale
+    if (scaleInOrOut.ordinal() == Action.SCALE_OUT.ordinal()) {
+      log.debug(
+          "Scaling out " + virtualNetworkFunctionRecord.getName() + " and adding " + component);
+      List<String> vimInstanceNames = new ArrayList<>();
+      VirtualDeploymentUnit vduToUse = null;
+      for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
+        vimInstanceNames.addAll(vdu.getVimInstanceName());
+        vduToUse = vdu;
+      }
+      VimInstance vimInstance = Utils.getVimInstance(vimInstanceNames, nfvoRequestor);
+      VNFCInstance vnfcInstance =
+          mediaServerResourceManagement
+              .allocate(vimInstance, vduToUse, virtualNetworkFunctionRecord, component)
+              .get();
+      vduToUse.getVnfc_instance().add(vnfcInstance);
+      int cores = 1;
+      try {
+        cores =
+            org.openbaton.autoscaling.utils.Utils.getCpuCoresOfFlavor(
+                virtualNetworkFunctionRecord.getDeployment_flavour_key(),
+                vduToUse.getVimInstanceName(),
+                nfvoRequestor);
+      } catch (NotFoundException e) {
+        log.warn(e.getMessage(), e);
+      }
+      int maxCapacity = cores * mediaServerProperties.getCapacity().getMax();
+      MediaServer mediaServer =
+          mediaServerManagement.add(
+              virtualNetworkFunctionRecord.getId(), vnfcInstance, maxCapacity);
+    } else {
+      log.debug("Scaling in media server " + ((VNFCInstance) component).getHostname());
+      mediaServerManagement.delete(
+          virtualNetworkFunctionRecord.getId(), ((VNFCInstance) component).getHostname());
+    }
     return virtualNetworkFunctionRecord;
   }
 
@@ -378,14 +412,46 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp
   public VirtualNetworkFunctionRecord startVNFCInstance(
       VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, VNFCInstance vnfcInstance)
       throws Exception {
-    throw new UnsupportedOperationException();
+    log.debug("Starting VNFCInstance " + vnfcInstance.getHostname());
+    MediaServer mediaServer = mediaServerManagement.queryByHostName(vnfcInstance.getHostname());
+    if (mediaServer == null) {
+      //TODO add message to history
+    }
+    if (mediaServer.getUsedPoints() == 0) {
+      mediaServer.setStatus(org.openbaton.vnfm.catalogue.Status.IDLE);
+    } else {
+      mediaServer.setStatus(org.openbaton.vnfm.catalogue.Status.ACTIVE);
+    }
+    for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
+      for (VNFCInstance mediaServerVNFCI : vdu.getVnfc_instance()) {
+        if (mediaServerVNFCI.getHostname().equals(vnfcInstance.getHostname())) {
+          mediaServerVNFCI.setState("ACTIVE");
+        }
+      }
+    }
+    mediaServerManagement.update(mediaServer);
+    return virtualNetworkFunctionRecord;
   }
 
   @Override
   public VirtualNetworkFunctionRecord stopVNFCInstance(
       VirtualNetworkFunctionRecord virtualNetworkFunctionRecord, VNFCInstance vnfcInstance)
       throws Exception {
-    throw new UnsupportedOperationException();
+    log.debug("Stopping VNFCInstance " + vnfcInstance.getHostname());
+    MediaServer mediaServer = mediaServerManagement.queryByHostName(vnfcInstance.getHostname());
+    if (mediaServer == null) {
+      //TODO add message to history
+    }
+    mediaServer.setStatus(org.openbaton.vnfm.catalogue.Status.INACTIVE);
+    for (VirtualDeploymentUnit vdu : virtualNetworkFunctionRecord.getVdu()) {
+      for (VNFCInstance mediaServerVNFCI : vdu.getVnfc_instance()) {
+        if (mediaServerVNFCI.getHostname().equals(vnfcInstance.getHostname())) {
+          mediaServerVNFCI.setState("INACTIVE");
+        }
+      }
+    }
+    mediaServerManagement.update(mediaServer);
+    return virtualNetworkFunctionRecord;
   }
 
   @Override
