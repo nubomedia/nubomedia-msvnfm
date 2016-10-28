@@ -20,6 +20,9 @@
 repositories {
     mavenCentral()
     maven {
+        url "https://oss.sonatype.org/content/repositories/snapshots"
+    }
+    maven {
         url "http://get.openbaton.org:8081/nexus/content/groups/public"
     }
 }
@@ -31,6 +34,7 @@ dependencies {
     compile 'org.openbaton:vim-int:' + openbatonVersion
     compile 'org.openbaton:vim-impl:' + openbatonVersion
     compile 'org.openbaton:vnfm-sdk-amqp:' + openbatonVersion
+//    compile 'org.openbaton:vnfm-sdk-amqp:2.2.1-SNAPSHOT'
 
     compile project(':as-catalogue')
     compile project(':vnfm-catalogue')

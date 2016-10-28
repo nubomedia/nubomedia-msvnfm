@@ -54,8 +54,8 @@ public class MediaServerManagement {
 
   public MediaServer add(MediaServer mediaServer) {
     if (mediaServer.getStatus() == null) mediaServer.setStatus(Status.IDLE);
-    if (mediaServer.getVnfcInstanceId() == null)
-      log.error("Not defined VNFCInstanceId of newly created MediaServer");
+    //    if (mediaServer.getVnfcInstanceId() == null)
+    //      log.error("Not defined VNFCInstanceId of newly created MediaServer");
     if (mediaServer.getVnfrId() == null)
       log.error("Not defined VnfrId of newly created MediaServer");
     if (mediaServer.getIp() == null) log.warn("Not defined IP of newly created MediaServer");
@@ -66,7 +66,7 @@ public class MediaServerManagement {
   public MediaServer add(String vnfrId, VNFCInstance vnfcInstance, int maxCapacity) {
     MediaServer mediaServer = new MediaServer();
     mediaServer.setVnfrId(vnfrId);
-    mediaServer.setVnfcInstanceId(vnfcInstance.getId());
+    //    mediaServer.setVnfcInstanceId(vnfcInstance.getId());
     mediaServer.setHostName(vnfcInstance.getHostname());
     mediaServer.setMaxCapacity(maxCapacity);
     //TODO choose the right network
@@ -125,10 +125,9 @@ public class MediaServerManagement {
               + " but there are still running Applications: "
               + fromIterbaleToSet(appsIterable));
       applicationRepository.delete(appsIterable);
-    } else {
-      mediaServerRepository.delete(mediaServer);
-      log.debug("Removed MediaServer with id: " + mediaServerId);
     }
+    mediaServerRepository.delete(mediaServer);
+    log.debug("Removed MediaServer with id: " + mediaServerId);
   }
 
   public void deleteByVnfrId(String vnfrId) throws NotFoundException {
@@ -176,34 +175,42 @@ public class MediaServerManagement {
             + " points");
     for (MediaServer mediaServer : mediaServers) {
       log.trace("Checking MediaServer -> " + mediaServer);
-      if (mediaServer.getIp() != null) {
-        if (bestMediaServer == null) {
-          if (mediaServer.getUsedPoints() + points <= mediaServer.getMaxCapacity()) {
-            log.trace("This is the first MediaServer found so far that has enough capacity left");
+      if (mediaServer.getStatus().ordinal() != Status.INACTIVE.ordinal()) {
+        if (mediaServer.getIp() != null) {
+          if (bestMediaServer == null) {
+            if (mediaServer.getUsedPoints() + points <= mediaServer.getMaxCapacity()) {
+              log.trace("This is the first MediaServer found so far that has enough capacity left");
+              bestMediaServer = mediaServer;
+            } else {
+              log.trace("This MediaServer has not enough capacity left");
+            }
+          } else if (mediaServer.getUsedPoints() < bestMediaServer.getUsedPoints()) {
+            log.trace("This is the best MediaServer so far");
             bestMediaServer = mediaServer;
-          } else {
-            log.trace("This MediaServer has not enough capacity left");
           }
-        } else if (mediaServer.getUsedPoints() < bestMediaServer.getUsedPoints()) {
-          log.trace("This is the best MediaServer so far");
-          bestMediaServer = mediaServer;
+        } else {
+          log.warn(
+              "Not found any IP for MediaServer (VNFCInstance) with id: "
+                  + mediaServer.getHostName());
         }
+
       } else {
-        log.warn(
-            "Not found any IP for MediaServer (VNFCInstance) with id: "
-                + mediaServer.getVnfcInstanceId());
+        log.info(
+            "Media Server "
+                + mediaServer
+                + " is not ACTIVE. Cannot register applications on this Media Server.");
       }
     }
     if (bestMediaServer == null) {
       throw new NotFoundException(
           "Not found any MediaServer for VNFR with id: "
               + vnfr_id
-              + ". At least there is no one with an IP assigned and enough capacity. Please try again later.");
+              + ". At least there is no one ACTIVE or with an IP assigned and enough capacity. Please try again later.");
     }
     return bestMediaServer;
   }
 
-  public MediaServer update(MediaServer mediaServer, String id) {
+  public MediaServer update(MediaServer mediaServer) {
     return mediaServerRepository.save(mediaServer);
   }
 
