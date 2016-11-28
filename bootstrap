@@ -27,7 +27,7 @@ _APT_REPOSITORY="deb http://repository.nubomedia.eu/ trusty main"
 _PROJECT_REPO="https://github.com/nubomedia/nubomedia-msvnfm.git"
 _SCRIPT_NAME="ms-vnfm.sh"
 #_TAG="develop"
-_TAG="tags/1.1.0"
+_TAG="tags/1.3.2"
 
 _USER="$(id -un 2>/dev/null || true)"
 
