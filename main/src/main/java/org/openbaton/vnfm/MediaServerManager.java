@@ -192,7 +192,7 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp
   public VirtualNetworkFunctionRecord scale(
       Action scaleInOrOut,
       VirtualNetworkFunctionRecord virtualNetworkFunctionRecord,
-      VNFCInstance component,
+      VNFComponent component,
       Object scripts,
       VNFRecordDependency dependency)
       throws Exception {
@@ -460,6 +460,16 @@ public class MediaServerManager extends AbstractVnfmSpringAmqp
     /**
      * This message should never arrive!
      */
+    return virtualNetworkFunctionRecord;
+  }
+
+  @Override
+  public VirtualNetworkFunctionRecord resume(
+      VirtualNetworkFunctionRecord virtualNetworkFunctionRecord,
+      VNFCInstance vnfcInstance,
+      VNFRecordDependency dependency)
+      throws Exception {
+    log.warn("resume() not supported");
     return virtualNetworkFunctionRecord;
   }
 

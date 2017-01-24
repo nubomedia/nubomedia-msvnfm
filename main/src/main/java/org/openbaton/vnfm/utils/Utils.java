@@ -23,6 +23,7 @@ import org.openbaton.catalogue.mano.common.DeploymentFlavour;
 import org.openbaton.catalogue.mano.common.Event;
 import org.openbaton.catalogue.mano.common.LifecycleEvent;
 import org.openbaton.catalogue.mano.record.VirtualNetworkFunctionRecord;
+import org.openbaton.catalogue.nfvo.HistoryLifecycleEvent;
 import org.openbaton.catalogue.nfvo.VimInstance;
 import org.openbaton.exceptions.NotFoundException;
 import org.openbaton.sdk.NFVORequestor;
@@ -230,26 +231,26 @@ public class Utils {
 
   public void removeEvent(VirtualNetworkFunctionRecord vnfr, Event event)
       throws javassist.NotFoundException {
-    LifecycleEvent lifecycleEvent = null;
+    HistoryLifecycleEvent historyLifecycleEvent = null;
     if (vnfr.getLifecycle_event_history() == null)
-      vnfr.setLifecycle_event_history(new HashSet<LifecycleEvent>());
+      vnfr.setLifecycle_event_history(new ArrayList<HistoryLifecycleEvent>());
     for (LifecycleEvent tmpLifecycleEvent : vnfr.getLifecycle_event()) {
       if (event.equals(tmpLifecycleEvent.getEvent())) {
-        lifecycleEvent = tmpLifecycleEvent;
-        vnfr.getLifecycle_event_history().add(lifecycleEvent);
+        historyLifecycleEvent.setEvent(tmpLifecycleEvent.getEvent().toString());
+        vnfr.getLifecycle_event_history().add(historyLifecycleEvent);
         break;
       }
     }
-    if (lifecycleEvent == null) {
+    if (historyLifecycleEvent == null) {
       throw new javassist.NotFoundException("Not found LifecycleEvent with event " + event);
     }
   }
 
-  public Set<Event> listHistoryEvents(VirtualNetworkFunctionRecord vnfr) {
-    Set<Event> events = new HashSet<Event>();
+  public Set<String> listHistoryEvents(VirtualNetworkFunctionRecord vnfr) {
+    Set<String> events = new HashSet<String>();
     if (vnfr.getLifecycle_event_history() != null) {
-      for (LifecycleEvent event : vnfr.getLifecycle_event_history()) {
-        events.add(event.getEvent());
+      for (HistoryLifecycleEvent event : vnfr.getLifecycle_event_history()) {
+        events.add(event.getEvent().toString());
       }
     }
     return events;
