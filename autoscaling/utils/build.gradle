@@ -19,15 +19,11 @@
 
 repositories {
     mavenCentral()
-    maven {
-        url "http://get.openbaton.org:8081/nexus/content/groups/public"
-    }
 }
 
 dependencies {
     compile 'org.openbaton:catalogue:' + openbatonVersion
     compile 'org.openbaton:exception:' + openbatonVersion
-//    compile ('org.openbaton:sdk:2.1.3') {
     compile ('org.openbaton:sdk:' + openbatonVersion) {
         exclude module: 'catalogue'
     }

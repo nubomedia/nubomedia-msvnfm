@@ -39,19 +39,6 @@ project.ext {
      */
     applicationVersion = version
     applicationVersionDebian = "1";
-
-    /**
-     * Open Baton Related Version
-     */
-    openbatonVersion = "2.0.6"
-
-    //------------------------------------------------//
-    //------------------------------------------------//
-    /**
-     * gradle Related Vars
-     */
-    //------------------------------------------------//
-    mainClass = 'org.openbaton.autoscaling.Starter'
 }
 
 apply from: 'gradle/gradle/application.java.gradle'
@@ -59,9 +46,6 @@ apply from: 'gradle/gradle/run.application.java.gradle'
 
 repositories {
     mavenCentral()
-    maven {
-        url "http://get.openbaton.org:8081/nexus/content/groups/public"
-    }
 }
 
 dependencies {

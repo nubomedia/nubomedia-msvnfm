@@ -20,9 +20,6 @@
 
 repositories {
     mavenCentral()
-    maven {
-        url "http://get.openbaton.org:8081/nexus/content/groups/public"
-    }
 }
 
 dependencies {
